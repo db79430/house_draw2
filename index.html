@@ -1,0 +1,197 @@
+<div style="text-align: center; padding: 40px 20px;">
+    <!-- Сообщение о перенаправлении -->
+    <div id="redirect-message" style="margin-bottom: 30px;">
+      <h3 style="color: #333; margin-bottom: 15px;">🎉 Регистрация успешно завершена!</h3>
+      <p style="color: #666; font-size: 16px; line-height: 1.5;">
+        Вы будете автоматически перенаправлены на страницу оплаты вступительного взноса...
+      </p>
+    </div>
+  
+    <!-- Индикатор загрузки -->
+    <div id="auto-payment-loading">
+      <div style="color: #667eea; font-size: 16px; margin-bottom: 20px;">
+        ⏳ Подготовка платежной страницы...
+      </div>
+      <div style="width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+    </div>
+  
+    <!-- Резервная ссылка -->
+    <div id="manual-redirect" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+      <p style="color: #666; margin-bottom: 15px;">Если автоматическое перенаправление не сработало:</p>
+      <a id="payment-link" href="#" style="background: #667eea; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+        💳 Перейти к оплате
+      </a>
+    </div>
+  
+    <!-- Сообщение об ошибке -->
+    <div id="auto-payment-error" style="display: none; background: #ffe6e6; color: #d63031; padding: 15px; border-radius: 5px; margin: 20px 0;"></div>
+  </div>
+  
+  <style>
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  #payment-link:hover {
+    background: #5a6fd8 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+  </style>
+  
+  <script>
+  // Конфигурация
+  const AUTO_PAYMENT_CONFIG = {
+    SERVER_URL: 'https://p7402kx7-3000.euw.devtunnels.ms/init-payment', // Замените на ваш URL сервера
+    MEMBERSHIP_FEE: '10', // Сумма вступительного взноса
+    REDIRECT_DELAY: 2000 // Задержка перед началом процесса (2 секунды)
+  };
+  
+  // Основная функция автоматической оплаты
+  async function initAutoPayment() {
+    try {
+      console.log('🚀 Запуск автоматической оплаты...');
+  
+      // Получаем email пользователя
+      const userEmail = getAutoPaymentEmail();
+      
+      if (!userEmail) {
+        throw new Error('Не удалось получить email для оплаты. Пожалуйста, свяжитесь с поддержкой.');
+      }
+  
+      console.log('📧 Обработка оплаты для:', userEmail);
+  
+      // Подготавливаем данные для платежа
+      const paymentData = {
+        formid: 'bf403',
+        projectid: window.tilda_projectid || 'your_project_id',
+        formname: 'Вступительный взнос в клуб',
+        Price: AUTO_PAYMENT_CONFIG.MEMBERSHIP_FEE,
+        Email: userEmail,
+        Phone: '',
+        Name: ''
+      };
+  
+      // Отправляем запрос на сервер
+      const response = await fetch(AUTO_PAYMENT_CONFIG.SERVER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData)
+      });
+  
+      const result = await response.json();
+      console.log('✅ Ответ платежной системы:', result);
+  
+      if (result.success && result.paymentURL) {
+        // Успешно - перенаправляем на страницу оплаты
+        console.log('🔗 Перенаправление на:', result.paymentURL);
+        
+        // Показываем сообщение о успешном перенаправлении
+        document.getElementById('redirect-message').innerHTML = `
+          <h3 style="color: #27ae60; margin-bottom: 15px;">✅ Платежная страница готова!</h3>
+          <p style="color: #666; font-size: 16px;">Перенаправляем на безопасную страницу оплаты...</p>
+        `;
+        
+        // Переходим на страницу оплаты
+        setTimeout(() => {
+          window.location.href = result.paymentURL;
+        }, 1000);
+        
+      } else {
+        throw new Error(result.error || 'Не удалось создать платеж');
+      }
+  
+    } catch (error) {
+      console.error('❌ Ошибка автоматической оплаты:', error);
+      showAutoPaymentError(error.message);
+    }
+  }
+  
+  // Получаем email для автоматической оплаты
+  function getAutoPaymentEmail() {
+    try {
+      // Способ 1: Из localStorage (сохранен при отправке формы)
+      const savedEmail = localStorage.getItem('tilda_registration_email');
+      if (savedEmail) {
+        console.log('📨 Email найден в localStorage:', savedEmail);
+        return savedEmail;
+      }
+  
+      // Способ 2: Из поля формы на странице
+      const emailField = document.querySelector('input[type="email"], input[name*="email"]');
+      if (emailField && emailField.value) {
+        console.log('📨 Email найден в поле формы:', emailField.value);
+        // Сохраняем для будущего использования
+        localStorage.setItem('tilda_registration_email', emailField.value);
+        return emailField.value;
+      }
+  
+      // Способ 3: Из URL параметров (если передается)
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailFromUrl = urlParams.get('email');
+      if (emailFromUrl) {
+        console.log('📨 Email найден в URL:', emailFromUrl);
+        return emailFromUrl;
+      }
+  
+      console.warn('⚠️ Email не найден');
+      return null;
+  
+    } catch (error) {
+      console.error('❌ Ошибка при получении email:', error);
+      return null;
+    }
+  }
+  
+  // Показываем ошибку
+  function showAutoPaymentError(message) {
+    const errorElement = document.getElementById('auto-payment-error');
+    const loadingElement = document.getElementById('auto-payment-loading');
+    const manualElement = document.getElementById('manual-redirect');
+    
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+    
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    if (manualElement) {
+      manualElement.style.display = 'block';
+      
+      // Создаем ссылку для повторной попытки
+      const paymentLink = document.getElementById('payment-link');
+      if (paymentLink) {
+        paymentLink.onclick = function(e) {
+          e.preventDefault();
+          window.location.reload();
+        };
+        paymentLink.textContent = '🔄 Попробовать снова';
+      }
+    }
+  }
+  
+  // Запускаем автоматическую оплату при загрузке попапа
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Попап загружен, запуск автоматической оплаты...');
+    
+    // Даем пользователю прочитать сообщение перед перенаправлением
+    setTimeout(() => {
+      initAutoPayment();
+    }, AUTO_PAYMENT_CONFIG.REDIRECT_DELAY);
+  });
+  
+  // Альтернативный запуск при открытии попапа
+  function startAutoPayment() {
+    console.log('🎯 Запуск оплаты по команде...');
+    initAutoPayment();
+  }
+  
+  // Глобальная функция
+  window.startAutoPayment = startAutoPayment;
+  </script>
