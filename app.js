@@ -5,22 +5,36 @@ const crypto = require('crypto');
 
 const app = express();
 
-// CORS настройки
 app.use(cors({
-  origin: '*', // Разрешаем все домены для тестов
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// ✅ ОБРАБОТКА OPTIONS ЗАПРОСОВ ВРУЧНУЮ
+// app.options('*', (req, res) => {
+//   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   res.status(200).end();
+// });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Конфигурация с значениями по умолчанию
 const CONFIG = {
-  TERMINAL_KEY: process.env.TERMINAL_KEY,
-  SECRET_KEY: process.env.SECRET_KEY,
-  BASE_URL: process.env.BASE_URL 
-};
+    TERMINAL_KEY: '1761129018508DEMO', // Явно указываем значения
+    SECRET_KEY: 'jDkIojG12VaVNopw', 
+    BASE_URL: 'https://rest-api-test.tinkoff.ru/v2/'
+  };
+
+// Конфигурация
+// const CONFIG = {
+//   TERMINAL_KEY: process.env.TERMINAL_KEY,
+//   SECRET_KEY: process.env.SECRET_KEY,
+//   BASE_URL: process.env.BASE_URL || 'https://rest-api-test.tinkoff.ru/v2/'
+// };
 
 console.log('🔧 Конфигурация:', {
   terminalKey: CONFIG.TERMINAL_KEY,
@@ -29,46 +43,43 @@ console.log('🔧 Конфигурация:', {
 
 // Функция для создания токена
 function generateToken(data) {
-  try {
-    const values = Object.keys(data)
-      .filter(key => key !== 'Token' && key !== 'Receipt' && key !== 'DATA')
-      .sort()
-      .map(key => {
-        if (typeof data[key] === 'object') {
-          return JSON.stringify(data[key]);
-        }
-        return String(data[key] || '');
-      })
-      .join('');
+  const values = Object.keys(data)
+    .filter(key => key !== 'Token' && key !== 'Receipt' && key !== 'DATA')
+    .sort()
+    .map(key => {
+      if (typeof data[key] === 'object') {
+        return JSON.stringify(data[key]);
+      }
+      return String(data[key] || '');
+    })
+    .join('');
 
-    return crypto.createHash('sha256')
-      .update(values + CONFIG.SECRET_KEY)
-      .digest('hex');
-  } catch (error) {
-    console.error('❌ Ошибка генерации токена:', error);
-    throw error;
-  }
+  return crypto.createHash('sha256')
+    .update(values + CONFIG.SECRET_KEY)
+    .digest('hex');
 }
 
-// Инициализация платежа
+// ✅ Инициализация платежа с явными CORS headers
 app.post('/init-payment', async (req, res) => {
-  console.log('📥 POST /init-payment вызван');
+  // ✅ ЯВНО УСТАНАВЛИВАЕМ CORS HEADERS
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   try {
+    console.log('📥 Получен запрос от:', req.headers.origin);
+    
     const { 
-      OrderId,
-      Price = '1000',
+      Price = '10',
       Email,
       FormName = 'Вступительный взнос',
-      FormId,
-      ProjectId,
-      Phone,
-      Name
+      Phone = '',
+      Name = ''
     } = req.body;
 
-    console.log('📦 Получены данные:', { Price, Email });
+    console.log('📦 Данные:', { Price, Email });
 
-    // Валидация
     if (!Email) {
       return res.status(400).json({
         success: false,
@@ -76,10 +87,8 @@ app.post('/init-payment', async (req, res) => {
       });
     }
 
-    const orderId = OrderId || `T${Date.now()}`;
+    const orderId = `T${Date.now()}${Math.floor(Math.random() * 1000)}`;
     const amount = Math.round(parseFloat(Price) * 100);
-
-    console.log(`💰 Сумма: ${amount} копеек`);
 
     // Данные для Tinkoff API
     const paymentData = {
@@ -87,24 +96,22 @@ app.post('/init-payment', async (req, res) => {
       Amount: amount,
       OrderId: orderId,
       Description: FormName,
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',
-      NotificationURL: `https://${req.get('host')}/payment-callback`
+      SuccessURL: 'https://npk-vdv.ru/success',
+      FailURL: 'https://npk-vdv.ru/fail',
+      NotificationURL: `https://housedraw2-production.up.railway.app/payment-callback`
     };
 
     // Добавляем дополнительные данные
     paymentData.DATA = {
       Email: Email,
-      Phone: Phone || '',
-      Name: Name || '',
-      FormId: FormId || '',
-      ProjectId: ProjectId || ''
+      Phone: Phone,
+      Name: Name
     };
 
     // Генерируем токен
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Отправка в Tinkoff API...');
+    console.log('📤 Отправка в Tinkoff...');
 
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
       timeout: 10000,
@@ -113,11 +120,7 @@ app.post('/init-payment', async (req, res) => {
       }
     });
 
-    console.log('📥 Ответ от Tinkoff:', {
-      Success: response.data.Success,
-      Error: response.data.Error,
-      Message: response.data.Message
-    });
+    console.log('✅ Ответ Tinkoff:', response.data.Success);
 
     if (response.data.Success) {
       res.json({
@@ -128,106 +131,102 @@ app.post('/init-payment', async (req, res) => {
         orderId: orderId
       });
     } else {
-      throw new Error(response.data.Message || response.data.Details || 'Ошибка Tinkoff API');
+      throw new Error(response.data.Message || 'Ошибка Tinkoff API');
     }
 
   } catch (error) {
-    console.error('❌ Ошибка в /init-payment:', error.message);
+    console.error('❌ Ошибка:', error.message);
     
-    // Подробное логирование ошибки
-    if (error.response) {
-      console.error('📡 Ответ Tinkoff:', error.response.data);
-    }
-    
-    res.status(500).json({
+    res.json({
       success: false,
       error: error.message,
-      details: error.response?.data || 'Нет дополнительной информации'
+      details: error.response?.data
     });
   }
 });
 
-// Простой тестовый endpoint
-app.post('/test-payment', async (req, res) => {
-  try {
-    console.log('🧪 Тестовый запрос платежа');
-    
-    const testData = {
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 100000, // 1000 рублей
-      OrderId: 'TEST' + Date.now(),
-      Description: 'Тестовый платеж',
-      SuccessURL: 'https://npk-vdv.ru/success',
-      FailURL: 'https://npk-vdv.ru/fail'
-    };
+// ✅ Тестовый endpoint для проверки CORS
+app.get('/test-cors', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.json({
+    success: true,
+    message: 'CORS работает! 🎉',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString(),
+    server: 'Railway'
+  });
+});
 
-    testData.Token = generateToken(testData);
-
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData, {
-      timeout: 10000
-    });
-
-    res.json({
-      success: true,
-      test: 'Платежная система работает',
-      tinkoffResponse: response.data
-    });
-
-  } catch (error) {
-    console.error('❌ Тестовый платеж не удался:', error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      tinkoffError: error.response?.data
-    });
-  }
+// ✅ Простой тестовый POST
+app.post('/test-simple', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.json({
+    success: true,
+    message: 'POST запрос работает!',
+    receivedData: req.body,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Callback от Tinkoff
 app.post('/payment-callback', (req, res) => {
-  console.log('🔔 Callback от Tinkoff:', req.body);
+  res.header('Access-Control-Allow-Origin', '*');
+  console.log('🔔 Callback от Tinkoff');
   res.json({ Success: true });
 });
 
 // Статус сервера
 app.get('/status', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
   res.json({ 
-    status: 'OK',
-    server: 'Tinkoff Payment Server',
+    status: 'OK ✅',
+    server: 'Tinkoff Payment Server on Railway',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    config: {
-      terminalKey: CONFIG.TERMINAL_KEY ? 'SET' : 'MISSING',
-      baseUrl: CONFIG.BASE_URL
-    }
+    cors: 'Enabled',
+    domain: 'housedraw2-production.up.railway.app'
   });
 });
 
 // Корневой маршрут
 app.get('/', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
   res.json({ 
-    message: 'Tinkoff Payment Server is running! 🚀',
+    message: '🚀 Tinkoff Payment Server is running!',
     endpoints: {
-      'POST /init-payment': 'Инициализация платежа',
-      'POST /test-payment': 'Тестовый платеж',
-      'POST /payment-callback': 'Callback от Tinkoff',
-      'GET /status': 'Статус сервера'
+      'GET /status': 'Статус сервера',
+      'GET /test-cors': 'Тест CORS',
+      'POST /test-simple': 'Простой POST тест',
+      'POST /init-payment': 'Инициализация платежа'
     },
-    usage: 'Отправьте POST на /init-payment с {Price: "1000", Email: "test@test.com"}'
+    test: 'Откройте консоль и выполните: fetch("https://housedraw2-production.up.railway.app/test-cors")'
   });
 });
 
-// Обработка 404
-app.use('*', (req, res) => {
+// ✅ ПРАВИЛЬНАЯ ОБРАБОТКА 404 (без звездочки)
+app.use((req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
   res.status(404).json({
     error: 'Endpoint not found',
-    availableEndpoints: ['GET /', 'GET /status', 'POST /init-payment', 'POST /test-payment']
+    availableEndpoints: [
+      'GET /',
+      'GET /status', 
+      'GET /test-cors',
+      'POST /test-simple',
+      'POST /init-payment',
+      'POST /payment-callback'
+    ]
   });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Сервер запущен на порту ${PORT}`);
+  console.log(`✅ Сервер запущен на порту ${PORT}`);
+  console.log(`🌐 Домен: housedraw2-production.up.railway.app`);
   console.log(`🔧 TerminalKey: ${CONFIG.TERMINAL_KEY}`);
-  console.log(`🌐 Base URL: ${CONFIG.BASE_URL}`);
 });
