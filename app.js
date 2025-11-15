@@ -11,7 +11,7 @@ app.use(express.json());
 const CONFIG = {
   TERMINAL_KEY: '1761129018508DEMO',
   SECRET_KEY: 'jDkIojG12VaVNopw',
-  BASE_URL: 'https://rest-api-test.tinkoff.ru/v2/Init'
+  BASE_URL: 'https://securepay.tinkoff.ru/v2/Init'
 };
 
 console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
