@@ -15,12 +15,11 @@ app.use(express.json());
 // };
 
 const CONFIG = {
-    TERMINAL_KEY: '1761129018508',
+    TERMINAL_KEY: '1761129018508DEMO',
     SECRET_KEY: 'jDkIojG12VaVNopw', 
-    BASE_URL: 'https://rest-api-test.tinkoff.ru/v2/'
+    BASE_URL: 'https://securepay.tinkoff.ru/v2'
   };
 
-console.log('🔧 Используется TerminalKey:', CONFIG.TERMINAL_KEY);
 
 // Функция для создания токена
 function generateToken(data) {
@@ -60,14 +59,14 @@ app.post('/init-payment', async (req, res) => {
     }
 
     const orderId = `T${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    const amount = Math.round(parseFloat(Price) * 100); // В копейках
+    // const amount = Math.round(parseFloat(Price) * 100); // В копейках
 
     console.log(`💰 Сумма: ${amount} копеек (${Price} рублей)`);
 
     // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДЛЯ TINKOFF
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: amount,
+      Amount: 10,
       OrderId: orderId,
       Description: FormName.substring(0, 124), // Ограничение длины
     };
