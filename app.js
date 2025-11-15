@@ -7,7 +7,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ ПРАВИЛЬНЫЕ КЛЮЧИ И ФОРМАТ
 const CONFIG = {
   TERMINAL_KEY: '1761129018508DEMO',
   SECRET_KEY: 'jDkIojG12VaVNopw',
@@ -16,26 +15,28 @@ const CONFIG = {
 
 console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (правильная последовательность полей)
+// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА
 function generateToken(data) {
-  // Правильная последовательность полей согласно документации Tinkoff
-  const tokenData = {
-    TerminalKey: data.TerminalKey,
-    Amount: data.Amount,
-    OrderId: data.OrderId,
-    Description: data.Description,
-    Password: CONFIG.SECRET_KEY // ВАЖНО: добавляем пароль в конец
-  };
-
-  // Собираем значения в правильном порядке
-  const values = [
-    tokenData.TerminalKey,
-    tokenData.Amount,
-    tokenData.OrderId,
-    tokenData.Description,
-    tokenData.Password
-  ].join('');
-
+  // Сортируем поля в алфавитном порядке и собираем значения
+  const sortedKeys = Object.keys(data).sort();
+  
+  let values = '';
+  sortedKeys.forEach(key => {
+    if (key !== 'Token' && key !== 'Shops' && key !== 'Receipt') {
+      const value = data[key];
+      if (value !== null && value !== undefined && value !== '') {
+        if (typeof value === 'object') {
+          values += JSON.stringify(value);
+        } else {
+          values += String(value);
+        }
+      }
+    }
+  });
+  
+  // Добавляем секретный ключ в конец
+  values += CONFIG.SECRET_KEY;
+  
   console.log('🔐 Data for token:', values);
   
   return crypto.createHash('sha256')
@@ -43,45 +44,40 @@ function generateToken(data) {
     .digest('hex');
 }
 
-// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ИНИЦИАЛИЗАЦИИ ПЛАТЕЖА
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT - БЕЗ ОБЯЗАТЕЛЬНОГО EMAIL
 app.post('/init-payment', async (req, res) => {
   try {
     console.log('📥 Received request:', req.body);
     
     const { 
-      Price = '10',
       Email,
-      FormName = 'Вступительный взнос'
+      Phone 
     } = req.body;
-
-    if (!Email) {
-      return res.json({
-        Success: false,
-        ErrorCode: 'EMAIL_REQUIRED',
-        Message: 'Email обязателен'
-      });
-    }
 
     // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДАННЫХ
     const orderId = `T${Date.now()}`;
     const amount = 1000; // 10 рублей в копейках
 
-    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ согласно документации
+    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
       Description: 'Вступительный взнос в клуб',
-      SuccessURL: 'https://yoursite.tilda.ws/page/success', // Ваш URL успеха
-      FailURL: 'https://yoursite.tilda.ws/page/fail',       // Ваш URL ошибки
-      NotificationURL: 'https://your-server-url/notification', // Для уведомлений
-      DATA: JSON.stringify({
-        Email: Email,
-        Phone: '+79999999999'
-      })
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
     };
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПРАВИЛЬНО
+    // ✅ ДОБАВЛЯЕМ DATA ТОЛЬКО ЕСЛИ ЕСТЬ ДАННЫЕ
+    const dataFields = {};
+    if (Email) dataFields.Email = Email;
+    if (Phone) dataFields.Phone = Phone;
+    
+    if (Object.keys(dataFields).length > 0) {
+      paymentData.DATA = dataFields;
+    }
+
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН
     paymentData.Token = generateToken(paymentData);
 
     console.log('📤 Sending to Tinkoff:', JSON.stringify(paymentData, null, 2));
@@ -124,48 +120,60 @@ app.post('/init-payment', async (req, res) => {
   }
 });
 
-// ✅ ЭНДПОИНТ ДЛЯ УВЕДОМЛЕНИЙ О СТАТУСЕ ПЛАТЕЖА
-app.post('/notification', (req, res) => {
-  console.log('📨 Payment notification:', req.body);
-  
-  // Проверяем токен уведомления
-  const notificationData = req.body;
-  
-  // Обрабатываем статус платежа
-  if (notificationData.Status === 'CONFIRMED') {
-    console.log('✅ Payment confirmed for OrderId:', notificationData.OrderId);
-    // Здесь можно обновить статус в вашей БД
-  }
-  
-  // Всегда отвечаем OK на уведомления
-  res.json({ Success: true });
-});
-
-// ✅ ЭНДПОИНТ ДЛЯ ПРОВЕРКИ СТАТУСА ПЛАТЕЖА
-app.post('/check-payment', async (req, res) => {
+// ✅ МИНИМАЛЬНЫЙ ENDPOINT ТОЛЬКО С ОБЯЗАТЕЛЬНЫМИ ПОЛЯМИ
+app.post('/init-minimal', async (req, res) => {
   try {
-    const { PaymentId } = req.body;
-    
-    const checkData = {
+    const orderId = `MIN${Date.now()}`;
+    const amount = 1000;
+
+    // ✅ МИНИМАЛЬНЫЙ НАБОР ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      PaymentId: PaymentId
+      Amount: amount,
+      OrderId: orderId,
+      Description: 'Вступительный взнос',
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
     };
-    
-    checkData.Token = generateToken(checkData);
-    
-    const response = await axios.post(`${CONFIG.BASE_URL}GetState`, checkData);
-    
+
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН ИЗ МИНИМАЛЬНЫХ ПОЛЕЙ
+    paymentData.Token = generateToken(paymentData);
+
+    console.log('📤 Minimal request:', paymentData);
+
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+
     res.json({
-      Success: true,
-      Status: response.data.Status
+      Success: response.data.Success,
+      PaymentURL: response.data.PaymentURL,
+      Response: response.data
     });
-    
+
   } catch (error) {
     res.json({
       Success: false,
-      Message: error.message
+      Error: error.message,
+      Response: error.response?.data
     });
   }
+});
+
+// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ ТОКЕНА
+app.get('/check-token', (req, res) => {
+  const testData = {
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Amount: 1000,
+    OrderId: 'TEST123',
+    Description: 'Test Payment'
+  };
+
+  const token = generateToken(testData);
+
+  res.json({
+    testData: testData,
+    generatedToken: token,
+    expectedFields: ['TerminalKey', 'Amount', 'OrderId', 'Description', 'Token']
+  });
 });
 
 app.listen(process.env.PORT || 3000, () => {
