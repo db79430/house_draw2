@@ -1,216 +1,267 @@
 const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
+const cors = require('cors');
 const crypto = require('crypto');
-
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// ✅ КОНФИГУРАЦИЯ ДЛЯ PAYMENT INTEGRATION
+// Конфигурация
 const CONFIG = {
-    TERMINAL_KEY: '1761129018508DEMO',
-    SECRET_KEY: 'jDkIojG12VaVNopw',
-    BASE_URL: 'https://securepay.tinkoff.ru/v2/Init'
+  TERMINAL_KEY: '1761129018508DEMO',
+  SECRET_KEY: 'jDkIojG12VaVNopw',
+  BASE_URL: 'https://securepay.tinkoff.ru/v2/'
 };
 
-console.log('🔧 Payment Integration Server запущен');
+console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
 
-// Функция для создания токена
-function generateToken(data) {
-  const requiredFields = {
-    TerminalKey: data.TerminalKey,
-    Amount: data.Amount,
-    OrderId: data.OrderId,
-    Description: data.Description || '',
-    SuccessURL: data.SuccessURL || '',
-    FailURL: data.FailURL || ''
-  };
-
-  const values = Object.keys(requiredFields)
-    .sort()
-    .map(key => String(requiredFields[key]))
-    .join('');
-
-  return crypto.createHash('sha256')
-    .update(values + CONFIG.SECRET_KEY)
-    .digest('hex');
+// ✅ ФУНКЦИЯ ДЛЯ ГЕНЕРАЦИИ УНИКАЛЬНОГО OrderId
+function generateOrderId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  return `order_${timestamp}_${random}`;
 }
 
-// ✅ ENDPOINT ДЛЯ PAYMENT INTEGRATION
-app.post('/payment-integration/init', async (req, res) => {
+// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА
+function generateToken(data) {
+  // Создаем копию объекта без Token
+  const dataForToken = { ...data };
+  delete dataForToken.Token;
+  
+  // Сортируем ключи в алфавитном порядке
+  const sortedKeys = Object.keys(dataForToken).sort();
+  
+  // Создаем строку для хеширования
+  const values = sortedKeys
+    .map(key => {
+      const value = dataForToken[key];
+      
+      // Для объектов преобразуем в JSON строку
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value);
+      }
+      
+      return String(value || '');
+    })
+    .join('');
+  
+  console.log('🔐 Data for token:', values);
+  
+  const token = crypto.createHash('sha256')
+    .update(values + CONFIG.SECRET_KEY)
+    .digest('hex');
+  
+  console.log('🔐 Generated token:', token);
+  return token;
+}
+
+// ✅ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ЧЕКА (Receipt)
+function createReceipt(amount, email, phone, description) {
+  return {
+    Email: email,
+    Phone: phone,
+    Taxation: 'osn', // Основная система налогообложения
+    Items: [
+      {
+        Name: description.substring(0, 128), // Ограничение длины названия
+        Price: amount, // Цена в копейках
+        Quantity: 1,
+        Amount: amount, // Сумма в копейках
+        PaymentMethod: 'full_payment',
+        PaymentObject: 'service', // услуга
+        Tax: 'none' // Без НДС
+      }
+    ]
+  };
+}
+
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT С УНИКАЛЬНЫМИ ДАННЫМИ
+app.post('/init-payment', async (req, res) => {
   try {
-    console.log('📥 Payment Integration запрос:', req.body);
+    console.log('📥 Received request body:', req.body);
     
-    // Данные от Tinkoff Integration
-    const { orderId, amount, description, customerDetails } = req.body;
+    // ✅ ПОЛУЧАЕМ ДАННЫЕ ОТ КЛИЕНТА
+    const { 
+      Amount,           // Сумма в копейках (обязательно)
+      CustomerEmail,    // Email клиента (обязательно)
+      CustomerPhone,    // Телефон клиента (обязательно)
+      Description = 'Вступительный взнос в клуб' // Описание по умолчанию
+    } = req.body;
 
-    // Используем orderId от Tinkoff или создаем свой
-    const finalOrderId = orderId || `T${Date.now()}`;
-    const finalAmount = amount || 1000; // 10 рублей по умолчанию
-    const finalDescription = description || 'Вступительный взнос';
-
-    const paymentData = {
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: finalAmount,
-      OrderId: finalOrderId,
-      Description: finalDescription,
-      SuccessURL: 'https://npk-vdv.ru/success',
-      FailURL: 'https://npk-vdv.ru/fail',
-      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-integration/callback'
-    };
-
-    // Добавляем данные клиента если есть
-    if (customerDetails) {
-      paymentData.DATA = {
-        Email: customerDetails.email || 'test@test.com',
-        Phone: customerDetails.phone || '+79999999999'
-      };
+    // ✅ ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    if (!Amount || !CustomerEmail || !CustomerPhone) {
+      return res.status(400).json({
+        Success: false,
+        ErrorCode: 'MISSING_REQUIRED_FIELDS',
+        Message: 'Отсутствуют обязательные поля: Amount, CustomerEmail, CustomerPhone'
+      });
     }
 
+    // ✅ ГЕНЕРИРУЕМ УНИКАЛЬНЫЕ ДАННЫЕ
+    const orderId = generateOrderId(); // Уникальный ID заказа
+    const amount = parseInt(Amount);   // Сумма в копейках
+
+    // ✅ ФОРМИРУЕМ ДАННЫЕ ДЛЯ TINKOFF
+    const paymentData = {
+      TerminalKey: CONFIG.TERMINAL_KEY,  // Ваш TerminalKey
+      Amount: amount,                    // Уникальная сумма от клиента
+      OrderId: orderId,                  // Уникальный OrderId
+      Description: Description,          // Описание от клиента или по умолчанию
+      DATA: {
+        Phone: CustomerPhone,            // Телефон от клиента
+        Email: CustomerEmail             // Email от клиента
+      },
+      Receipt: createReceipt(amount, CustomerEmail, CustomerPhone, Description),
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html', // Ваш URL успеха
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',       // Ваш URL неудачи
+      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
+    };
+
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Отправка в Tinkoff:', paymentData);
+    console.log('📤 Sending to Tinkoff:');
+    console.log('TerminalKey:', paymentData.TerminalKey);
+    console.log('Amount:', paymentData.Amount);
+    console.log('OrderId:', paymentData.OrderId);
+    console.log('Description:', paymentData.Description);
+    console.log('Email:', paymentData.DATA.Email);
+    console.log('Phone:', paymentData.DATA.Phone);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}`, paymentData);
+    // ✅ ОТПРАВЛЯЕМ ЗАПРОС В TINKOFF
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
 
-    console.log('📥 Ответ Tinkoff:', response.data);
+    console.log('📥 Tinkoff API response:', response.data);
 
+    // ✅ ВОЗВРАЩАЕМ ОТВЕТ
     if (response.data.Success) {
-      // ✅ ВОЗВРАЩАЕМ PaymentURL КАК СТРОКУ (как требуется в документации)
       res.json({
-        success: true,
-        PaymentURL: response.data.PaymentURL, // С большой P для Tinkoff
-        paymentUrl: response.data.PaymentURL, // С маленькой p для совместимости
-        paymentId: response.data.PaymentId,
-        orderId: finalOrderId,
-        amount: finalAmount
+        Success: true,
+        ErrorCode: '0',
+        TerminalKey: paymentData.TerminalKey,
+        Status: response.data.Status,
+        PaymentId: String(response.data.PaymentId),
+        OrderId: paymentData.OrderId,
+        Amount: paymentData.Amount,
+        PaymentURL: response.data.PaymentURL,
+        Description: paymentData.Description
       });
     } else {
-      throw new Error(response.data.Message || 'Ошибка инициализации платежа');
+      throw new Error(response.data.Message || `Error Code: ${response.data.ErrorCode}`);
     }
 
   } catch (error) {
-    console.error('❌ Ошибка Payment Integration:', error.response?.data || error.message);
+    console.error('❌ Init payment error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     
-    res.json({
-      success: false,
-      error: error.response?.data?.Message || error.message,
-      details: error.response?.data
+    res.status(500).json({
+      Success: false,
+      ErrorCode: 'INIT_ERROR',
+      Message: error.response?.data?.Message || error.message,
+      Details: error.response?.data
     });
   }
 });
 
-// ✅ ПРОСТОЙ ENDPOINT ДЛЯ ТЕСТИРОВАНИЯ
-app.post('/payment-integration/simple-init', async (req, res) => {
+// ✅ ТЕСТОВЫЙ ENDPOINT С РЕАЛЬНЫМИ ДАННЫМИ
+app.post('/test-real-payment', async (req, res) => {
   try {
-    const orderId = `PI${Date.now()}`;
-    const amount = 1000;
-
-    const paymentData = {
+    // Генерируем реальные тестовые данные
+    const orderId = generateOrderId();
+    const amount = 10000; // 100 рублей в копейках
+    
+    const realData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: 'Тест Payment Integration',
-      SuccessURL: 'https://npk-vdv.ru/success',
-      FailURL: 'https://npk-vdv.ru/fail'
+      Description: "Тестовый платеж за услуги",
+      DATA: {
+        Phone: "+79991234567",
+        Email: "realuser@example.com"
+      },
+      Receipt: {
+        Email: "realuser@example.com",
+        Phone: "+79991234567",
+        Taxation: "osn",
+        Items: [
+          {
+            Name: "Тестовый платеж за услуги",
+            Price: amount,
+            Quantity: 1,
+            Amount: amount,
+            PaymentMethod: "full_payment",
+            PaymentObject: "service",
+            Tax: "none"
+          }
+        ]
+      },
+      SuccessURL: 'https://your-site.tilda.ws/success',
+      FailURL: 'https://your-site.tilda.ws/fail'
     };
 
-    paymentData.Token = generateToken(paymentData);
+    // Генерируем токен
+    realData.Token = generateToken(realData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    console.log('🧪 Real test payment request:');
+    console.log('OrderId:', realData.OrderId);
+    console.log('Amount:', realData.Amount);
+    console.log('Description:', realData.Description);
 
-    if (response.data.Success) {
-      // ✅ ВОЗВРАЩАЕМ ТОЛЬКО PaymentURL КАК СТРОКУ
-      res.json({
-        PaymentURL: response.data.PaymentURL
-      });
-    } else {
-      throw new Error(response.data.Message);
-    }
-
-  } catch (error) {
-    res.json({
-      error: error.message
-    });
-  }
-});
-
-// ✅ CALLBACK ДЛЯ PAYMENT INTEGRATION
-app.post('/payment-integration/callback', (req, res) => {
-  try {
-    const callbackData = req.body;
-    console.log('🔔 Payment Integration Callback:', callbackData);
-
-    // Проверяем подпись
-    const receivedToken = callbackData.Token;
-    const checkData = { ...callbackData };
-    delete checkData.Token;
-    
-    const calculatedToken = generateToken(checkData);
-    
-    if (receivedToken !== calculatedToken) {
-      console.error('❌ Неверная подпись в callback');
-      return res.status(400).json({ Success: false });
-    }
-
-    // Обрабатываем статус
-    console.log(`📊 Payment Integration Status: ${callbackData.Status}`);
-    
-    // Всегда возвращаем успех
-    res.json({ Success: true });
-
-  } catch (error) {
-    console.error('❌ Ошибка callback:', error);
-    res.json({ Success: false });
-  }
-});
-
-// ✅ ENDPOINT ДЛЯ ПОЛУЧЕНИЯ СТАТУСА
-app.post('/payment-integration/status', async (req, res) => {
-  try {
-    const { paymentId } = req.body;
-
-    const stateData = {
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      PaymentId: paymentId
-    };
-
-    stateData.Token = generateToken(stateData);
-
-    const response = await axios.post(`${CONFIG.BASE_URL}GetState`, stateData);
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, realData);
 
     res.json({
-      success: true,
-      status: response.data.Status,
-      paymentId: paymentId,
-      orderId: response.data.OrderId,
-      amount: response.data.Amount
+      Success: response.data.Success,
+      OrderId: realData.OrderId,
+      Amount: realData.Amount,
+      Description: realData.Description,
+      Response: response.data
     });
 
   } catch (error) {
     res.json({
-      success: false,
-      error: error.message
+      Success: false,
+      Error: error.message,
+      Response: error.response?.data
     });
   }
 });
 
-// Статус сервера
-app.get('/payment-integration/status', (req, res) => {
+// ✅ ПОЛУЧЕНИЕ ИНФОРМАЦИИ О КОНФИГУРАЦИИ
+app.get('/config', (req, res) => {
   res.json({
-    status: 'OK',
-    server: 'Tinkoff Payment Integration Backend',
-    endpoints: {
-      'POST /payment-integration/init': 'Инициализация платежа',
-      'POST /payment-integration/simple-init': 'Простая инициализация',
-      'POST /payment-integration/callback': 'Callback от Tinkoff',
-      'POST /payment-integration/status': 'Получение статуса'
-    },
-    testUrl: 'https://housedraw2-production.up.railway.app/payment-integration-test.html'
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    BaseURL: CONFIG.BASE_URL,
+    ExampleOrderId: generateOrderId(),
+    Timestamp: new Date().toISOString()
   });
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Payment Integration Server запущен');
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    Status: 'OK', 
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Timestamp: new Date().toISOString()
+  });
+});
+
+// Обработка уведомлений
+app.post('/payment-callback', express.json(), (req, res) => {
+  console.log('📨 Payment callback:', req.body);
+  // Здесь можно обновить статус заказа в вашей БД
+  res.json({ Success: true });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
