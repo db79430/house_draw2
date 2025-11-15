@@ -9,7 +9,7 @@ app.use(express.json());
 
 // ✅ ПРАВИЛЬНЫЕ КЛЮЧИ И ФОРМАТ
 const CONFIG = {
-  TERMINAL_KEY: '1761129018508',
+  TERMINAL_KEY: '1761129018508DEMO',
   SECRET_KEY: 'jDkIojG12VaVNopw',
   BASE_URL: 'https://rest-api-test.tinkoff.ru/v2/Init'
 };
