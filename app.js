@@ -9,143 +9,177 @@ app.use(express.json());
 
 // Конфигурация
 const CONFIG = {
-  TERMINAL_KEY: '1761129018508DEMO', // Ваш Terminal Key
-  SECRET_KEY: 'jDkIojG12VaVNopw',     // Ваш Secret Key
+  TERMINAL_KEY: '1761129018508DEMO',
+  SECRET_KEY: 'jDkIojG12VaVNopw',
   BASE_URL: 'https://securepay.tinkoff.ru/v2/'
 };
 
-// Функция для создания токена
+console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
+
+// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (согласно документации Tinkoff)
 function generateToken(data) {
-  const values = Object.keys(data)
-    .filter(key => key !== 'Token')
-    .sort()
-    .map(key => data[key])
+  // Сортируем ключи в алфавитном порядке
+  const sortedKeys = Object.keys(data).sort();
+  
+  // Создаем строку для хеширования
+  const values = sortedKeys
+    .map(key => {
+      const value = data[key];
+      // Для объектов преобразуем в JSON строку
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value);
+      }
+      return String(value || '');
+    })
     .join('');
   
-  return crypto.createHash('sha256')
+  console.log('🔐 Data for token:', values);
+  console.log('🔐 Secret key:', CONFIG.SECRET_KEY);
+  
+  const token = crypto.createHash('sha256')
     .update(values + CONFIG.SECRET_KEY)
     .digest('hex');
+  
+  console.log('🔐 Generated token:', token);
+  return token;
 }
 
-// Инициализация платежа
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ИНИЦИАЛИЗАЦИИ ПЛАТЕЖА
 app.post('/init-payment', async (req, res) => {
   try {
-    const { orderId, amount, customerEmail, customerPhone, description } = req.body;
+    console.log('📥 Received request:', req.body);
+    
+    const { 
+      amount = 1000, 
+      customerEmail = 'test@example.com',
+      customerPhone = '+79999999999',
+      description = 'Тестовый платеж'
+    } = req.body;
 
+    // Генерируем уникальный OrderId
+    const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДАННЫХ
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: amount, // Сумма в копейках
+      Amount: parseInt(amount), // Убеждаемся, что это число
       OrderId: orderId,
-      Description: description || 'Оплата заказа',
-      DATA: {
-        Email: customerEmail,
-        Phone: customerPhone
-      },
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html', // URL для успешной оплаты
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'        // URL для неудачной оплаты
+      Description: description.substring(0, 250), // Ограничение длины
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',
+      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
     };
 
-    // Генерируем токен
+    // ✅ ДОБАВЛЯЕМ DATA КАК СТРОКУ (не объект!)
+    paymentData.DATA = JSON.stringify({
+      Email: customerEmail,
+      Phone: customerPhone
+    });
+
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПЕРЕД ОТПРАВКОЙ
     paymentData.Token = generateToken(paymentData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    console.log('📤 Sending to Tinkoff:', JSON.stringify(paymentData, null, 2));
+
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    console.log('📥 Tinkoff response:', response.data);
 
     if (response.data.Success) {
       res.json({
         success: true,
         paymentId: response.data.PaymentId,
-        paymentURL: response.data.PaymentURL
+        paymentURL: response.data.PaymentURL,
+        orderId: orderId
       });
     } else {
-      throw new Error(response.data.Message || 'Ошибка инициализации платежа');
+      throw new Error(response.data.Message || `Error: ${response.data.ErrorCode}`);
     }
 
   } catch (error) {
-    console.error('Init payment error:', error);
+    console.error('❌ Init payment error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.response?.data?.Message || error.message,
+      details: error.response?.data
     });
   }
 });
 
-// Обработка уведомлений от Tinkoff (Callback)
-app.post('/payment-callback', (req, res) => {
+// ✅ ТЕСТОВЫЙ ENDPOINT ДЛЯ ПРОВЕРКИ
+app.post('/test-payment', async (req, res) => {
   try {
-    const callbackData = req.body;
-    
-    // Проверяем подпись
-    const receivedToken = callbackData.Token;
-    delete callbackData.Token;
-    
-    const calculatedToken = generateToken(callbackData);
-    
-    if (receivedToken !== calculatedToken) {
-      console.error('Invalid token in callback');
-      return res.status(400).send('Invalid token');
-    }
-
-    // Обрабатываем статус платежа
-    switch (callbackData.Status) {
-      case 'AUTHORIZED':
-      case 'CONFIRMED':
-        // Платеж успешен
-        console.log(`Payment ${callbackData.PaymentId} successful`);
-        // Обновите статус заказа в вашей БД
-        break;
-      
-      case 'REJECTED':
-      case 'CANCELED':
-        // Платеж отменен/отклонен
-        console.log(`Payment ${callbackData.PaymentId} failed`);
-        break;
-      
-      case 'REFUNDED':
-        // Произведен возврат
-        console.log(`Payment ${callbackData.PaymentId} refunded`);
-        break;
-    }
-
-    // Всегда возвращаем успешный ответ Tinkoff
-    res.json({ Success: true });
-
-  } catch (error) {
-    console.error('Callback error:', error);
-    res.status(500).json({ Success: false });
-  }
-});
-
-// Проверка статуса платежа
-app.post('/check-payment', async (req, res) => {
-  try {
-    const { paymentId } = req.body;
-
-    const checkData = {
+    const testData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      PaymentId: paymentId
+      Amount: 1000,
+      OrderId: `test_${Date.now()}`,
+      Description: 'Тестовый платеж',
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',
+      DATA: JSON.stringify({
+        Email: 'test@test.com',
+        Phone: '+79999999999'
+      })
     };
 
-    checkData.Token = generateToken(checkData);
+    testData.Token = generateToken(testData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}GetState`, checkData);
+    console.log('🧪 Test request to Tinkoff:', testData);
+
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
 
     res.json({
       success: response.data.Success,
-      status: response.data.Status,
-      orderId: response.data.OrderId,
-      amount: response.data.Amount
+      request: testData,
+      response: response.data
     });
 
   } catch (error) {
-    console.error('Check payment error:', error);
-    res.status(500).json({
+    res.json({
       success: false,
-      error: error.message
+      error: error.message,
+      request: error.config?.data,
+      response: error.response?.data
     });
   }
+});
+
+// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ КОНФИГУРАЦИИ
+app.get('/check-config', (req, res) => {
+  const testData = {
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Amount: 1000,
+    OrderId: 'test123',
+    Description: 'Test'
+  };
+
+  const token = generateToken(testData);
+
+  res.json({
+    terminalKey: CONFIG.TERMINAL_KEY,
+    baseUrl: CONFIG.BASE_URL,
+    testToken: token,
+    testData: testData
+  });
+});
+
+// Обработка уведомлений от Tinkoff
+app.post('/payment-callback', express.json(), (req, res) => {
+  console.log('📨 Payment callback received:', req.body);
+  res.json({ Success: true });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
