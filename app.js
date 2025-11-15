@@ -17,56 +17,50 @@ console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
 
 // ✅ ГЕНЕРАЦИЯ OrderId ТОЛЬКО ИЗ ЦИФР
 function generateOrderId() {
-  const timestamp = Date.now().toString();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return timestamp + random;
+  return Date.now().toString() + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 }
 
-// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (согласно официальной документации)
-function generateToken(data) {
-  // Копируем данные без Token и Receipt
-  const dataForToken = { ...data };
+// ✅ ПРАВИЛЬНАЯ ГЕНЕРАЦИЯ ТОКЕНА согласно документации Tinkoff
+function generateToken(paymentData) {
+  // Создаем объект для подписи (без Token)
+  const dataForToken = { ...paymentData };
   delete dataForToken.Token;
-  delete dataForToken.Receipt;
   
-  // СОРТИРОВКА ПО АЛФАВИТНОМУ ПОРЯДКУ КЛЮЧЕЙ
+  // СОРТИРУЕМ КЛЮЧИ в алфавитном порядке
   const sortedKeys = Object.keys(dataForToken).sort();
   
   let values = '';
+  
   sortedKeys.forEach(key => {
     const value = dataForToken[key];
+    
     if (value !== null && value !== undefined && value !== '') {
       if (typeof value === 'object') {
-        // Для объектов типа DATA - JSON без пробелов
-        values += JSON.stringify(value).replace(/\s+/g, '');
+        // Для объектов (DATA) - JSON без пробелов
+        values += JSON.stringify(value, Object.keys(value).sort()).replace(/\s+/g, '');
       } else {
         values += String(value);
       }
     }
   });
   
-  // ДОБАВЛЯЕМ СЕКРЕТНЫЙ КЛЮЧ
+  // ДОБАВЛЯЕМ ПАРОЛЬ (SecretKey) в конец
   values += CONFIG.SECRET_KEY;
   
-  console.log('🔐 Data for token:', values);
+  console.log('🔐 Data for token generation:', values);
   
-  return crypto.createHash('sha256')
+  const token = crypto.createHash('sha256')
     .update(values)
     .digest('hex');
+  
+  console.log('🔐 Generated token:', token);
+  return token;
 }
 
-// ✅ ПРОСТАЯ ГЕНЕРАЦИЯ ТОКЕНА (альтернативный метод)
-function generateTokenSimple(data) {
-  // Только обязательные поля в правильном порядке
-  const tokenData = {
-    Amount: data.Amount,
-    OrderId: data.OrderId,
-    Password: CONFIG.SECRET_KEY
-  };
-  
-  const values = Object.values(tokenData).join('');
+// ✅ ПРОСТОЙ МЕТОД ГЕНЕРАЦИИ ТОКЕНА (для теста)
+function generateTokenSimple(amount, orderId) {
+  const values = amount + orderId + CONFIG.SECRET_KEY;
   console.log('🔐 Simple token data:', values);
-  
   return crypto.createHash('sha256')
     .update(values)
     .digest('hex');
@@ -87,14 +81,14 @@ app.post('/init-payment', async (req, res) => {
     const orderId = generateOrderId();
     const amount = Price;
 
-    console.log('📋 Generated OrderId:', orderId);
+    console.log('📋 OrderId:', orderId, 'Amount:', amount);
 
-    // ✅ МИНИМАЛЬНЫЙ НАБОР ДАННЫХ ДЛЯ ТЕСТА
+    // ✅ ФОРМИРУЕМ ДАННЫЕ ДЛЯ ЗАПРОСА
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: ProductName,
+      Description: ProductName.substring(0, 250), // Ограничение длины
       SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
       FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
     };
@@ -106,13 +100,13 @@ app.post('/init-payment', async (req, res) => {
       if (Phone) paymentData.DATA.Phone = Phone;
     }
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПРАВИЛЬНЫМ МЕТОДОМ
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Sending to Tinkoff:', JSON.stringify(paymentData, null, 2));
+    console.log('📤 Final request to Tinkoff:', JSON.stringify(paymentData, null, 2));
 
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
-      timeout: 10000,
+      timeout: 15000,
       headers: {
         'Content-Type': 'application/json'
       }
@@ -123,136 +117,104 @@ app.post('/init-payment', async (req, res) => {
     if (response.data.Success) {
       res.json({
         Success: true,
-        ErrorCode: '0',
-        PaymentId: String(response.data.PaymentId),
+        PaymentId: response.data.PaymentId,
         OrderId: orderId,
         Amount: amount,
         PaymentURL: response.data.PaymentURL
       });
     } else {
-      throw new Error(response.data.Message || JSON.stringify(response.data));
+      res.json({
+        Success: false,
+        ErrorCode: response.data.ErrorCode,
+        Message: response.data.Message,
+        Details: response.data.Details
+      });
     }
 
   } catch (error) {
-    console.error('❌ Error:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
+    console.error('❌ Server error:', error.message);
     
     res.json({
       Success: false,
-      ErrorCode: 'INIT_ERROR',
-      Message: error.response?.data?.Message || error.message,
+      ErrorCode: 'SERVER_ERROR',
+      Message: error.message,
       Details: error.response?.data
     });
   }
 });
 
-// ✅ ENDPOINT С ПРОСТОЙ ГЕНЕРАЦИЕЙ ТОКЕНА
-app.post('/init-simple', async (req, res) => {
+// ✅ ENDPOINT С МИНИМАЛЬНЫМИ ДАННЫМИ
+app.post('/init-minimal', async (req, res) => {
   try {
-    const { 
-      Email,
-      Phone,
-      ProductName = 'Вступительный взнос',
-      Price = 1000
-    } = req.body;
-
     const orderId = generateOrderId();
-    const amount = Price;
+    const amount = 1000;
 
-    // ✅ МИНИМАЛЬНЫЕ ДАННЫЕ
+    // ✅ МИНИМАЛЬНЫЙ НАБОР ДАННЫХ
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: ProductName,
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
+      Description: 'Test payment'
     };
 
     // ✅ ПРОСТАЯ ГЕНЕРАЦИЯ ТОКЕНА
-    paymentData.Token = generateTokenSimple(paymentData);
+    paymentData.Token = generateTokenSimple(amount, orderId);
 
-    console.log('📤 Simple request:', paymentData);
+    console.log('📤 Minimal request:', paymentData);
 
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
 
     res.json({
-      Success: response.data.Success,
-      PaymentURL: response.data.PaymentURL,
-      Request: paymentData,
-      Response: response.data
-    });
-
-  } catch (error) {
-    res.json({
-      Success: false,
-      Error: error.message,
-      Response: error.response?.data
-    });
-  }
-});
-
-// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ КЛЮЧЕЙ И ТОКЕНА
-app.get('/check-keys', (req, res) => {
-  const testData = {
-    TerminalKey: CONFIG.TERMINAL_KEY,
-    Amount: 1000,
-    OrderId: '123456789',
-    Description: 'Test'
-  };
-
-  const token1 = generateToken(testData);
-  const token2 = generateTokenSimple(testData);
-
-  res.json({
-    keys: {
-      terminalKey: CONFIG.TERMINAL_KEY,
-      secretKey: '***' + CONFIG.SECRET_KEY.slice(-4)
-    },
-    tokens: {
-      method1: token1,
-      method2: token2,
-      testData: testData
-    }
-  });
-});
-
-// ✅ ENDPOINT ДЛЯ ТЕСТИРОВАНИЯ ФОРМАТА
-app.post('/test-format', async (req, res) => {
-  try {
-    // Данные как в документации Tinkoff
-    const testData = {
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 1000,
-      OrderId: generateOrderId(),
-      Description: "Тестовый платеж"
-    };
-
-    // Генерируем токен
-    testData.Token = generateToken(testData);
-
-    console.log('🧪 Test request:', testData);
-
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
-
-    res.json({
-      success: response.data.Success,
-      request: testData,
+      request: paymentData,
       response: response.data
     });
 
   } catch (error) {
     res.json({
-      success: false,
       error: error.message,
       response: error.response?.data
     });
   }
 });
 
+// ✅ ENDPOINT ДЛЯ ТЕСТИРОВАНИЯ ТОКЕНА
+app.post('/test-token', (req, res) => {
+  const testData = {
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Amount: 1000,
+    OrderId: '123456789',
+    Description: 'Test Payment'
+  };
+
+  // Тестируем оба метода генерации токена
+  const token1 = generateToken(testData);
+  const token2 = generateTokenSimple(testData.Amount, testData.OrderId);
+
+  res.json({
+    testData: testData,
+    secretKey: '***' + CONFIG.SECRET_KEY.slice(-4),
+    tokens: {
+      fullMethod: token1,
+      simpleMethod: token2
+    },
+    tokenGeneration: {
+      fullMethod: 'All fields sorted alphabetically + SecretKey',
+      simpleMethod: 'Amount + OrderId + SecretKey'
+    }
+  });
+});
+
+// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ КЛЮЧЕЙ
+app.get('/check-keys', (req, res) => {
+  res.json({
+    terminalKey: CONFIG.TERMINAL_KEY,
+    secretKeyLength: CONFIG.SECRET_KEY.length,
+    baseUrl: CONFIG.BASE_URL
+  });
+});
+
 app.listen(process.env.PORT || 3000, () => {
   console.log('🚀 Server running on port 3000');
+  console.log('🔑 TerminalKey:', CONFIG.TERMINAL_KEY);
+  console.log('🔑 SecretKey length:', CONFIG.SECRET_KEY.length);
 });
