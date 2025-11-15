@@ -7,55 +7,42 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ КОНФИГУРАЦИЯ ПО ТРЕБОВАНИЯМ TINKOFF
+// ✅ КОНФИГУРАЦИЯ
 const CONFIG = {
-  TERMINAL_KEY: '1761129018508DEMO', // <= 20 символов ✅
-  SECRET_KEY: 'jDkIojG12VaVNopw',    // Ваш Secret Key
+  TERMINAL_KEY: '1761129018508DEMO',
+  SECRET_KEY: 'jDkIojG12VaVNopw',
   BASE_URL: 'https://securepay.tinkoff.ru/v2/'
 };
 
-console.log('🔧 Конфигурация Tinkoff:', {
-  terminalKey: CONFIG.TERMINAL_KEY,
-  terminalKeyLength: CONFIG.TERMINAL_KEY.length,
-  baseUrl: CONFIG.BASE_URL
-});
+console.log('🔧 Tinkoff SpeedPay Server запущен');
 
-// ✅ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ТОКЕНА ПО ДОКУМЕНТАЦИИ TINKOFF
+// ✅ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ТОКЕНА
 function generateToken(data) {
-  // Фильтруем поля согласно документации Tinkoff
   const values = Object.keys(data)
     .filter(key => key !== 'Token' && key !== 'Receipt' && key !== 'DATA')
-    .sort() // Важно: сортируем по алфавиту!
+    .sort()
     .map(key => {
       if (typeof data[key] === 'object') {
-        // Для объектов используем JSON.stringify
         return JSON.stringify(data[key]);
       }
-      // Для примитивов - преобразуем в строку
       return String(data[key] || '');
     })
-    .join(''); // Объединяем без разделителей
+    .join('');
 
-  console.log('🔐 Данные для токена:', values);
-  
-  // Создаем SHA-256 хеш
   return crypto.createHash('sha256')
     .update(values + CONFIG.SECRET_KEY)
     .digest('hex');
 }
 
-// ✅ ИНИЦИАЛИЗАЦИЯ ПЛАТЕЖА С СОБЛЮДЕНИЕМ ТРЕБОВАНИЙ
+// ✅ 1. ENDPOINT ДЛЯ ИНИЦИАЛИЗАЦИИ ПЛАТЕЖА (SpeedPay)
 app.post('/init-payment', async (req, res) => {
   try {
-    console.log('📥 Получен запрос:', req.body);
-    
     const { 
-      Price = '10', // Сумма в рублях
+      Price = '10',
       Email,
       FormName = 'Вступительный взнос'
     } = req.body;
 
-    // Валидация
     if (!Email) {
       return res.json({
         Success: false,
@@ -64,67 +51,29 @@ app.post('/init-payment', async (req, res) => {
       });
     }
 
-    // ✅ СОЗДАЕМ ДАННЫЕ ПО ТРЕБОВАНИЯМ TINKOFF
-    
-    // OrderId: <= 36 characters, уникальный
-    const orderId = `T${Date.now()}`.substring(0, 36);
-    
-    // Amount: Number, <= 10 characters, в копейках
-    const amount = parseInt(Price) * 100; // 10 рублей = 1000 копеек
-    
-    // Description: описание платежа
-    const description = FormName.substring(0, 124);
+    const orderId = `T${Date.now()}`;
+    const amount = parseInt(Price) * 100;
 
-    console.log('📊 Данные для Tinkoff:', {
-      orderId: orderId,
-      orderIdLength: orderId.length,
-      amount: amount,
-      amountType: typeof amount,
-      description: description
-    });
-
-    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ
     const paymentData = {
-      TerminalKey: CONFIG.TERMINAL_KEY, // <= 20 characters ✅
-      Amount: amount,                   // Number, <= 10 characters ✅
-      OrderId: orderId,                 // <= 36 characters ✅
-      Description: description,         // Описание
+      TerminalKey: CONFIG.TERMINAL_KEY,
+      Amount: amount,
+      OrderId: orderId,
+      Description: FormName.substring(0, 124),
       SuccessURL: 'https://npk-vdv.ru/success',
       FailURL: 'https://npk-vdv.ru/fail',
       NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
     };
 
-    // ✅ ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ (не обязательны)
     if (Email) {
-      paymentData.DATA = { 
-        Email: Email.substring(0, 100) 
-      };
+      paymentData.DATA = { Email: Email };
     }
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПОСЛЕ ЗАПОЛНЕНИЯ ВСЕХ ПОЛЕЙ
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Отправка в Tinkoff API:', {
-      TerminalKey: paymentData.TerminalKey,
-      TerminalKeyLength: paymentData.TerminalKey.length,
-      Amount: paymentData.Amount,
-      AmountType: typeof paymentData.Amount,
-      OrderId: paymentData.OrderId,
-      OrderIdLength: paymentData.OrderId.length,
-      Token: paymentData.Token.substring(0, 20) + '...' // Логируем только часть токена
-    });
+    console.log('📤 Инициализация платежа для SpeedPay');
 
-    // ✅ ОТПРАВЛЯЕМ ЗАПРОС
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
 
-    console.log('📥 Ответ Tinkoff:', response.data);
-
-    // ✅ ВОЗВРАЩАЕМ ОТВЕТ В ФОРМАТЕ TINKOFF
     if (response.data.Success) {
       res.json({
         Success: true,
@@ -137,156 +86,275 @@ app.post('/init-payment', async (req, res) => {
         PaymentURL: response.data.PaymentURL
       });
     } else {
-      res.json({
+      throw new Error(response.data.Message || 'Ошибка инициализации платежа');
+    }
+
+  } catch (error) {
+    console.error('❌ Ошибка инициализации:', error.message);
+    res.json({
+      Success: false,
+      ErrorCode: 'INIT_ERROR',
+      Message: error.message
+    });
+  }
+});
+
+// ✅ 2. ENDPOINT ДЛЯ ЗАВЕРШЕНИЯ ПЛАТЕЖА (SpeedPay)
+app.post('/confirm-payment', async (req, res) => {
+  try {
+    const { PaymentId, Amount } = req.body;
+
+    if (!PaymentId || !Amount) {
+      return res.json({
         Success: false,
-        ErrorCode: response.data.ErrorCode,
-        Message: response.data.Message,
-        Details: response.data.Details,
-        Status: response.data.Status
+        ErrorCode: 'MISSING_PARAMS',
+        Message: 'PaymentId и Amount обязательны'
       });
     }
 
-  } catch (error) {
-    console.error('❌ Ошибка:', {
-      message: error.message,
-      url: error.config?.url,
-      data: error.config?.data,
-      response: error.response?.data
-    });
-    
-    res.json({
-      Success: false,
-      ErrorCode: 'REQUEST_ERROR',
-      Message: error.message,
-      Status: 'REJECTED'
-    });
-  }
-});
-
-// ✅ ТЕСТОВЫЙ ENDPOINT ДЛЯ ПРОВЕРКИ ФОРМАТА
-app.post('/test-tinkoff-format', async (req, res) => {
-  try {
-    // ✅ ТОЧНО ПО ТРЕБОВАНИЯМ TINKOFF
-    const testData = {
-      TerminalKey: CONFIG.TERMINAL_KEY, // String, <= 20 chars
-      Amount: 1000,                     // Number, <= 10 chars (1000 копеек = 10 руб)
-      OrderId: `TEST${Date.now()}`,     // String, <= 36 chars
-      Description: 'Тестовый платеж',
-      SuccessURL: 'https://npk-vdv.ru/success',
-      FailURL: 'https://npk-vdv.ru/fail'
+    const confirmData = {
+      TerminalKey: CONFIG.TERMINAL_KEY,
+      PaymentId: PaymentId,
+      Amount: Amount
     };
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН
-    testData.Token = generateToken(testData);
+    confirmData.Token = generateToken(confirmData);
 
-    console.log('🧪 Тестовый запрос формата:', {
-      terminalKey: testData.TerminalKey,
-      terminalKeyLength: testData.TerminalKey.length,
-      amount: testData.Amount,
-      amountType: typeof testData.Amount,
-      orderId: testData.OrderId,
-      orderIdLength: testData.OrderId.length,
-      tokenLength: testData.Token.length
-    });
+    console.log('📤 Подтверждение платежа:', { PaymentId, Amount });
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
+    const response = await axios.post(`${CONFIG.BASE_URL}Confirm`, confirmData);
 
-    res.json({
-      Success: response.data.Success,
-      ErrorCode: response.data.ErrorCode || '0',
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      Status: response.data.Status,
-      PaymentId: String(response.data.PaymentId),
-      OrderId: testData.OrderId,
-      Amount: testData.Amount,
-      PaymentURL: response.data.PaymentURL,
-      // Для отладки
-      _requirements: {
-        TerminalKey: `<= 20 chars: ${testData.TerminalKey.length}/20 ✅`,
-        Amount: `Number, <= 10 chars: ${String(testData.Amount).length}/10 ✅`, 
-        OrderId: `<= 36 chars: ${testData.OrderId.length}/36 ✅`,
-        Token: `Generated: ${testData.Token.length} chars ✅`
-      }
-    });
+    if (response.data.Success) {
+      res.json({
+        Success: true,
+        ErrorCode: '0',
+        Status: response.data.Status,
+        PaymentId: PaymentId
+      });
+    } else {
+      throw new Error(response.data.Message || 'Ошибка подтверждения платежа');
+    }
 
   } catch (error) {
+    console.error('❌ Ошибка подтверждения:', error.message);
     res.json({
       Success: false,
-      ErrorCode: 'TEST_ERROR',
-      Message: error.message,
-      Status: 'REJECTED',
-      _debug: {
-        request: {
-          TerminalKey: CONFIG.TERMINAL_KEY,
-          TerminalKeyLength: CONFIG.TERMINAL_KEY.length,
-          Amount: 1000,
-          OrderId: `TEST${Date.now()}`
-        },
-        error: error.response?.data
-      }
+      ErrorCode: 'CONFIRM_ERROR',
+      Message: error.message
     });
   }
 });
 
-// ✅ ПРОВЕРКА КОНФИГУРАЦИИ
-app.get('/check-requirements', (req, res) => {
-  // Тестовые данные для проверки формата
-  const testData = {
-    TerminalKey: CONFIG.TERMINAL_KEY,
-    Amount: 1000,
-    OrderId: 'TEST123456789',
-    Description: 'Test Payment'
-  };
+// ✅ 3. ENDPOINT ДЛЯ ПОЛУЧЕНИЯ СТАТУСА ПЛАТЕЖА
+app.post('/get-state', async (req, res) => {
+  try {
+    const { PaymentId } = req.body;
 
-  const token = generateToken(testData);
+    if (!PaymentId) {
+      return res.json({
+        Success: false,
+        ErrorCode: 'MISSING_PAYMENT_ID',
+        Message: 'PaymentId обязателен'
+      });
+    }
 
+    const stateData = {
+      TerminalKey: CONFIG.TERMINAL_KEY,
+      PaymentId: PaymentId
+    };
+
+    stateData.Token = generateToken(stateData);
+
+    const response = await axios.post(`${CONFIG.BASE_URL}GetState`, stateData);
+
+    res.json({
+      Success: true,
+      Status: response.data.Status,
+      PaymentId: PaymentId,
+      OrderId: response.data.OrderId,
+      Amount: response.data.Amount,
+      OriginalAmount: response.data.OriginalAmount,
+      ErrorCode: response.data.ErrorCode || '0'
+    });
+
+  } catch (error) {
+    console.error('❌ Ошибка получения статуса:', error.message);
+    res.json({
+      Success: false,
+      ErrorCode: 'STATE_ERROR',
+      Message: error.message
+    });
+  }
+});
+
+// ✅ 4. CALLBACK ДЛЯ УВЕДОМЛЕНИЙ ОТ TINKOFF
+app.post('/payment-callback', (req, res) => {
+  try {
+    const callbackData = req.body;
+    console.log('🔔 Callback от Tinkoff:', callbackData);
+
+    // ✅ ПРОВЕРЯЕМ ПОДПИСЬ CALLBACK
+    const receivedToken = callbackData.Token;
+    const checkData = { ...callbackData };
+    delete checkData.Token;
+    
+    const calculatedToken = generateToken(checkData);
+    
+    if (receivedToken !== calculatedToken) {
+      console.error('❌ Неверная подпись в callback');
+      return res.status(400).json({ Success: false });
+    }
+
+    // ✅ ОБРАБАТЫВАЕМ СТАТУС ПЛАТЕЖА
+    switch (callbackData.Status) {
+      case 'CONFIRMED':
+        console.log(`✅ Платеж ${callbackData.PaymentId} подтвержден`);
+        // Здесь можно обновить статус заказа в БД
+        break;
+      case 'AUTHORIZED':
+        console.log(`🟡 Платеж ${callbackData.PaymentId} авторизован`);
+        break;
+      case 'REJECTED':
+        console.log(`❌ Платеж ${callbackData.PaymentId} отклонен`);
+        break;
+      case 'REFUNDED':
+        console.log(`↩️ Платеж ${callbackData.PaymentId} возвращен`);
+        break;
+    }
+
+    // ✅ ВСЕГДА ВОЗВРАЩАЕМ УСПЕХ TINKOFF
+    res.json({ Success: true });
+
+  } catch (error) {
+    console.error('❌ Ошибка обработки callback:', error);
+    res.json({ Success: false });
+  }
+});
+
+// ✅ 5. ENDPOINT ДЛЯ SpeedPay ИНТЕГРАЦИИ
+app.get('/speedpay-config', (req, res) => {
   res.json({
-    requirements: {
-      TerminalKey: {
-        value: CONFIG.TERMINAL_KEY,
-        type: typeof CONFIG.TERMINAL_KEY,
-        length: CONFIG.TERMINAL_KEY.length,
-        max: 20,
-        valid: CONFIG.TERMINAL_KEY.length <= 20
-      },
-      Amount: {
-        value: 1000,
-        type: 'number',
-        length: String(1000).length,
-        max: 10,
-        valid: String(1000).length <= 10
-      },
-      OrderId: {
-        value: 'TEST123456789',
-        type: 'string', 
-        length: 'TEST123456789'.length,
-        max: 36,
-        valid: 'TEST123456789'.length <= 36
-      },
-      Token: {
-        generated: true,
-        length: token.length,
-        algorithm: 'SHA-256'
-      }
-    },
-    status: 'REQUIREMENTS_CHECKED'
+    terminalKey: CONFIG.TERMINAL_KEY,
+    baseUrl: 'https://housedraw2-production.up.railway.app',
+    endpoints: {
+      init: '/init-payment',
+      confirm: '/confirm-payment',
+      getState: '/get-state',
+      callback: '/payment-callback'
+    }
   });
 });
 
-// Статус сервера
+// ✅ 6. HTML СТРАНИЦА С SpeedPay ДЛЯ ТЕСТИРОВАНИЯ
+app.get('/speedpay-demo', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Tinkoff SpeedPay Demo</title>
+        <script src="https://static.tinkoff.ru/js/pay-form/0.2.0/pay-form.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+            .container { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+            button { background: #FFDD2D; color: #333; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px 0; }
+            .status { margin: 20px 0; padding: 15px; border-radius: 5px; }
+            .success { background: #e8f5e8; color: #27ae60; }
+            .error { background: #ffe8e8; color: #e74c3c; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🎯 Tinkoff SpeedPay Demo</h2>
+            <p>Тестирование интеграции SpeedPay</p>
+            
+            <div>
+                <label>Email:</label>
+                <input type="email" id="email" value="test@test.com" style="padding: 10px; width: 100%; margin: 10px 0;">
+            </div>
+            
+            <button onclick="initSpeedPay()">🚀 Инициализировать SpeedPay</button>
+            
+            <div id="payment-container"></div>
+            <div id="status"></div>
+        </div>
+
+        <script>
+            const config = {
+                terminalKey: '${CONFIG.TERMINAL_KEY}',
+                view: 'button',
+                size: 'large',
+                payment: {
+                    amount: 1000,
+                    order: 'SPEEDPAY_' + Date.now(),
+                    description: 'Тест SpeedPay'
+                },
+                features: {
+                    showEmail: true,
+                    showPhone: false
+                }
+            };
+
+            async function initSpeedPay() {
+                const email = document.getElementById('email').value;
+                const statusDiv = document.getElementById('status');
+                
+                try {
+                    statusDiv.innerHTML = '<div class="status">⏳ Инициализация платежа...</div>';
+                    
+                    // Инициализируем платеж через наш бэкенд
+                    const response = await fetch('/init-payment', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            Price: '10',
+                            Email: email,
+                            FormName: 'SpeedPay тест'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.Success && result.PaymentURL) {
+                        statusDiv.innerHTML = '<div class="status success">✅ Платеж создан! Перенаправляем...</div>';
+                        // Открываем страницу оплаты Tinkoff
+                        window.location.href = result.PaymentURL;
+                    } else {
+                        throw new Error(result.Message || 'Ошибка создания платежа');
+                    }
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = '<div class="status error">❌ ' + error.message + '</div>';
+                }
+            }
+
+            // Автоматическая инициализация при загрузке
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('SpeedPay demo загружен');
+            });
+        </script>
+    </body>
+    </html>
+  `);
+});
+
+// ✅ 7. СТАТУС СЕРВЕРА
 app.get('/status', (req, res) => {
   res.json({ 
     status: 'OK',
-    message: 'Сервер настроен по требованиям Tinkoff API',
-    requirements: {
-      TerminalKey: 'String, <= 20 characters',
-      Amount: 'Number, <= 10 characters (в копейках)',
-      OrderId: 'String, <= 36 characters',
-      Token: 'String (SHA-256 подпись)'
-    }
+    server: 'Tinkoff SpeedPay Backend',
+    timestamp: new Date().toISOString(),
+    features: [
+      'SpeedPay инициализация',
+      'Подтверждение платежей', 
+      'Получение статуса',
+      'Callback обработка',
+      'HTML демо-страница'
+    ]
   });
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Сервер запущен с соблюдением требований Tinkoff API');
+  console.log('🚀 SpeedPay Backend запущен на порту 3000');
+  console.log('📍 Демо страница: https://housedraw2-production.up.railway.app/speedpay-demo');
+  console.log('📍 Конфиг: https://housedraw2-production.up.railway.app/speedpay-config');
 });
