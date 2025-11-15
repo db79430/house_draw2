@@ -16,13 +16,13 @@ const CONFIG = {
 
 console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
 
-// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (исправленная)
+// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (включая Receipt и DATA)
 function generateToken(data) {
-  // Создаем копию объекта без Token
+  // Создаем копию объекта
   const dataForToken = { ...data };
+  
+  // Удаляем Token если есть
   delete dataForToken.Token;
-  delete dataForToken.Receipt;
-  delete dataForToken.DATA;
   
   // Сортируем ключи в алфавитном порядке
   const sortedKeys = Object.keys(dataForToken).sort();
@@ -31,6 +31,12 @@ function generateToken(data) {
   const values = sortedKeys
     .map(key => {
       const value = dataForToken[key];
+      
+      // Для объектов преобразуем в JSON строку
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value);
+      }
+      
       return String(value || '');
     })
     .join('');
@@ -45,7 +51,27 @@ function generateToken(data) {
   return token;
 }
 
-// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ИНИЦИАЛИЗАЦИИ ПЛАТЕЖА
+// ✅ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ЧЕКА (Receipt)
+function createReceipt(amount, email, phone) {
+  return {
+    Email: email,
+    Phone: phone,
+    Taxation: 'osn', // Основная система налогообложения
+    Items: [
+      {
+        Name: 'Вступительный взнос в клуб',
+        Price: amount, // Цена в копейках
+        Quantity: 1,
+        Amount: amount, // Сумма в копейках
+        PaymentMethod: 'full_payment',
+        PaymentObject: 'service',
+        Tax: 'none' // Без НДС
+      }
+    ]
+  };
+}
+
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT С RECEIPT
 app.post('/init-payment', async (req, res) => {
   try {
     console.log('📥 Received request:', req.body);
@@ -54,32 +80,29 @@ app.post('/init-payment', async (req, res) => {
       amount = 1000, 
       customerEmail = 'test@example.com',
       customerPhone = '+79999999999',
-      description = 'Тестовый платеж'
+      description = 'Вступительный взнос в клуб'
     } = req.body;
 
-    // Генерируем уникальный OrderId (максимум 36 символов)
-    const orderId = `order_${Date.now()}`.substring(0, 36);
+    // Генерируем уникальный OrderId
+    const orderId = `order_${Date.now()}`;
     
-    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ (минимальный набор)
+    // ✅ ПОЛНЫЙ НАБОР ДАННЫХ КАК В ПРИМЕРЕ
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: parseInt(amount), // Сумма в копейках
+      Amount: parseInt(amount),
       OrderId: orderId,
-      Description: description.substring(0, 250),
+      Description: description,
       SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
       FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',
-      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
+      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback',
+      DATA: {
+        Phone: customerPhone,
+        Email: customerEmail
+      },
+      Receipt: createReceipt(parseInt(amount), customerEmail, customerPhone)
     };
 
-    // ✅ ДОБАВЛЯЕМ ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ (если нужно)
-    if (customerEmail || customerPhone) {
-      paymentData.DATA = JSON.stringify({
-        Email: customerEmail,
-        Phone: customerPhone
-      });
-    }
-
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПОСЛЕ ДОБАВЛЕНИЯ ВСЕХ ДАННЫХ
     paymentData.Token = generateToken(paymentData);
 
     console.log('📤 Final payment data:', JSON.stringify(paymentData, null, 2));
@@ -121,30 +144,46 @@ app.post('/init-payment', async (req, res) => {
   }
 });
 
-// ✅ ПРОСТОЙ ТЕСТОВЫЙ ENDPOINT (минимальные данные)
-app.post('/test-simple', async (req, res) => {
+// ✅ ТЕСТОВЫЙ ENDPOINT С ТОЧНЫМИ ПАРАМЕТРАМИ КАК В ПРИМЕРЕ
+app.post('/test-exact', async (req, res) => {
   try {
-    const orderId = `test_${Date.now()}`;
-    
-    const paymentData = {
+    const testData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 1000, // 10 рублей
-      OrderId: orderId,
-      Description: 'Тестовый платеж',
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
+      Amount: 140000, // 1400 рублей как в примере
+      OrderId: "21090",
+      Description: "Подарочная карта на 1000 рублей",
+      DATA: {
+        Phone: "+71234567890",
+        Email: "a@test.com"
+      },
+      Receipt: {
+        Email: "a@test.com",
+        Phone: "+71234567890",
+        Taxation: "osn",
+        Items: [
+          {
+            Name: "Подарочная карта на 1000 рублей",
+            Price: 140000,
+            Quantity: 1,
+            Amount: 140000,
+            PaymentMethod: "full_payment",
+            PaymentObject: "commodity",
+            Tax: "none"
+          }
+        ]
+      }
     };
 
     // Генерируем токен
-    paymentData.Token = generateToken(paymentData);
+    testData.Token = generateToken(testData);
 
-    console.log('🧪 Simple test request:', paymentData);
+    console.log('🧪 Exact test request:', JSON.stringify(testData, null, 2));
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
 
     res.json({
       success: response.data.Success,
-      request: paymentData,
+      request: testData,
       response: response.data
     });
 
@@ -157,7 +196,45 @@ app.post('/test-simple', async (req, res) => {
   }
 });
 
-// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ ПОДКЛЮЧЕНИЯ
+// ✅ ВАЛИДАЦИЯ ТОКЕНА С RECEIPT
+app.post('/validate-with-receipt', (req, res) => {
+  const testData = {
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Amount: 140000,
+    OrderId: "21090",
+    Description: "Подарочная карта на 1000 рублей",
+    DATA: {
+      Phone: "+71234567890",
+      Email: "a@test.com"
+    },
+    Receipt: {
+      Email: "a@test.com",
+      Phone: "+71234567890",
+      Taxation: "osn",
+      Items: [
+        {
+          Name: "Подарочная карта на 1000 рублей",
+          Price: 140000,
+          Quantity: 1,
+          Amount: 140000,
+          PaymentMethod: "full_payment",
+          PaymentObject: "commodity",
+          Tax: "none"
+        }
+      ]
+    }
+  };
+
+  const token = generateToken(testData);
+
+  res.json({
+    testData: testData,
+    generatedToken: token,
+    expectedToken: "68711168852240a2f34b6a8b19d2cfbd296c7d2a6dff8b23eda6278985959346"
+  });
+});
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -166,25 +243,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ ВАЛИДАЦИЯ ТОКЕНА
-app.post('/validate-token', (req, res) => {
-  const testData = {
-    TerminalKey: CONFIG.TERMINAL_KEY,
-    Amount: 1000,
-    OrderId: 'test_order_123',
-    Description: 'Test Order'
-  };
-
-  const token = generateToken(testData);
-
-  res.json({
-    testData: testData,
-    generatedToken: token,
-    secretKeyLength: CONFIG.SECRET_KEY.length
-  });
-});
-
-// Обработка уведомлений от Tinkoff
+// Обработка уведомлений
 app.post('/payment-callback', express.json(), (req, res) => {
   console.log('📨 Payment callback:', req.body);
   res.json({ Success: true });
@@ -193,6 +252,4 @@ app.post('/payment-callback', express.json(), (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔧 TerminalKey: ${CONFIG.TERMINAL_KEY}`);
-  console.log(`🔧 BaseURL: ${CONFIG.BASE_URL}`);
 });
