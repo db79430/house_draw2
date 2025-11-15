@@ -11,10 +11,11 @@ app.use(express.json());
 const CONFIG = {
   TERMINAL_KEY: '1761129018508DEMO', // 20 символов ✅
   SECRET_KEY: 'jDkIojG12VaVNopw', // ⚠️ ЗАМЕНИТЕ!
-  BASE_URL: 'https://securepay.tinkoff.ru/v2'
+  BASE_URL: 'https://securepay.tinkoff.ru/v2/' // ✅ ДОБАВЛЕН ЗАКРЫВАЮЩИЙ СЛЕШ!
 };
 
 console.log('🔧 TerminalKey:', CONFIG.TERMINAL_KEY);
+console.log('🔧 Base URL:', CONFIG.BASE_URL);
 
 // Функция для создания токена
 function generateToken(data) {
@@ -47,45 +48,45 @@ app.post('/init-payment', async (req, res) => {
 
     if (!Email) {
       return res.json({
-        Success: false, // ✅ Boolean
+        Success: false,
         ErrorCode: 'EMAIL_REQUIRED',
         Message: 'Email обязателен'
       });
     }
 
-    // ✅ СООТВЕТСТВИЕ ТРЕБОВАНИЯМ
-    const orderId = `T${Date.now()}`.substring(0, 36); // <= 36 символов
-    const amount = 1000; // 10 рублей в копейках ✅ Number
+    const orderId = `T${Date.now()}`.substring(0, 36);
+    const amount = 1000; // 10 рублей в копейках
     
     console.log(`💰 Сумма: ${amount} копеек`);
 
     const paymentData = {
-      TerminalKey: CONFIG.TERMINAL_KEY, // <= 20 символов ✅
-      Amount: amount, // ✅ Number
-      OrderId: orderId, // <= 36 символов ✅
-      Description: FormName.substring(0, 124), // Ограничение описания
-      SuccessURL: 'https://npk-vdv.ru/success'.substring(0, 100),
-      FailURL: 'https://npk-vdv.ru/fail'.substring(0, 100),
-      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'.substring(0, 100)
+      TerminalKey: CONFIG.TERMINAL_KEY,
+      Amount: amount,
+      OrderId: orderId,
+      Description: FormName.substring(0, 124),
+      SuccessURL: 'https://npk-vdv.ru/success',
+      FailURL: 'https://npk-vdv.ru/fail',
+      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
     };
 
     // Добавляем дополнительные данные
     if (Email) {
       paymentData.DATA = { 
-        Email: Email.substring(0, 100) 
+        Email: Email
       };
     }
 
     // Генерируем токен
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Отправка в Tinkoff с параметрами:', {
+    console.log('📤 Отправка в Tinkoff:', {
       TerminalKey: paymentData.TerminalKey,
       Amount: paymentData.Amount,
       OrderId: paymentData.OrderId,
       Description: paymentData.Description
     });
 
+    // ✅ ПРАВИЛЬНЫЙ URL: https://securepay.tinkoff.ru/v2/Init
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
       timeout: 10000,
       headers: {
@@ -95,93 +96,119 @@ app.post('/init-payment', async (req, res) => {
 
     console.log('📥 Ответ Tinkoff:', response.data);
 
-    // ✅ ВОЗВРАЩАЕМ В ФОРМАТЕ TINKOFF API
     if (response.data.Success) {
       res.json({
-        Success: true, // ✅ Boolean
-        Status: response.data.Status, // ✅ String <= 20 chars
-        PaymentId: String(response.data.PaymentId), // ✅ String <= 20 chars
-        OrderId: orderId, // ✅ String <= 36 chars
-        Amount: amount, // ✅ Number
-        TerminalKey: CONFIG.TERMINAL_KEY, // ✅ String <= 20 chars
-        PaymentURL: response.data.PaymentURL, // ✅ String <= 100 chars
-        ErrorCode: '0' // ✅ String <= 20 chars
+        Success: true,
+        Status: response.data.Status,
+        PaymentId: String(response.data.PaymentId),
+        OrderId: orderId,
+        Amount: amount,
+        TerminalKey: CONFIG.TERMINAL_KEY,
+        PaymentURL: response.data.PaymentURL,
+        ErrorCode: '0'
       });
     } else {
       res.json({
-        Success: false, // ✅ Boolean
-        ErrorCode: response.data.ErrorCode || 'UNKNOWN_ERROR', // ✅ String <= 20 chars
-        Message: response.data.Message || 'Ошибка платежа', // ✅ String <= 255 chars
+        Success: false,
+        ErrorCode: response.data.ErrorCode || 'UNKNOWN_ERROR',
+        Message: response.data.Message || 'Ошибка платежа',
         Details: response.data.Details,
-        Status: response.data.Status || 'REJECTED' // ✅ String <= 20 chars
+        Status: response.data.Status || 'REJECTED'
       });
     }
 
   } catch (error) {
-    console.error('❌ Ошибка:', error.message);
+    console.error('❌ Ошибка:', {
+      message: error.message,
+      url: `${CONFIG.BASE_URL}Init`,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     
-    // ✅ ОШИБКА В ФОРМАТЕ TINKOFF API
     res.json({
-      Success: false, // ✅ Boolean
-      ErrorCode: 'REQUEST_ERROR', // ✅ String <= 20 chars
-      Message: error.message.substring(0, 255), // ✅ String <= 255 chars
-      Status: 'REJECTED', // ✅ String <= 20 chars
+      Success: false,
+      ErrorCode: 'REQUEST_ERROR',
+      Message: error.message,
+      Status: 'REJECTED',
       Details: error.response?.data ? JSON.stringify(error.response.data) : undefined
     });
   }
 });
 
-// ✅ ТЕСТОВЫЙ ENDPOINT С ПРАВИЛЬНЫМ ФОРМАТОМ
-app.post('/test-tinkoff-format', async (req, res) => {
+// ✅ ДИАГНОСТИЧЕСКИЙ ENDPOINT
+app.post('/debug-request', async (req, res) => {
   try {
-    const orderId = `TEST${Date.now()}`.substring(0, 36);
-    const amount = 1000; // 10 рублей
+    const orderId = `DEBUG${Date.now()}`;
+    const amount = 1000;
 
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: 'Тестовый платеж 10р',
-      SuccessURL: 'https://npk-vdv.ru/success',
-      FailURL: 'https://npk-vdv.ru/fail'
+      Description: 'Диагностический платеж',
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
     };
 
     paymentData.Token = generateToken(paymentData);
 
-    console.log('🧪 Тестовый запрос:', paymentData);
+    console.log('🐞 Диагностический запрос:', {
+      url: `${CONFIG.BASE_URL}Init`,
+      data: paymentData
+    });
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
+      timeout: 10000
+    });
 
-    // ✅ ВОЗВРАЩАЕМ В ФОРМАТЕ TINKOFF
     res.json({
-      Success: response.data.Success,
-      Status: response.data.Status,
-      PaymentId: String(response.data.PaymentId),
-      OrderId: orderId,
-      Amount: amount,
-      TerminalKey: CONFIG.TERMINAL_KEY,
-      PaymentURL: response.data.PaymentURL,
-      ErrorCode: response.data.ErrorCode || '0',
-      Message: response.data.Message,
-      Details: response.data.Details,
-      // Дополнительная информация для отладки
-      _debug: {
-        request: paymentData,
-        response: response.data
-      }
+      success: true,
+      request: {
+        url: `${CONFIG.BASE_URL}Init`,
+        data: paymentData
+      },
+      response: response.data
     });
 
   } catch (error) {
     res.json({
-      Success: false,
-      ErrorCode: 'TEST_ERROR',
-      Message: error.message,
-      Status: 'REJECTED',
-      _debug: {
-        error: error.response?.data
-      }
+      success: false,
+      error: error.message,
+      request: {
+        url: `${CONFIG.BASE_URL}Init`,
+        terminalKey: CONFIG.TERMINAL_KEY
+      },
+      response: error.response?.data,
+      status: error.response?.status
     });
   }
+});
+
+// ✅ ПРОВЕРКА SECRET KEY
+app.get('/check-config', (req, res) => {
+  // Создаем тестовые данные для проверки токена
+  const testData = {
+    TerminalKey: CONFIG.TERMINAL_KEY,
+    Amount: 1000,
+    OrderId: 'TEST123',
+    Description: 'Test'
+  };
+
+  const token = generateToken(testData);
+
+  res.json({
+    config: {
+      terminalKey: CONFIG.TERMINAL_KEY,
+      baseUrl: CONFIG.BASE_URL,
+      secretKeyLength: CONFIG.SECRET_KEY?.length || 0
+    },
+    tokenTest: {
+      originalData: testData,
+      generatedToken: token,
+      tokenLength: token.length
+    },
+    status: 'CONFIG_CHECKED'
+  });
 });
 
 // Статус сервера
@@ -189,20 +216,12 @@ app.get('/status', (req, res) => {
   res.json({ 
     status: 'OK',
     terminalKey: CONFIG.TERMINAL_KEY,
-    requirements: {
-      TerminalKey: '<= 20 chars ✅',
-      Amount: 'Number ✅', 
-      OrderId: '<= 36 chars ✅',
-      Success: 'Boolean ✅',
-      Status: '<= 20 chars ✅',
-      PaymentId: '<= 20 chars ✅',
-      ErrorCode: '<= 20 chars ✅',
-      PaymentURL: '<= 100 chars ✅',
-      Message: '<= 255 chars ✅'
-    }
+    baseUrl: CONFIG.BASE_URL,
+    message: 'Base URL исправлен - добавлен закрывающий слеш'
   });
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Сервер запущен с правильным форматом Tinkoff API');
+  console.log('🚀 Сервер запущен');
+  console.log('📍 Base URL:', CONFIG.BASE_URL);
 });
