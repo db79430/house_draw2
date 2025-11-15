@@ -15,21 +15,31 @@ const CONFIG = {
 
 console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
 
-// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА
+// ✅ ГЕНЕРАЦИЯ OrderId ТОЛЬКО ИЗ ЦИФР
+function generateOrderId() {
+  const timestamp = Date.now().toString();
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return timestamp + random;
+}
+
+// ✅ ПРАВИЛЬНАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (согласно документации)
 function generateToken(data) {
-  // Сортируем поля в алфавитном порядке и собираем значения
-  const sortedKeys = Object.keys(data).sort();
+  // Убираем Token из данных для подписи
+  const dataForToken = { ...data };
+  delete dataForToken.Token;
+  delete dataForToken.Receipt; // Receipt не участвует в подписи
+  
+  // Сортируем поля в алфавитном порядке
+  const sortedKeys = Object.keys(dataForToken).sort();
   
   let values = '';
   sortedKeys.forEach(key => {
-    if (key !== 'Token' && key !== 'Shops' && key !== 'Receipt') {
-      const value = data[key];
-      if (value !== null && value !== undefined && value !== '') {
-        if (typeof value === 'object') {
-          values += JSON.stringify(value);
-        } else {
-          values += String(value);
-        }
+    const value = dataForToken[key];
+    if (value !== null && value !== undefined && value !== '') {
+      if (typeof value === 'object') {
+        values += JSON.stringify(value);
+      } else {
+        values += String(value);
       }
     }
   });
@@ -44,40 +54,55 @@ function generateToken(data) {
     .digest('hex');
 }
 
-// ✅ ИСПРАВЛЕННЫЙ ENDPOINT - БЕЗ ОБЯЗАТЕЛЬНОГО EMAIL
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT С ПРАВИЛЬНЫМ ФОРМАТОМ
 app.post('/init-payment', async (req, res) => {
   try {
     console.log('📥 Received request:', req.body);
     
     const { 
       Email,
-      Phone 
+      Phone,
+      ProductName = 'Вступительный взнос',
+      Price = 1000
     } = req.body;
 
-    // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДАННЫХ
-    const orderId = `T${Date.now()}`;
-    const amount = 1000; // 10 рублей в копейках
+    // ✅ ПРАВИЛЬНЫЙ OrderId ТОЛЬКО ИЗ ЦИФР
+    const orderId = generateOrderId();
+    const amount = Price; // В копейках
 
-    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ
+    console.log('📋 Generated OrderId:', orderId, 'Length:', orderId.length);
+
+    // ✅ ФОРМАТ СОГЛАСНО ДОКУМЕНТАЦИИ
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: 'Вступительный взнос в клуб',
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
+      Description: ProductName,
+      SuccessURL: 'https://yoursite.tilda.ws/success',
+      FailURL: 'https://yoursite.tilda.ws/fail',
+      DATA: {
+        Phone: Phone || '+79999999999',
+        Email: Email || 'customer@example.com'
+      },
+      Receipt: {
+        Email: Email || 'customer@example.com',
+        Phone: Phone || '+79999999999',
+        Taxation: 'osn',
+        Items: [
+          {
+            Name: ProductName,
+            Price: amount,
+            Quantity: 1,
+            Amount: amount,
+            Tax: 'vat10',
+            PaymentMethod: 'full_payment',
+            PaymentObject: 'service'
+          }
+        ]
+      }
     };
 
-    // ✅ ДОБАВЛЯЕМ DATA ТОЛЬКО ЕСЛИ ЕСТЬ ДАННЫЕ
-    const dataFields = {};
-    if (Email) dataFields.Email = Email;
-    if (Phone) dataFields.Phone = Phone;
-    
-    if (Object.keys(dataFields).length > 0) {
-      paymentData.DATA = dataFields;
-    }
-
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПОСЛЕ ЗАПОЛНЕНИЯ ВСЕХ ДАННЫХ
     paymentData.Token = generateToken(paymentData);
 
     console.log('📤 Sending to Tinkoff:', JSON.stringify(paymentData, null, 2));
@@ -120,26 +145,39 @@ app.post('/init-payment', async (req, res) => {
   }
 });
 
-// ✅ МИНИМАЛЬНЫЙ ENDPOINT ТОЛЬКО С ОБЯЗАТЕЛЬНЫМИ ПОЛЯМИ
-app.post('/init-minimal', async (req, res) => {
+// ✅ УПРОЩЕННЫЙ ENDPOINT БЕЗ RECEIPT (если не нужен чек)
+app.post('/init-simple', async (req, res) => {
   try {
-    const orderId = `MIN${Date.now()}`;
-    const amount = 1000;
+    const { 
+      Email,
+      Phone,
+      ProductName = 'Вступительный взнос',
+      Price = 1000
+    } = req.body;
 
-    // ✅ МИНИМАЛЬНЫЙ НАБОР ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    const orderId = generateOrderId();
+    const amount = Price;
+
+    // ✅ УПРОЩЕННЫЙ ФОРМАТ БЕЗ RECEIPT
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: 'Вступительный взнос',
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
+      Description: ProductName,
+      SuccessURL: 'https://yoursite.tilda.ws/success',
+      FailURL: 'https://yoursite.tilda.ws/fail'
     };
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ИЗ МИНИМАЛЬНЫХ ПОЛЕЙ
+    // ✅ ДОБАВЛЯЕМ DATA ЕСЛИ ЕСТЬ ДАННЫЕ
+    if (Email || Phone) {
+      paymentData.DATA = {};
+      if (Email) paymentData.DATA.Email = Email;
+      if (Phone) paymentData.DATA.Phone = Phone;
+    }
+
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Minimal request:', paymentData);
+    console.log('📤 Simple request:', paymentData);
 
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
 
@@ -158,21 +196,39 @@ app.post('/init-minimal', async (req, res) => {
   }
 });
 
-// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ ТОКЕНА
-app.get('/check-token', (req, res) => {
+// ✅ ПРОВЕРКА ФОРМАТА ДАННЫХ
+app.get('/test-format', (req, res) => {
   const testData = {
     TerminalKey: CONFIG.TERMINAL_KEY,
     Amount: 1000,
-    OrderId: 'TEST123',
-    Description: 'Test Payment'
+    OrderId: generateOrderId(),
+    Description: "Тестовый платеж",
+    DATA: {
+      Phone: "+79999999999",
+      Email: "test@test.com"
+    },
+    Receipt: {
+      Email: "test@test.com",
+      Phone: "+79999999999",
+      Taxation: "osn",
+      Items: [
+        {
+          Name: "Тестовый товар",
+          Price: 1000,
+          Quantity: 1,
+          Amount: 1000,
+          Tax: "vat10"
+        }
+      ]
+    }
   };
 
-  const token = generateToken(testData);
+  testData.Token = generateToken(testData);
 
   res.json({
-    testData: testData,
-    generatedToken: token,
-    expectedFields: ['TerminalKey', 'Amount', 'OrderId', 'Description', 'Token']
+    exampleFormat: testData,
+    requiredFields: ['TerminalKey', 'Amount', 'OrderId', 'Description', 'Token'],
+    optionalFields: ['DATA', 'Receipt', 'SuccessURL', 'FailURL']
   });
 });
 
