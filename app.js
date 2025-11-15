@@ -7,19 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ АЛЬТЕРНАТИВНЫЕ ТЕСТОВЫЕ КЛЮЧИ
-// const CONFIG = {
-//   TERMINAL_KEY: process.env.TERMINAL_KEY, // Альтернативный ключ
-//   SECRET_KEY: process.env.SECRET_KEY, 
-//   BASE_URL: 'https://rest-api-test.tinkoff.ru/v2/'
-// };
-
+// ✅ РЕАЛЬНЫЕ КЛЮЧИ (замените на ваши!)
 const CONFIG = {
-    TERMINAL_KEY: '1761129018508DEMO',
-    SECRET_KEY: 'jDkIojG12VaVNopw', 
-    BASE_URL: 'https://securepay.tinkoff.ru/v2'
-  };
+  TERMINAL_KEY: '1761129018508DEMO',
+  SECRET_KEY: 'jDkIojG12VaVNopw', 
+  BASE_URL: 'https://securepay.tinkoff.ru/v2/'
+};
 
+console.log('🔧 Используется TerminalKey:', CONFIG.TERMINAL_KEY);
 
 // Функция для создания токена
 function generateToken(data) {
@@ -45,12 +40,11 @@ app.post('/init-payment', async (req, res) => {
     console.log('📥 Получен запрос:', req.body);
     
     const { 
-      Price = '10', // Используем 1000 рублей вместо 10
+      Price = '10', // ✅ ИЗМЕНИЛИ НА 10 РУБЛЕЙ
       Email,
       FormName = 'Вступительный взнос'
     } = req.body;
 
-    // Валидация
     if (!Email) {
       return res.json({
         success: false,
@@ -59,31 +53,38 @@ app.post('/init-payment', async (req, res) => {
     }
 
     const orderId = `T${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    // const amount = Math.round(parseFloat(Price) * 100); // В копейках
-
+    
+    // ✅ 10 РУБЛЕЙ В КОПЕЙКАХ
+    const amount = parseInt(Price) * 100; // 10 рублей = 1000 копеек
+    
     console.log(`💰 Сумма: ${amount} копеек (${Price} рублей)`);
 
-    // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДЛЯ TINKOFF
+    // Данные для Tinkoff API
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 10,
+      Amount: amount, // 1000 копеек
       OrderId: orderId,
-      Description: FormName.substring(0, 124), // Ограничение длины
+      Description: FormName.substring(0, 124),
+      SuccessURL: 'https://npk-vdv.ru/success',
+      FailURL: 'https://npk-vdv.ru/fail',
+      NotificationURL: 'https://housedraw2-production.up.railway.app/payment-callback'
     };
 
-    // ✅ ДОБАВЛЯЕМ ОБЯЗАТЕЛЬНЫЕ URL
-    paymentData.SuccessURL = 'https://securepay.tinkoff.ru/html/payForm/success.html';
-    paymentData.FailURL = 'https://securepay.tinkoff.ru/html/payForm/fail.html';
-
-    // ✅ ДОБАВЛЯЕМ DATA ЕСЛИ ЕСТЬ EMAIL
+    // Добавляем дополнительные данные
     if (Email) {
-      paymentData.DATA = { Email: Email };
+      paymentData.DATA = { 
+        Email: Email 
+      };
     }
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПОСЛЕ ВСЕХ ПОЛЕЙ
+    // Генерируем токен
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Отправка в Tinkoff:', JSON.stringify(paymentData, null, 2));
+    console.log('📤 Отправка в Tinkoff:', {
+      Amount: paymentData.Amount,
+      Description: paymentData.Description,
+      Email: Email
+    });
 
     const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
       timeout: 10000,
@@ -103,7 +104,6 @@ app.post('/init-payment', async (req, res) => {
         orderId: orderId
       });
     } else {
-      // ✅ ДЕТАЛЬНАЯ ИНФОРМАЦИЯ ОБ ОШИБКЕ
       throw new Error(
         response.data.Message || 
         response.data.Details || 
@@ -112,11 +112,7 @@ app.post('/init-payment', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Ошибка 403:', {
-      message: error.message,
-      response: error.response?.data,
-      config: error.config?.data
-    });
+    console.error('❌ Ошибка:', error.message);
     
     res.json({
       success: false,
@@ -126,37 +122,43 @@ app.post('/init-payment', async (req, res) => {
   }
 });
 
-// ✅ ТЕСТОВЫЙ ENDPOINT ДЛЯ ПРОВЕРКИ TINKOFF
-app.post('/test-tinkoff', async (req, res) => {
+// Диагностический endpoint
+app.post('/debug-10rub', async (req, res) => {
   try {
-    const testData = {
+    const orderId = `DEBUG10${Date.now()}`;
+    const amount = 1000; // 10 рублей в копейках
+
+    const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 100000, // 1000 рублей
-      OrderId: 'TEST' + Date.now(),
-      Description: 'Тестовый платеж',
-      SuccessURL: 'https://example.com/success',
-      FailURL: 'https://example.com/fail'
+      Amount: amount,
+      OrderId: orderId,
+      Description: 'Тест 10 рублей',
+      SuccessURL: 'https://npk-vdv.ru/success',
+      FailURL: 'https://npk-vdv.ru/fail',
+      DATA: {
+        Email: 'test@test.com'
+      }
     };
 
-    testData.Token = generateToken(testData);
+    paymentData.Token = generateToken(paymentData);
 
-    console.log('🧪 Тестовый запрос к Tinkoff:', testData);
+    console.log('🐞 Debug 10 рублей:', paymentData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
 
     res.json({
       success: true,
-      tinkoffResponse: response.data,
-      terminalKey: CONFIG.TERMINAL_KEY,
-      usedKeys: 'TinkoffBankTest'
+      amount: `${amount} копеек (10 рублей)`,
+      requestData: paymentData,
+      response: response.data
     });
 
   } catch (error) {
     res.json({
       success: false,
       error: error.message,
-      tinkoffError: error.response?.data,
-      terminalKey: CONFIG.TERMINAL_KEY
+      requestData: JSON.parse(error.config?.data || '{}'),
+      response: error.response?.data
     });
   }
 });
@@ -166,10 +168,11 @@ app.get('/status', (req, res) => {
   res.json({ 
     status: 'OK',
     terminalKey: CONFIG.TERMINAL_KEY,
-    message: 'Используются ключи TinkoffBankTest'
+    amount: '10 рублей (1000 копеек)',
+    message: 'Настроено для 10 рублей'
   });
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Сервер запущен');
+  console.log('🚀 Сервер запущен для суммы 10 рублей');
 });
