@@ -1,198 +1,150 @@
 const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
-
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// ✅ ПРАВИЛЬНЫЕ КЛЮЧИ И ФОРМАТ
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Конфигурация
 const CONFIG = {
-  TERMINAL_KEY: '1761129018508DEMO',
-  SECRET_KEY: 'jDkIojG12VaVNopw',
-  BASE_URL: 'https://securepay.tinkoff.ru/v2/Init'
+  TERMINAL_KEY: '1761129018508DEMO', // Ваш Terminal Key
+  SECRET_KEY: 'jDkIojG12VaVNopw',     // Ваш Secret Key
+  BASE_URL: 'https://securepay.tinkoff.ru/v2/'
 };
 
-console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
-
-// ✅ УПРОЩЕННАЯ ФУНКЦИЯ ДЛЯ ТОКЕНА (как в документации Tinkoff)
+// Функция для создания токена
 function generateToken(data) {
-  // Только основные поля для токена
-  const tokenData = {
-    TerminalKey: data.TerminalKey,
-    Amount: data.Amount,
-    OrderId: data.OrderId,
-    Description: data.Description,
-    SuccessURL: data.SuccessURL,
-    FailURL: data.FailURL
-  };
-
-  const values = Object.keys(tokenData)
-    .sort() // Важно: сортировка по алфавиту
-    .map(key => String(tokenData[key] || ''))
+  const values = Object.keys(data)
+    .filter(key => key !== 'Token')
+    .sort()
+    .map(key => data[key])
     .join('');
-
-  console.log('🔐 Data for token:', values);
   
   return crypto.createHash('sha256')
     .update(values + CONFIG.SECRET_KEY)
     .digest('hex');
 }
 
-// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ИНИЦИАЛИЗАЦИИ ПЛАТЕЖА
+// Инициализация платежа
 app.post('/init-payment', async (req, res) => {
   try {
-    console.log('📥 Received request:', req.body);
-    
-    const { 
-      Price = '10',
-      Email,
-      FormName = 'Вступительный взнос'
-    } = req.body;
+    const { orderId, amount, customerEmail, customerPhone, description } = req.body;
 
-    if (!Email) {
-      return res.json({
-        Success: false,
-        ErrorCode: 'EMAIL_REQUIRED',
-        Message: 'Email обязателен'
-      });
-    }
-
-    // ✅ ПРАВИЛЬНЫЙ ФОРМАТ ДАННЫХ
-    const orderId = `T${Date.now()}`;
-    const amount = 1000; // 10 рублей в копейках
-
-    // ✅ ОСНОВНЫЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ (без лишних)
     const paymentData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: amount,
+      Amount: amount, // Сумма в копейках
       OrderId: orderId,
-      Description: 'Вступительный взнос в клуб',
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html', // Стандартный URL
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'       // Стандартный URL
+      Description: description || 'Оплата заказа',
+      DATA: {
+        Email: customerEmail,
+        Phone: customerPhone
+      },
+      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html', // URL для успешной оплаты
+      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'        // URL для неудачной оплаты
     };
 
-    // ✅ ДОБАВЛЯЕМ DATA ТОЛЬКО ЕСЛИ НУЖНО
-    paymentData.DATA = {
-      Email: Email,
-      Phone: '+79999999999' // Обязательное поле для некоторых терминалов
-    };
-
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН
+    // Генерируем токен
     paymentData.Token = generateToken(paymentData);
 
-    console.log('📤 Sending to Tinkoff:', JSON.stringify(paymentData, null, 2));
-
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log('📥 Tinkoff response:', response.data);
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
 
     if (response.data.Success) {
       res.json({
-        Success: true,
-        ErrorCode: '0',
-        TerminalKey: CONFIG.TERMINAL_KEY,
-        Status: response.data.Status,
-        PaymentId: String(response.data.PaymentId),
-        OrderId: orderId,
-        Amount: amount,
-        PaymentURL: response.data.PaymentURL
+        success: true,
+        paymentId: response.data.PaymentId,
+        paymentURL: response.data.PaymentURL
       });
     } else {
-      throw new Error(response.data.Message || JSON.stringify(response.data));
+      throw new Error(response.data.Message || 'Ошибка инициализации платежа');
     }
 
   } catch (error) {
-    console.error('❌ Error:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
-    
-    res.json({
-      Success: false,
-      ErrorCode: 'INIT_ERROR',
-      Message: error.response?.data?.Message || error.message,
-      Details: error.response?.data
+    console.error('Init payment error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
 
-// ✅ ТЕСТОВЫЙ ENDPOINT С ПРОСТЫМИ ДАННЫМИ
-app.post('/test-simple', async (req, res) => {
+// Обработка уведомлений от Tinkoff (Callback)
+app.post('/payment-callback', (req, res) => {
   try {
-    const testData = {
+    const callbackData = req.body;
+    
+    // Проверяем подпись
+    const receivedToken = callbackData.Token;
+    delete callbackData.Token;
+    
+    const calculatedToken = generateToken(callbackData);
+    
+    if (receivedToken !== calculatedToken) {
+      console.error('Invalid token in callback');
+      return res.status(400).send('Invalid token');
+    }
+
+    // Обрабатываем статус платежа
+    switch (callbackData.Status) {
+      case 'AUTHORIZED':
+      case 'CONFIRMED':
+        // Платеж успешен
+        console.log(`Payment ${callbackData.PaymentId} successful`);
+        // Обновите статус заказа в вашей БД
+        break;
+      
+      case 'REJECTED':
+      case 'CANCELED':
+        // Платеж отменен/отклонен
+        console.log(`Payment ${callbackData.PaymentId} failed`);
+        break;
+      
+      case 'REFUNDED':
+        // Произведен возврат
+        console.log(`Payment ${callbackData.PaymentId} refunded`);
+        break;
+    }
+
+    // Всегда возвращаем успешный ответ Tinkoff
+    res.json({ Success: true });
+
+  } catch (error) {
+    console.error('Callback error:', error);
+    res.status(500).json({ Success: false });
+  }
+});
+
+// Проверка статуса платежа
+app.post('/check-payment', async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+
+    const checkData = {
       TerminalKey: CONFIG.TERMINAL_KEY,
-      Amount: 1000,
-      OrderId: `TEST${Date.now()}`,
-      Description: 'Тестовый платеж',
-      SuccessURL: 'https://securepay.tinkoff.ru/html/payForm/success.html',
-      FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html',
-      DATA: {
-        Email: 'test@test.com',
-        Phone: '+79999999999'
-      }
+      PaymentId: paymentId
     };
 
-    testData.Token = generateToken(testData);
+    checkData.Token = generateToken(checkData);
 
-    console.log('🧪 Test request:', testData);
-
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, testData);
+    const response = await axios.post(`${CONFIG.BASE_URL}GetState`, checkData);
 
     res.json({
       success: response.data.Success,
-      request: testData,
-      response: response.data
+      status: response.data.Status,
+      orderId: response.data.OrderId,
+      amount: response.data.Amount
     });
 
   } catch (error) {
-    res.json({
+    console.error('Check payment error:', error);
+    res.status(500).json({
       success: false,
-      error: error.message,
-      request: error.config?.data,
-      response: error.response?.data
+      error: error.message
     });
   }
 });
 
-// ✅ ПРОВЕРКА КЛЮЧЕЙ
-app.get('/check-keys', (req, res) => {
-  const testData = {
-    TerminalKey: CONFIG.TERMINAL_KEY,
-    Amount: 1000,
-    OrderId: 'CHECK123',
-    Description: 'Check'
-  };
-
-  const token = generateToken(testData);
-
-  res.json({
-    keys: {
-      terminalKey: CONFIG.TERMINAL_KEY,
-      secretKey: '***' + CONFIG.SECRET_KEY.slice(-4), // Не показываем полный ключ
-      baseUrl: CONFIG.BASE_URL
-    },
-    tokenTest: {
-      data: testData,
-      token: token
-    }
-  });
-});
-
-app.get('/status', (req, res) => {
-  res.json({ 
-    status: 'OK',
-    message: 'Исправлен формат данных для Tinkoff API'
-  });
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log('🚀 Server running on port 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

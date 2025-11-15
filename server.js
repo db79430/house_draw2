@@ -72,7 +72,7 @@ app.post('/payment-integration/init', async (req, res) => {
 
     console.log('📤 Отправка в Tinkoff:', paymentData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    const response = await axios.post(`${CONFIG.BASE_URL}`, paymentData);
 
     console.log('📥 Ответ Tinkoff:', response.data);
 
