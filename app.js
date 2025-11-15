@@ -9,9 +9,9 @@ app.use(express.json());
 
 // ✅ РЕАЛЬНЫЕ КЛЮЧИ
 const CONFIG = {
-  TERMINAL_KEY: '1761129018508', // 20 символов ✅
+  TERMINAL_KEY: '1761129018508DEMO', // 20 символов ✅
   SECRET_KEY: 'jDkIojG12VaVNopw', // ⚠️ ЗАМЕНИТЕ!
-  BASE_URL: 'https://securepay.tinkoff.ru/v2/'
+  BASE_URL: 'https://securepay.tinkoff.ru/v2'
 };
 
 console.log('🔧 TerminalKey:', CONFIG.TERMINAL_KEY);
