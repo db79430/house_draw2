@@ -41,9 +41,9 @@ class TinkoffService {
         url: url,
         data: requestData,
         timeout: 15000,
+        maxRedirects: 0,
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Tinkoff Node.js SDK'
+          'Content-Type': 'application/json'
         }
       });
 
