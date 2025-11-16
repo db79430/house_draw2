@@ -1,49 +1,33 @@
 import dotenv from 'dotenv';
-dotenv.config();
-console.log('🔍 Environment variables check:');
-console.log('PGHOST:', process.env.PGHOST);
-console.log('PGDATABASE:', process.env.PGDATABASE);
-console.log('PGUSER:', process.env.PGUSER);
-console.log('PGPASSWORD:', process.env.PGPASSWORD ? '***' : 'not set');
-console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'not set');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('DB_USER:', process.env.DB_USER);
+
+// Загружаем .env только в development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const CONFIG = {
-  // Database settings
   DATABASE: {
-    HOST: process.env.DB_HOST || process.env.PGHOST || 'localhost',
-    PORT: process.env.DB_PORT || process.env.PGPORT || 5432,
-    NAME: process.env.DB_NAME || process.env.PGDATABASE,
-    USER: process.env.DB_USER || process.env.PGUSER,
-    PASSWORD: process.env.DB_PASSWORD || process.env.PGPASSWORD,
-    URL: process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL,
+    // В production используем Railway переменные
+    URL: process.env.DATABASE_URL,
+    
+    // Резервные значения для production
+    HOST: process.env.PGHOST || process.env.DB_HOST || 'nozomi.proxy.rlwy.net',
+    PORT: process.env.PGPORT || process.env.DB_PORT || 17078,
+    NAME: process.env.PGDATABASE || process.env.DB_NAME || 'railway',
+    USER: process.env.PGUSER || process.env.DB_USER || 'postgres',
+    PASSWORD: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'atqtzfUrVcTuGUReKaHBvrUmVXmuUHVV',
+    
     SSL: true
   },
-    // Tinkoff API settings
-    TINKOFF: {
-      TERMINAL_KEY: process.env.TERMINAL_KEY,
-      SECRET_KEY: process.env.SECRET_KEY,
-      BASE_URL: 'https://securepay.tinkoff.ru/v2/'
-    },
-    
-    // Email settings
-    EMAIL: {
-      HOST: process.env.EMAIL_HOST || 'smtp.yandex.ru',
-      PORT: process.env.EMAIL_PORT || 465,
-      USER: process.env.EMAIL_USER,
-      PASS: process.env.YANDEX_APP_PASSWORD,
-      FROM: process.env.YANDEX_EMAIL
-    },
-    
-    // Application settings
-    APP: {
-      PORT: process.env.PORT || 3000,
-      BASE_URL: process.env.BASE_URL,
-      SUCCESS_URL: process.env.SUCCESS_URL,
-      FAIL_URL: process.env.FAIL_URL
-    }
-  };
   
+  // ... остальные настройки
+};
+
+console.log('🚀 Environment:', process.env.NODE_ENV);
+console.log('🔧 Database Configuration:');
+console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'not set');
+console.log('- PGHOST:', process.env.PGHOST);
+console.log('- Using host:', CONFIG.DATABASE.HOST);
+console.log('- Using port:', CONFIG.DATABASE.PORT);
+
 export default CONFIG;
