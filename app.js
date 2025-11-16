@@ -22,13 +22,20 @@ function generateOrderId() {
 
 // ✅ ПРАВИЛЬНАЯ ГЕНЕРАЦИЯ ТОКЕНА согласно документации Tinkoff
 function generateToken(paymentData) {
-  // 1. Создаем массив объектов ключ:значение (только корневые поля)
-  const tokenArray = [
-    { TerminalKey: paymentData.TerminalKey },
-    { Amount: paymentData.Amount.toString() },
-    { OrderId: paymentData.OrderId },
-    { Description: paymentData.Description }
-  ];
+  // 1. Создаем массив объектов ключ:значение для ВСЕХ полей (кроме Token)
+  const tokenArray = [];
+  
+  // Добавляем все поля из paymentData
+  Object.keys(paymentData).forEach(key => {
+    if (key !== 'Token' && paymentData[key] !== undefined && paymentData[key] !== null) {
+      if (typeof paymentData[key] === 'object') {
+        // Для объектов (DATA) - преобразуем в JSON строку
+        tokenArray.push({ [key]: JSON.stringify(paymentData[key]) });
+      } else {
+        tokenArray.push({ [key]: paymentData[key].toString() });
+      }
+    }
+  });
 
   // 2. Добавляем пароль в массив
   tokenArray.push({ Password: CONFIG.SECRET_KEY });
@@ -45,11 +52,15 @@ function generateToken(paymentData) {
   tokenArray.forEach(item => {
     const key = Object.keys(item)[0];
     const value = item[key];
-    values += value.toString();
+    values += value;
   });
 
-  console.log('🔐 Token array:', tokenArray);
-  console.log('🔐 Concatenated values:', values);
+  console.log('🔐 Token array:', JSON.stringify(tokenArray.map(item => {
+    const key = Object.keys(item)[0];
+    const value = item[key];
+    return { [key]: key === 'Password' ? '***' + value.slice(-4) : value };
+  }), null, 2));
+  console.log('🔐 Concatenated values:', values.replace(CONFIG.SECRET_KEY, '***' + CONFIG.SECRET_KEY.slice(-4)));
 
   // 5. Применяем SHA-256
   const token = crypto.createHash('sha256')
@@ -87,14 +98,14 @@ app.post('/init-payment', async (req, res) => {
       FailURL: 'https://securepay.tinkoff.ru/html/payForm/fail.html'
     };
 
-    // ✅ ДОБАВЛЯЕМ DATA ЕСЛИ ЕСТЬ (не участвует в токене!)
+    // ✅ ДОБАВЛЯЕМ DATA ЕСЛИ ЕСТЬ
     if (Email || Phone) {
       paymentData.DATA = {};
       if (Email) paymentData.DATA.Email = Email;
       if (Phone) paymentData.DATA.Phone = Phone;
     }
 
-    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПРАВИЛЬНЫМ МЕТОДОМ
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН ПРАВИЛЬНЫМ МЕТОДОМ (ВКЛЮЧАЯ ВСЕ ПОЛЯ)
     paymentData.Token = generateToken(paymentData);
 
     console.log('📤 Final request to Tinkoff:', JSON.stringify(paymentData, null, 2));
@@ -137,107 +148,76 @@ app.post('/init-payment', async (req, res) => {
   }
 });
 
+// ✅ ENDPOINT С МИНИМАЛЬНЫМИ ДАННЫМИ (только обязательные поля)
+app.post('/init-minimal', async (req, res) => {
+  try {
+    const orderId = generateOrderId();
+    const amount = 1000;
+
+    // ✅ МИНИМАЛЬНЫЙ НАБОР ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    const paymentData = {
+      TerminalKey: CONFIG.TERMINAL_KEY,
+      Amount: amount,
+      OrderId: orderId,
+      Description: 'Test payment'
+    };
+
+    // ✅ ГЕНЕРИРУЕМ ТОКЕН
+    paymentData.Token = generateToken(paymentData);
+
+    console.log('📤 Minimal request:', paymentData);
+
+    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+
+    res.json({
+      request: paymentData,
+      response: response.data
+    });
+
+  } catch (error) {
+    res.json({
+      error: error.message,
+      response: error.response?.data
+    });
+  }
+});
+
 // ✅ ENDPOINT ДЛЯ ТЕСТИРОВАНИЯ ТОКЕНА
 app.post('/test-token', (req, res) => {
+  // Тестовые данные с разными типами полей
   const testData = {
     TerminalKey: CONFIG.TERMINAL_KEY,
     Amount: 1000,
     OrderId: '123456789',
-    Description: 'Test Payment'
+    Description: 'Test Payment',
+    SuccessURL: 'https://example.com/success',
+    FailURL: 'https://example.com/fail',
+    DATA: {
+      Email: 'test@test.com',
+      Phone: '+79999999999'
+    }
   };
 
   const token = generateToken(testData);
 
-  // Показываем процесс генерации
-  const tokenArray = [
-    { TerminalKey: testData.TerminalKey },
-    { Amount: testData.Amount.toString() },
-    { OrderId: testData.OrderId },
-    { Description: testData.Description },
-    { Password: CONFIG.SECRET_KEY }
-  ];
-
-  tokenArray.sort((a, b) => {
-    const keyA = Object.keys(a)[0];
-    const keyB = Object.keys(b)[0];
-    return keyA.localeCompare(keyB);
-  });
-
-  let values = '';
-  tokenArray.forEach(item => {
-    const key = Object.keys(item)[0];
-    const value = item[key];
-    values += value.toString();
-  });
-
   res.json({
     testData: testData,
-    tokenGenerationProcess: {
-      step1_initialArray: [
-        { TerminalKey: testData.TerminalKey },
-        { Amount: testData.Amount.toString() },
-        { OrderId: testData.OrderId },
-        { Description: testData.Description },
-        { Password: '***' + CONFIG.SECRET_KEY.slice(-4) }
-      ],
-      step2_sortedArray: tokenArray.map(item => {
-        const key = Object.keys(item)[0];
-        const value = item[key];
-        return { [key]: key === 'Password' ? '***' + value.slice(-4) : value };
-      }),
-      step3_concatenatedString: values.replace(CONFIG.SECRET_KEY, '***' + CONFIG.SECRET_KEY.slice(-4)),
-      step4_finalToken: token
-    }
+    generatedToken: token,
+    note: 'Токен сгенерирован из ВСЕХ полей (кроме Token) + Password'
   });
 });
 
-// ✅ ENDPOINT С ПРИМЕРОМ ИЗ ДОКУМЕНТАЦИИ
-app.post('/test-doc-example', (req, res) => {
-  // Пример из документации
-  const docExample = {
-    TerminalKey: "MerchantTerminalKey",
-    Amount: 19200,
-    OrderId: "00000",
-    Description: "Подарочная карта на 1000 рублей",
-    Password: "11111111111111"
-  };
-
-  const tokenArray = [
-    { TerminalKey: docExample.TerminalKey },
-    { Amount: docExample.Amount.toString() },
-    { OrderId: docExample.OrderId },
-    { Description: docExample.Description },
-    { Password: docExample.Password }
-  ];
-
-  tokenArray.sort((a, b) => {
-    const keyA = Object.keys(a)[0];
-    const keyB = Object.keys(b)[0];
-    return keyA.localeCompare(keyB);
-  });
-
-  let values = '';
-  tokenArray.forEach(item => {
-    const key = Object.keys(item)[0];
-    const value = item[key];
-    values += value.toString();
-  });
-
-  const expectedToken = "72dd466f8ace0a37a1f740ce5fb78101712bc0665d91a8108c7c8a0ccd426db2";
-  const actualToken = crypto.createHash('sha256').update(values).digest('hex');
-
+// ✅ ENDPOINT ДЛЯ ПРОВЕРКИ КЛЮЧЕЙ
+app.get('/check-keys', (req, res) => {
   res.json({
-    documentationExample: {
-      initialData: docExample,
-      sortedArray: tokenArray,
-      concatenatedString: values,
-      expectedToken: expectedToken,
-      actualToken: actualToken,
-      match: expectedToken === actualToken
-    }
+    terminalKey: CONFIG.TERMINAL_KEY,
+    secretKey: '***' + CONFIG.SECRET_KEY.slice(-4),
+    baseUrl: CONFIG.BASE_URL,
+    status: 'active'
   });
 });
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('🚀 Server running on port 3000');
+  console.log('🔑 TerminalKey:', CONFIG.TERMINAL_KEY);
 });
