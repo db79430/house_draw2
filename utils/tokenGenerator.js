@@ -3,38 +3,67 @@ import CONFIG from '../config/index.js';
 
 class TokenGenerator {
   static generateToken(paymentData) {
-    const tokenArray = [];
+    console.log('🔐 Начало генерации токена...');
     
-    // Добавляем все поля кроме Token
-    Object.keys(paymentData).forEach(key => {
-      if (key !== 'Token' && paymentData[key] !== undefined && paymentData[key] !== null) {
-        if (typeof paymentData[key] === 'object') {
-          tokenArray.push({ [key]: JSON.stringify(paymentData[key]) });
-        } else {
-          tokenArray.push({ [key]: paymentData[key].toString() });
-        }
+    try {
+      // Создаем массив объектов ключ:значение (только корневые поля)
+      const tokenArray = [
+        { TerminalKey: paymentData.TerminalKey },
+        { Amount: paymentData.Amount.toString() },
+        { OrderId: paymentData.OrderId },
+        { Description: paymentData.Description }
+      ];
+
+      // Добавляем SuccessURL и FailURL если они есть
+      if (paymentData.SuccessURL) {
+        tokenArray.push({ SuccessURL: paymentData.SuccessURL });
       }
-    });
+      
+      if (paymentData.FailURL) {
+        tokenArray.push({ FailURL: paymentData.FailURL });
+      }
 
-    // Добавляем пароль
-    tokenArray.push({ Password: CONFIG.TINKOFF.SECRET_KEY });
+      // Добавляем DATA если есть
+      if (paymentData.DATA) {
+        tokenArray.push({ DATA: JSON.stringify(paymentData.DATA) });
+      }
 
-    // Сортируем по алфавиту
-    tokenArray.sort((a, b) => {
-      const keyA = Object.keys(a)[0];
-      const keyB = Object.keys(b)[0];
-      return keyA.localeCompare(keyB);
-    });
+      // Добавляем пароль в массив
+      tokenArray.push({ Password: CONFIG.TINKOFF.SECRET_KEY });
 
-    // Конкатенируем значения
-    let values = '';
-    tokenArray.forEach(item => {
-      values += item[Object.keys(item)[0]];
-    });
+      console.log('📋 Массив для токена до сортировки:', tokenArray.map(item => Object.keys(item)[0]));
 
-    console.log('🔐 Token generation data:', values.replace(CONFIG.TINKOFF.SECRET_KEY, '***' + CONFIG.TINKOFF.SECRET_KEY.slice(-4)));
+      // Сортируем массив по ключу в алфавитном порядке
+      tokenArray.sort((a, b) => {
+        const keyA = Object.keys(a)[0];
+        const keyB = Object.keys(b)[0];
+        return keyA.localeCompare(keyB);
+      });
 
-    return createHash('sha256').update(values).digest('hex');
+      console.log('📋 Массив для токена после сортировки:', tokenArray.map(item => Object.keys(item)[0]));
+
+      // Конкатенируем значения в одну строку
+      let values = '';
+      tokenArray.forEach(item => {
+        const key = Object.keys(item)[0];
+        const value = item[key];
+        values += value.toString();
+      });
+
+      console.log('🔡 Конкатенированная строка (без пароля):', values.replace(CONFIG.TINKOFF.SECRET_KEY, '***' + CONFIG.TINKOFF.SECRET_KEY.slice(-4)));
+
+      // Применяем SHA-256
+      const token = createHash('sha256')
+        .update(values)
+        .digest('hex');
+
+      console.log('✅ Сгенерированный токен:', token);
+      return token;
+
+    } catch (error) {
+      console.error('❌ Ошибка генерации токена:', error);
+      throw new Error('Ошибка генерации токена: ' + error.message);
+    }
   }
 
   static generateOrderId() {
