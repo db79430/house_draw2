@@ -16,7 +16,6 @@ const CONFIG = {
     NAME: process.env.PGDATABASE || process.env.DB_NAME || 'railway',
     USER: process.env.PGUSER || process.env.DB_USER || 'postgres',
     PASSWORD: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'atqtzfUrVcTuGUReKaHBvrUmVXmuUHVV',
-    
     SSL: true
   },
 
@@ -52,46 +51,25 @@ const CONFIG = {
   
 };
 
+// Валидация конфигурации
 function validateConfig() {
-  console.log('🔧 Checking configuration...');
+  console.log('🔧 Tinkoff Configuration:');
+  console.log('   TerminalKey:', CONFIG.TINKOFF.TERMINAL_KEY);
+  console.log('   SecretKey: ***' + (CONFIG.TINKOFF.SECRET_KEY ? CONFIG.TINKOFF.SECRET_KEY.slice(-4) : 'NOT SET'));
+  console.log('   BaseURL:', CONFIG.TINKOFF.BASE_URL);
+  console.log('   Mode: TEST (DEMO terminal) → PRODUCTION environment');
   
-  const errors = [];
-
-  // Проверяем Tinkoff настройки
   if (!CONFIG.TINKOFF.TERMINAL_KEY) {
-    errors.push('TERMINAL_KEY is not set');
-  } else {
-    console.log('✅ TERMINAL_KEY:', CONFIG.TINKOFF.TERMINAL_KEY);
+    throw new Error('TERMINAL_KEY is required');
   }
-
+  
   if (!CONFIG.TINKOFF.SECRET_KEY) {
-    errors.push('SECRET_KEY is not set');
-  } else {
-    console.log('✅ SECRET_KEY: ***' + CONFIG.TINKOFF.SECRET_KEY.slice(-4));
+    throw new Error('SECRET_KEY is required');
   }
-
-  if (!CONFIG.TINKOFF.BASE_URL) {
-    errors.push('BASE_URL is not set');
-  } else {
-    console.log('✅ BASE_URL:', CONFIG.TINKOFF.BASE_URL);
-  }
-
-  // Проверяем переменные окружения
-  console.log('🌍 Environment variables:');
-  console.log('   TERMINAL_KEY from env:', process.env.TERMINAL_KEY ? 'Set' : 'Not set');
-  console.log('   SECRET_KEY from env:', process.env.SECRET_KEY ? 'Set' : 'Not set');
-  console.log('   PORT from env:', process.env.PORT || '3000 (default)');
-
-  if (errors.length > 0) {
-    console.error('❌ Configuration errors:');
-    errors.forEach(error => console.error('   -', error));
-    throw new Error('Configuration validation failed: ' + errors.join(', '));
-  }
-
-  console.log('✅ All configuration checks passed!');
+  
+  console.log('✅ Configuration validated - using DEMO terminal on PRODUCTION environment');
 }
 
-// Вызываем валидацию сразу
 validateConfig();
 
 console.log('🚀 Environment:', process.env.NODE_ENV);
