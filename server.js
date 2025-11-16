@@ -10,6 +10,7 @@ import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
 import TildaController from './controllers/tildaFormControllers.js';
 import  db  from './database/index.js';
+import { processFormAndPayment } from './controllers/SimpleTildaController.js'
 
 const app = express();
 
@@ -24,11 +25,14 @@ app.use(urlencoded({ extended: true }));
 // const tildaController = new TildaController();
 
 // Tilda form routes
-app.post('/tilda-form-submit', (req, res) => TildaController.processFormAndPayment(req, res));
-app.post('/tilda-webhook', (req, res) => TildaController.handleTildaWebhook(req, res));
-app.post('/validate-form', (req, res) => TildaController.validateForm(req, res));
-app.post('/validate-field', (req, res) => TildaController.validateField(req, res));
-app.post('/check-payment', (req, res) => TildaController.checkPaymentStatus(req, res));
+// app.post('/tilda-form-submit', (req, res) => TildaController.processFormAndPayment(req, res));
+// app.post('/tilda-webhook', (req, res) => TildaController.handleTildaWebhook(req, res));
+// app.post('/validate-form', (req, res) => TildaController.validateForm(req, res));
+// app.post('/validate-field', (req, res) => TildaController.validateField(req, res));
+// app.post('/check-payment', (req, res) => TildaController.checkPaymentStatus(req, res));
+
+
+app.post('/tilda-form-submit', processFormAndPayment);
 
 // Payment routes
 app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
