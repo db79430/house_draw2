@@ -41,7 +41,8 @@ class TinkoffService {
         url: url,
         data: requestData,
         timeout: 15000,
-        maxRedirects: 0,
+        maxRedirects: 5,
+        validateStatus: null,
         headers: {
           'Content-Type': 'application/json'
         }
