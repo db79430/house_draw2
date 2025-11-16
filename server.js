@@ -19,21 +19,23 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 
 // Создаем экземпляры контроллеров (если они классы)
-const tinkoffController = new TinkoffController();
-const emailController = new EmailController();
-const tildaController = new TildaController();
+// const tinkoffController = new TinkoffController();
+// const emailController = new EmailController();
+// const tildaController = new TildaController();
 
 // Tilda form routes
-app.post('/tilda-form-submit', (req, res) => tildaController.processFormAndPayment(req, res));
-app.post('/tilda-webhook', (req, res) => tildaController.handleTildaWebhook(req, res));
-app.post('/check-payment', (req, res) => tildaController.checkPaymentStatus(req, res));
+app.post('/tilda-form-submit', (req, res) => TildaController.processFormAndPayment(req, res));
+app.post('/tilda-webhook', (req, res) => TildaController.handleTildaWebhook(req, res));
+app.post('/validate-form', (req, res) => TildaController.validateForm(req, res));
+app.post('/validate-field', (req, res) => TildaController.validateField(req, res));
+app.post('/check-payment', (req, res) => TildaController.checkPaymentStatus(req, res));
 
 // Payment routes
-app.post('/payment-notification', (req, res) => tinkoffController.handleNotification(req, res));
+app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
 
 // Email routes
-app.post('/test-email', (req, res) => emailController.testEmail(req, res));
-app.get('/test-smtp', (req, res) => emailController.testSMTPConnection(req, res));
+app.post('/test-email', (req, res) => EmailController.testEmail(req, res));
+app.get('/test-smtp', (req, res) => EmailController.testSMTPConnection(req, res));
 
 // Admin routes
 app.get('/admin/stats', async (req, res) => {
@@ -55,7 +57,7 @@ app.get('/admin/stats', async (req, res) => {
   }
 });
 
-// Health check (исправленная версия)
+// Health check
 app.get('/health', async (req, res) => {
   try {
     await db.one('SELECT 1 as test');

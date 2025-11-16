@@ -1,11 +1,9 @@
-import CONFIG from '../config/index.js'
-import Helpers from '../utils/Helpers.js';
-import Payment from '../models/Payment.js';
 import TildaFormService from '../services/TildaFormService.js';
 import TinkoffService from '../services/TinkoffService.js';
 import User from '../models/Users.js';
-
-
+import Payment from '../models/Payment.js';
+import Helpers from '../utils/Helpers.js';
+import CONFIG from '../config/index.js';
 
 class TildaController {
   async processFormAndPayment(req, res) {
@@ -17,8 +15,8 @@ class TildaController {
         FullName: req.body.name || req.body.FullName,
         Email: req.body.email || req.body.Email,
         Phone: req.body.phone || req.body.Phone || req.body.tel,
+        City: req.body.age || req.body.City,
         Yeardate: req.body.yeardate || req.body.Yeardate || req.body.date,
-        City: req.body.city || req.body.City,
         Conditions: req.body.conditions || req.body.Conditions || req.body.agree,
         Checkbox: req.body.checkbox || req.body.Checkbox
       };
@@ -30,13 +28,14 @@ class TildaController {
         tranid: req.body.tranid
       };
 
-      // Валидация формы
+      // Валидация формы с использованием новой функции
       const validationErrors = TildaFormService.validateFormData(formData);
       if (validationErrors.length > 0) {
         return res.json({
           Success: false,
           ErrorCode: 'VALIDATION_ERROR',
-          Message: validationErrors.join(', ')
+          Message: validationErrors.join(', '),
+          Details: validationErrors
         });
       }
 
@@ -116,11 +115,90 @@ class TildaController {
     }
   }
 
+  // Новая endpoint для валидации формы без создания платежа
+  async validateForm(req, res) {
+    try {
+      const formData = {
+        FullName: req.body.FullName,
+        Email: req.body.Email,
+        Phone: req.body.Phone,
+        Age: req.body.Age,
+        Yeardate: req.body.Yeardate,
+        Conditions: req.body.Conditions,
+        Checkbox: req.body.Checkbox
+      };
+
+      // Валидация формы
+      const validationErrors = TildaFormService.validateFormData(formData);
+      
+      if (validationErrors.length > 0) {
+        return res.json({
+          Success: false,
+          Valid: false,
+          Errors: validationErrors
+        });
+      }
+
+      // Проверяем существующего пользователя
+      const existingUser = await TildaFormService.findUserByFormData(formData);
+      if (existingUser) {
+        return res.json({
+          Success: false,
+          Valid: false,
+          Errors: ['Пользователь с таким email или телефоном уже зарегистрирован']
+        });
+      }
+
+      res.json({
+        Success: true,
+        Valid: true,
+        Message: 'Форма валидна'
+      });
+
+    } catch (error) {
+      res.json({
+        Success: false,
+        Valid: false,
+        Errors: [error.message]
+      });
+    }
+  }
+
+  // Валидация конкретного поля
+  async validateField(req, res) {
+    try {
+      const { field, value } = req.body;
+      
+      if (!field) {
+        return res.json({
+          Success: false,
+          Message: 'Field name is required'
+        });
+      }
+
+      const isValid = TildaFormService.validateField(field, value);
+      const errorMessage = TildaFormService.getFieldErrorMessage(field, value);
+
+      res.json({
+        Success: true,
+        Field: field,
+        Value: value,
+        Valid: isValid,
+        ErrorMessage: errorMessage
+      });
+
+    } catch (error) {
+      res.json({
+        Success: false,
+        Message: error.message
+      });
+    }
+  }
+
   async handleTildaWebhook(req, res) {
     try {
       console.log('📨 Tilda webhook received:', req.body);
 
-      // Tilda отправляет данные в формате formparams[name]=value
       const formData = {};
       if (req.body.formparams) {
         Object.keys(req.body.formparams).forEach(key => {
@@ -131,11 +209,9 @@ class TildaController {
         });
       }
 
-      // Добавляем системные поля
       formData.formid = req.body.formid;
       formData.pageid = req.body.pageid;
 
-      // Обрабатываем форму
       await this.processFormAndPayment({ body: formData }, res);
 
     } catch (error) {
@@ -168,7 +244,6 @@ class TildaController {
         });
       }
 
-      // Если есть payment_id, проверяем статус в Tinkoff
       if (user.payment_id) {
         const state = await TinkoffService.getPaymentState(user.payment_id);
         
