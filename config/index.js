@@ -1,15 +1,27 @@
 import dotenv from 'dotenv';
 dotenv.config();
+console.log('🔍 Environment variables check:');
+console.log('PGHOST:', process.env.PGHOST);
+console.log('PGDATABASE:', process.env.PGDATABASE);
+console.log('PGUSER:', process.env.PGUSER);
+console.log('PGPASSWORD:', process.env.PGPASSWORD ? '***' : 'not set');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'not set');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_USER:', process.env.DB_USER);
 
 const CONFIG = {
   // Database settings
   DATABASE: {
-    HOST: process.env.DB_HOST || 'localhost',
-    PORT: process.env.DB_PORT || 5432,
-    NAME: process.env.DB_NAME,
-    USER: process.env.DB_USER,
-    PASSWORD: process.env.DB_PASSWORD,
-    SSL: process.env.DB_SSL === 'true' || false,
+    HOST: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+    PORT: process.env.DB_PORT || process.env.PGPORT || 5432,
+    NAME: process.env.DB_NAME || process.env.PGDATABASE,
+    USER: process.env.DB_USER || process.env.PGUSER,
+    PASSWORD: process.env.DB_PASSWORD || process.env.PGPASSWORD,
+    SSL: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production',
+    
+    // Railway-specific
+    URL: process.env.DATABASE_URL
   },
     // Tinkoff API settings
     TINKOFF: {
