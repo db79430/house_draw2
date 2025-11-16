@@ -33,7 +33,7 @@ class TinkoffService {
       requestData.Token = TokenGenerator.generateTokenSimple(requestData);
 
       // Формируем полный URL
-      const url = `${this.baseURL}Init`;
+      const url = `${this.baseURL}`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
 
       const response = await axios({
@@ -94,7 +94,7 @@ class TinkoffService {
 
       const response = await axios({
         method: 'POST',
-        url: `${this.baseURL}Init`,
+        url: `${this.baseURL}`,
         data: testData,
         timeout: 10000
       });
