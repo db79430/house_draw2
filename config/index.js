@@ -18,10 +18,8 @@ const CONFIG = {
     NAME: process.env.DB_NAME || process.env.PGDATABASE,
     USER: process.env.DB_USER || process.env.PGUSER,
     PASSWORD: process.env.DB_PASSWORD || process.env.PGPASSWORD,
-    SSL: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production',
-    
-    // Railway-specific
-    URL: process.env.DATABASE_URL
+    URL: process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL,
+    SSL: true
   },
     // Tinkoff API settings
     TINKOFF: {
