@@ -1,4 +1,16 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 const CONFIG = {
+  // Database settings
+  DATABASE: {
+    HOST: process.env.DB_HOST || 'localhost',
+    PORT: process.env.DB_PORT || 5432,
+    NAME: process.env.DB_NAME,
+    USER: process.env.DB_USER,
+    PASSWORD: process.env.DB_PASSWORD,
+    SSL: process.env.DB_SSL === 'true' || false,
+  },
     // Tinkoff API settings
     TINKOFF: {
       TERMINAL_KEY: process.env.TERMINAL_KEY,
@@ -18,10 +30,10 @@ const CONFIG = {
     // Application settings
     APP: {
       PORT: process.env.PORT || 3000,
-      BASE_URL: process.env.BASE_URL || 'https://your-server-url',
-      SUCCESS_URL: process.env.SUCCESS_URL || 'https://your-site.tilda.ws/payment-success',
-      FAIL_URL: process.env.FAIL_URL || 'https://your-site.tilda.ws/payment-fail'
+      BASE_URL: process.env.BASE_URL,
+      SUCCESS_URL: process.env.SUCCESS_URL,
+      FAIL_URL: process.env.FAIL_URL
     }
   };
   
-  module.exports = CONFIG;
+export default CONFIG;
