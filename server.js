@@ -82,6 +82,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
+console.log('Tinkov', CONFIG.TINKOFF.SECRET_KEY)
+
 // Start server
 async function startServer() {
   try {
