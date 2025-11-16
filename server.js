@@ -10,7 +10,7 @@ import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
 import TildaController from './controllers/tildaFormControllers.js';
 import  db  from './database/index.js';
-import { processFormAndPayment } from './controllers/SimpleTildaController.js'
+import  processFormAndPayment  from './controllers/SimpleTildaController.js'
 
 const app = express();
 

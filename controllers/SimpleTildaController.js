@@ -56,4 +56,4 @@ const processFormAndPayment = async (req, res) => {
   }
 };
 
-export default { processFormAndPayment };
+export default processFormAndPayment ;
