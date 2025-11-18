@@ -22,14 +22,9 @@ const CONFIG = {
   
   // Tinkoff API settings
   TINKOFF: {
-    TERMINAL_KEY: process.env.TERMINAL_KEY || '1761129018508DEMO',
-    SECRET_KEY: process.env.SECRET_KEY || 'jDkIojG12VaVNopw',
-    BASE_URLS: [
-      'https://securepay.tinkoff.ru/v2/',
-      'https://securepay.tinkoff.ru/v2/Init/',
-      'https://rest-api-test.tinkoff.ru/v2/',
-      'https://rest-api-test.tinkoff.ru/v2/Init/'
-    ]
+    TERMINAL_KEY: process.env.TERMINAL_KEY,
+    SECRET_KEY: process.env.SECRET_KEY,
+    BASE_URL: 'https://securepay.tinkoff.ru/v2',
   },
   
   // Email settings
