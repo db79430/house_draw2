@@ -37,11 +37,16 @@ const processFormAndPayment = async (req, res) => {
     const tinkoffResponse = await TinkoffService.initPayment(paymentData);
     
     if (tinkoffResponse.Success) {
-      res.json({
+      console.log('✅ Платеж создан для Tilda');
+      
+      // Tilda ожидает определенный формат ответа
+      return res.json({
         Success: true,
+        PaymentURL: tinkoffResponse.PaymentURL,
+        RedirectUrl: tinkoffResponse.PaymentURL,
+        Status: 'redirect',
         PaymentId: tinkoffResponse.PaymentId,
-        OrderId: orderId,
-        PaymentURL: tinkoffResponse.PaymentURL
+        OrderId: orderId
       });
     } else {
       throw new Error(tinkoffResponse.Message);
