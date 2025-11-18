@@ -1,34 +1,27 @@
+// controllers/TildaController.js
 import TildaFormService from '../services/TildaFormService.js';
 import TinkoffService from '../services/TinkoffService.js';
+import TokenGenerator from '../utils/tokenGenerator.js';
+import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
-import Helpers from '../utils/Helpers.js';
-import CONFIG from '../config/index.js';
 
 class TildaController {
-  async processFormAndPayment(req, res) {
+  /**
+   * Основной метод для обработки вебхука от Tilda
+   */
+  async handleTildaWebhook(req, res) {
+    console.log('🔍 Получен вебхук от Tilda...');
+    
     try {
-      console.log('📥 Данные из Tilda формы bf403:', req.body);
+      console.log('📥 Raw данные от Tilda:', req.body);
 
-      // Данные из Tilda формы
-      const formData = {
-        FullName: req.body.name || req.body.FullName,
-        Email: req.body.email || req.body.Email,
-        Phone: req.body.phone || req.body.Phone || req.body.tel,
-        City: req.body.age || req.body.City,
-        Yeardate: req.body.yeardate || req.body.Yeardate || req.body.date,
-        Conditions: req.body.conditions || req.body.Conditions || req.body.agree,
-        Checkbox: req.body.checkbox || req.body.Checkbox
-      };
+      // Нормализуем данные из Tilda (разные форматы)
+      const { formData, tildaData } = this.normalizeTildaData(req.body);
+      
+      console.log('🔄 Нормализованные данные:', { formData, tildaData });
 
-      // Tilda системные данные
-      const tildaData = {
-        formid: req.body.formid || CONFIG.TILDA.FORM_ID,
-        pageid: req.body.pageid,
-        tranid: req.body.tranid
-      };
-
-      // Валидация формы с использованием новой функции
+      // Валидация формы
       const validationErrors = TildaFormService.validateFormData(formData);
       if (validationErrors.length > 0) {
         return res.json({
@@ -39,75 +32,50 @@ class TildaController {
         });
       }
 
-      // Проверяем, не регистрировался ли пользователь ранее
+      // Проверяем существующего пользователя
       const existingUser = await TildaFormService.findUserByFormData(formData);
       if (existingUser) {
         return res.json({
           Success: false,
-          ErrorCode: 'USER_EXISTS',
+          ErrorCode: 'USER_EXISTS', 
           Message: 'Пользователь с таким email или телефоном уже зарегистрирован'
         });
       }
 
-      // Создаем пользователя из данных формы
+      // Создаем пользователя
       const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
       
-      // Генерируем OrderId для платежа
-      const orderId = Helpers.generateOrderId();
-      const amount = 1000; // 10 рублей в копейках
+      // Создаем платеж в Тинькофф
+      const paymentResult = await this.createTinkoffPayment(userResult.user, formData);
+      
+      // Обновляем пользователя с payment_id
+      await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
 
-      // Подготавливаем данные для Tinkoff
-      const paymentData = {
-        Amount: amount,
-        OrderId: orderId,
-        Description: 'Вступительный взнос в клуб',
-        SuccessURL: CONFIG.APP.SUCCESS_URL,
-        FailURL: CONFIG.APP.FAIL_URL,
-        NotificationURL: `${CONFIG.APP.BASE_URL}/payment-notification`,
-        DATA: {
-          Name: userResult.user.fullname,
-          Email: userResult.user.email,
-          Phone: userResult.user.phone
-        }
-      };
+      // Сохраняем платеж в БД
+      await Payment.create({
+        orderId: paymentResult.orderId,
+        userId: userResult.user.id,
+        amount: paymentResult.amount,
+        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+        description: 'Вступительный взнос в клуб',
+        status: 'pending'
+      });
 
-      // Инициализируем платеж в Tinkoff
-      const tinkoffResponse = await TinkoffService.initPayment(paymentData);
-
-      if (tinkoffResponse.Success) {
-        // Обновляем payment_id пользователя
-        await User.updateTinkoffPaymentId(userResult.user.id, tinkoffResponse.PaymentId);
-
-        // Создаем запись о платеже
-        await Payment.create({
-          orderId: orderId,
-          userId: userResult.user.id,
-          amount: amount,
-          tinkoffPaymentId: tinkoffResponse.PaymentId,
-          description: 'Вступительный взнос в клуб',
-          tinkoffResponse: tinkoffResponse
-        });
-
-        res.json({
-          Success: true,
-          PaymentId: tinkoffResponse.PaymentId,
-          OrderId: orderId,
-          Amount: amount,
-          PaymentURL: tinkoffResponse.PaymentURL,
-          User: {
-            id: userResult.user.id,
-            email: userResult.user.email,
-            login: userResult.credentials.login
-          }
-        });
-      } else {
-        throw new Error(tinkoffResponse.Message || 'Ошибка инициализации платежа');
-      }
+      // Успешный ответ для Tilda
+      console.log('✅ Платеж создан для Tilda');
+      return res.json({
+        Success: true,
+        PaymentURL: paymentResult.paymentUrl,
+        RedirectUrl: paymentResult.paymentUrl, // Дублируем для совместимости
+        Status: 'redirect',
+        PaymentId: paymentResult.tinkoffPaymentId,
+        OrderId: paymentResult.orderId,
+        Message: 'Платеж успешно создан'
+      });
 
     } catch (error) {
-      console.error('❌ Ошибка обработки формы и платежа:', error.message);
-      
-      res.json({
+      console.error('❌ Ошибка обработки вебхука:', error);
+      return res.json({
         Success: false,
         ErrorCode: 'PROCESSING_ERROR',
         Message: error.message
@@ -115,20 +83,116 @@ class TildaController {
     }
   }
 
-  // Новая endpoint для валидации формы без создания платежа
+  /**
+   * Нормализация данных из Tilda (поддерживает разные форматы)
+   */
+  normalizeTildaData(tildaData) {
+    let formData = {};
+    let tildaMeta = {};
+
+    // Формат 1: Прямые поля (новый формат Tilda)
+    if (tildaData.name || tildaData.email || tildaData.phone) {
+      formData = {
+        FullName: tildaData.name || '',
+        Email: tildaData.email || '',
+        Phone: tildaData.phone || tildaData.tel || '',
+        Age: tildaData.age || '',
+        Yeardate: tildaData.yeardate || tildaData.birthdate || '',
+        City: tildaData.city || '',
+        Conditions: this.normalizeCheckbox(tildaData.conditions || tildaData.agree),
+        Checkbox: this.normalizeCheckbox(tildaData.checkbox || tildaData.personaldata)
+      };
+    } 
+    // Формат 2: Вложенные fields (старый формат)
+    else if (tildaData.fields) {
+      formData = {
+        FullName: tildaData.fields.name || tildaData.fields.Name || '',
+        Email: tildaData.fields.email || tildaData.fields.Email || '',
+        Phone: tildaData.fields.phone || tildaData.fields.Phone || tildaData.fields.tel || '',
+        Age: tildaData.fields.age || tildaData.fields.Age || '',
+        Yeardate: tildaData.fields.yeardate || tildaData.fields.Yeardate || '',
+        City: tildaData.fields.city || tildaData.fields.City || '',
+        Conditions: this.normalizeCheckbox(tildaData.fields.conditions || tildaData.fields.agree),
+        Checkbox: this.normalizeCheckbox(tildaData.fields.checkbox || tildaData.fields.personaldata)
+      };
+    }
+    // Формат 3: Formparams (альтернативный формат)
+    else if (tildaData.formparams) {
+      Object.keys(tildaData.formparams).forEach(key => {
+        const match = key.match(/\[(.*?)\]/);
+        if (match) {
+          formData[match[1]] = tildaData.formparams[key];
+        }
+      });
+    }
+
+    // Мета-данные Tilda
+    tildaMeta = {
+      formid: tildaData.formid || CONFIG.TILDA?.FORM_ID || 'bf403',
+      pageid: tildaData.pageid || '',
+      tranid: tildaData.tranid || '',
+      projectid: tildaData.projectid || CONFIG.TILDA?.PROJECT_ID || '14245141'
+    };
+
+    return { formData, tildaData: tildaMeta };
+  }
+
+  /**
+   * Нормализация чекбоксов (Tilda отправляет 'on' для отмеченных)
+   */
+  normalizeCheckbox(value) {
+    if (value === 'on' || value === 'yes' || value === true) {
+      return 'yes';
+    }
+    return 'no';
+  }
+
+  /**
+   * Создание платежа в Тинькофф
+   */
+  async createTinkoffPayment(user, formData) {
+    const orderId = TokenGenerator.generateOrderId();
+    const amount = 1000; // 1000 рублей в копейках
+
+    const paymentData = {
+      Amount: amount,
+      OrderId: orderId,
+      Description: 'Вступительный взнос в клуб',
+      SuccessURL: CONFIG.APP.SUCCESS_URL,
+      FailURL: CONFIG.APP.FAIL_URL,
+      NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+      DATA: {
+        Name: user.fullname,
+        Email: user.email,
+        Phone: user.phone,
+        UserId: user.id,
+        FormId: 'bf403'
+      }
+    };
+
+    console.log('📤 Отправка в Tinkoff:', paymentData);
+    
+    const tinkoffResponse = await TinkoffService.initPayment(paymentData);
+    
+    if (!tinkoffResponse.Success) {
+      throw new Error(tinkoffResponse.Message || 'Ошибка создания платежа в Тинькофф');
+    }
+
+    return {
+      orderId,
+      amount,
+      tinkoffPaymentId: tinkoffResponse.PaymentId,
+      paymentUrl: tinkoffResponse.PaymentURL
+    };
+  }
+
+  /**
+   * Валидация формы без создания платежа
+   */
   async validateForm(req, res) {
     try {
-      const formData = {
-        FullName: req.body.FullName,
-        Email: req.body.Email,
-        Phone: req.body.Phone,
-        Age: req.body.Age,
-        Yeardate: req.body.Yeardate,
-        Conditions: req.body.Conditions,
-        Checkbox: req.body.Checkbox
-      };
-
-      // Валидация формы
+      const { formData, tildaData } = this.normalizeTildaData(req.body);
+      
       const validationErrors = TildaFormService.validateFormData(formData);
       
       if (validationErrors.length > 0) {
@@ -139,7 +203,6 @@ class TildaController {
         });
       }
 
-      // Проверяем существующего пользователя
       const existingUser = await TildaFormService.findUserByFormData(formData);
       if (existingUser) {
         return res.json({
@@ -164,66 +227,9 @@ class TildaController {
     }
   }
 
-  // Валидация конкретного поля
-  async validateField(req, res) {
-    try {
-      const { field, value } = req.body;
-      
-      if (!field) {
-        return res.json({
-          Success: false,
-          Message: 'Field name is required'
-        });
-      }
-
-      const isValid = TildaFormService.validateField(field, value);
-      const errorMessage = TildaFormService.getFieldErrorMessage(field, value);
-
-      res.json({
-        Success: true,
-        Field: field,
-        Value: value,
-        Valid: isValid,
-        ErrorMessage: errorMessage
-      });
-
-    } catch (error) {
-      res.json({
-        Success: false,
-        Message: error.message
-      });
-    }
-  }
-
-  async handleTildaWebhook(req, res) {
-    try {
-      console.log('📨 Tilda webhook received:', req.body);
-
-      const formData = {};
-      if (req.body.formparams) {
-        Object.keys(req.body.formparams).forEach(key => {
-          const match = key.match(/\[(.*?)\]/);
-          if (match) {
-            formData[match[1]] = req.body.formparams[key];
-          }
-        });
-      }
-
-      formData.formid = req.body.formid;
-      formData.pageid = req.body.pageid;
-
-      await this.processFormAndPayment({ body: formData }, res);
-
-    } catch (error) {
-      console.error('❌ Ошибка обработки Tilda webhook:', error);
-      res.json({
-        Success: false,
-        ErrorCode: 'WEBHOOK_ERROR',
-        Message: error.message
-      });
-    }
-  }
-
+  /**
+   * Проверка статуса платежа
+   */
   async checkPaymentStatus(req, res) {
     try {
       const { OrderId, Email, Phone } = req.body;
@@ -255,8 +261,7 @@ class TildaController {
             email: user.email,
             phone: user.phone,
             payment_status: user.payment_status,
-            membership_status: user.membership_status,
-            login: user.login
+            membership_status: user.membership_status
           }
         });
       } else {
@@ -276,4 +281,4 @@ class TildaController {
   }
 }
 
-export default TildaController;
+export default new TildaController();

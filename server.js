@@ -10,6 +10,7 @@ import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
 import  db  from './database/index.js';
 import  processFormAndPayment  from './controllers/SimpleTildaController.js'
+import TildaController from "./controllers/tildaFormControllers.js"
 
 const app = express();
 
@@ -65,10 +66,22 @@ app.post('/tilda-form-submit', (req, res) => {
 });
 
 
-app.post('/tilda-form-submit', processFormAndPayment);
+// app.post('/tilda-form-submit', processFormAndPayment);
 
 // Payment routes
-app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
+// app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
+
+// Роуты для Tilda
+app.post('/tilda-webhook', TildaController.handleTildaWebhook); // Основной вебхук
+app.post('/tilda-form-submit', TildaController.handleTildaWebhook); // Для обратной совместимости
+app.post('/tilda-validate', TildaController.validateForm); // Валидация формы
+
+// Роуты для Тинькофф
+app.post('/tinkoff-callback', TinkoffController.handleNotification); // Уведомления о платежах
+
+// Статус и проверки
+app.post('/check-payment', TildaController.checkPaymentStatus);
+
 
 // Email routes
 app.post('/test-email', (req, res) => EmailController.testEmail(req, res));
@@ -114,7 +127,6 @@ app.get('/health', async (req, res) => {
     });
   }
 });
-
 
 
 // Start server
