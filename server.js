@@ -8,14 +8,30 @@ import TinkoffController from './controllers/TinkoffController.js';
 import EmailController from './controllers/EmailController.js';
 import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
-import TildaController from './controllers/tildaFormControllers.js';
 import  db  from './database/index.js';
 import  processFormAndPayment  from './controllers/SimpleTildaController.js'
 
 const app = express();
 
+app.use(cors({
+  origin: [
+    'https://npk-vdv.ru',
+    'https://www.npk-vdv.ru',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
+// Обработка preflight запросов
+// app.options('*', cors());
+
 // Middleware
-app.use(cors());
+// app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
@@ -30,6 +46,23 @@ app.use(urlencoded({ extended: true }));
 // app.post('/validate-form', (req, res) => TildaController.validateForm(req, res));
 // app.post('/validate-field', (req, res) => TildaController.validateField(req, res));
 // app.post('/check-payment', (req, res) => TildaController.checkPaymentStatus(req, res));
+
+app.post('/tilda-form-submit', (req, res) => {
+  // Добавляем CORS headers вручную для надежности
+  res.header('Access-Control-Allow-Origin', 'https://npk-vdv.ru');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Ваша логика обработки формы...
+  console.log('📥 Received form data:', req.body);
+  
+  // Здесь ваш код обработки платежа...
+  res.json({
+    Success: true,
+    Message: 'Form received successfully',
+    Data: req.body
+  });
+});
 
 
 app.post('/tilda-form-submit', processFormAndPayment);
@@ -82,7 +115,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-console.log('Tinkov', CONFIG.TINKOFF.SECRET_KEY)
+
 
 // Start server
 async function startServer() {
