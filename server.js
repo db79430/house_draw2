@@ -11,6 +11,7 @@ import TildaController from "./controllers/tildaFormControllers.js"
 import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
 import db from './database/index.js';
+import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
 
@@ -50,41 +51,41 @@ app.use((req, res, next) => {
 });
 
 // Middleware для проверки API ключа Tilda
-const tildaAuthMiddleware = (req, res, next) => {
-  const TILDA_API_KEY = 'yhy1bcu4g5expmtldfv1';
-  const apiKey = req.headers['x-tilda-api-key'];
+// const tildaAuthMiddleware = (req, res, next) => {
+//   const TILDA_API_KEY = 'yhy1bcu4g5expmtldfv1';
+//   const apiKey = req.headers['x-tilda-api-key'];
   
-  console.log('🔐 Проверка API ключа Tilda:', {
-    received: apiKey ? '***' + apiKey.slice(-4) : 'не указан',
-    expected: '***d08l'
-  });
+//   console.log('🔐 Проверка API ключа Tilda:', {
+//     received: apiKey ? '***' + apiKey.slice(-4) : 'не указан',
+//     expected: '***d08l'
+//   });
 
-  // Пропускаем health check без API ключа
-  if (req.path === '/health' || req.path === '/') {
-    return next();
-  }
+//   // Пропускаем health check без API ключа
+//   if (req.path === '/health' || req.path === '/') {
+//     return next();
+//   }
 
-  if (!apiKey) {
-    console.warn('⚠️ Попытка доступа без API ключа');
-    return res.status(401).json({
-      Success: false,
-      ErrorCode: 'MISSING_API_KEY',
-      Message: 'API key required in X-Tilda-Api-Key header'
-    });
-  }
+//   if (!apiKey) {
+//     console.warn('⚠️ Попытка доступа без API ключа');
+//     return res.status(401).json({
+//       Success: false,
+//       ErrorCode: 'MISSING_API_KEY',
+//       Message: 'API key required in X-Tilda-Api-Key header'
+//     });
+//   }
 
-  if (apiKey !== TILDA_API_KEY) {
-    console.warn('❌ Неверный API ключ');
-    return res.status(403).json({
-      Success: false,
-      ErrorCode: 'INVALID_API_KEY', 
-      Message: 'Invalid API key'
-    });
-  }
+//   if (apiKey !== TILDA_API_KEY) {
+//     console.warn('❌ Неверный API ключ');
+//     return res.status(403).json({
+//       Success: false,
+//       ErrorCode: 'INVALID_API_KEY', 
+//       Message: 'Invalid API key'
+//     });
+//   }
 
-  console.log('✅ API ключ проверен успешно');
-  next();
-};
+//   console.log('✅ API ключ проверен успешно');
+//   next();
+// };
 
 // ========== FALLBACK HANDLERS ==========
 
