@@ -52,25 +52,25 @@ const CONFIG = {
 };
 
 // Валидация конфигурации
-function validateConfig() {
-  console.log('🔧 Tinkoff Configuration:');
-  console.log('   TerminalKey:', CONFIG.TINKOFF.TERMINAL_KEY);
-  console.log('   SecretKey: ***' + (CONFIG.TINKOFF.SECRET_KEY ? CONFIG.TINKOFF.SECRET_KEY.slice(-4) : 'NOT SET'));
-  console.log('   BaseURL:', CONFIG.TINKOFF.BASE_URL);
-  console.log('   Mode: TEST (DEMO terminal) → PRODUCTION environment');
+// function validateConfig() {
+//   console.log('🔧 Tinkoff Configuration:');
+//   console.log('   TerminalKey:', CONFIG.TINKOFF.TERMINAL_KEY);
+//   console.log('   SecretKey: ***' + (CONFIG.TINKOFF.SECRET_KEY ? CONFIG.TINKOFF.SECRET_KEY.slice(-4) : 'NOT SET'));
+//   console.log('   BaseURL:', CONFIG.TINKOFF.BASE_URL);
+//   console.log('   Mode: TEST (DEMO terminal) → PRODUCTION environment');
   
-  if (!CONFIG.TINKOFF.TERMINAL_KEY) {
-    throw new Error('TERMINAL_KEY is required');
-  }
+//   if (!CONFIG.TINKOFF.TERMINAL_KEY) {
+//     throw new Error('TERMINAL_KEY is required');
+//   }
   
-  if (!CONFIG.TINKOFF.SECRET_KEY) {
-    throw new Error('SECRET_KEY is required');
-  }
+//   if (!CONFIG.TINKOFF.SECRET_KEY) {
+//     throw new Error('SECRET_KEY is required');
+//   }
   
-  console.log('✅ Configuration validated - using DEMO terminal on PRODUCTION environment');
-}
+//   console.log('✅ Configuration validated - using DEMO terminal on PRODUCTION environment');
+// }
 
-validateConfig();
+// validateConfig();
 
 console.log('🚀 Environment:', process.env.NODE_ENV);
 console.log('🔧 Database Configuration:');
@@ -78,6 +78,7 @@ console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'not set');
 console.log('- PGHOST:', process.env.PGHOST);
 console.log('- Using host:', CONFIG.DATABASE.HOST);
 console.log('- Using port:', CONFIG.DATABASE.PORT);
-console.log('Tinkov', process.env.SECRET_KEY)
+console.log('Tinkov', process.env.SECRET_KEY);
+console.log('   TerminalKey:', CONFIG.TINKOFF.TERMINAL_KEY);
 
 export default CONFIG;
