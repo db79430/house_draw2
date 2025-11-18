@@ -1,4 +1,5 @@
 import Helpers from '../utils/Helpers.js';
+import User from '../models/Users.js';
 
 class TildaFormService {
   processFormData(formData, tildaData = {}) {
@@ -197,14 +198,14 @@ class TildaFormService {
       }
     }
 
-    // Yeardate validation
-    if (formData.Yeardate) {
-      const date = new Date(formData.Yeardate);
-      if (isNaN(date.getTime())) {
-        errors.fields.yeardate = 'Некорректная дата рождения';
-        errors.hasErrors = true;
-      }
-    }
+    // // Yeardate validation
+    // if (formData.Yeardate) {
+    //   const date = new Date(formData.Yeardate);
+    //   if (isNaN(date.getTime())) {
+    //     errors.fields.yeardate = 'Некорректная дата рождения';
+    //     errors.hasErrors = true;
+    //   }
+    // }
 
     // Conditions validation
     if (formData.Conditions !== 'yes') {

@@ -48,7 +48,7 @@ class TinkoffService {
       //   }
       // });
       const response = await axios.post(`${url}`, paymentData, {
-        timeout: 15000,
+        timeout: 10000,
         headers: {
           'Content-Type': 'application/json'
         }

@@ -17,7 +17,7 @@ class EmailServices {
   async sendCredentialsEmail(email, login, password, userName) {
     try {
       const mailOptions = {
-        from: EMAIL.FROM,
+        from: CONFIG.EMAIL.FROM,
         to: email,
         subject: 'Доступ к личному кабинету',
         html: this.getEmailTemplate(userName, login, password)
