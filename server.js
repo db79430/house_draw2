@@ -27,28 +27,39 @@ const app = express();
 // console.log('emailController.testEmail:', EmailController.testEmail);
 
 // CORS Middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Tilda-Api-Key');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+// app.use((req, res, next) => {
+//   res.header('Access-Control-Allow-Origin');
+//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Tilda-Api-Key');
+//   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+//   if (req.method === 'OPTIONS') {
+//     return res.status(200).end();
+//   }
   
-  next();
-});
+//   next();
+// });
 
-// Middleware для парсинга разных форматов данных
-app.use((req, res, next) => {
-  if (req.is('application/json')) {
-    json()(req, res, next);
-  } else if (req.is('application/x-www-form-urlencoded')) {
-    urlencoded({ extended: true })(req, res, next);
-  } else {
-    next();
-  }
-});
+// // Middleware для парсинга разных форматов данных
+// app.use((req, res, next) => {
+//   if (req.is('application/json')) {
+//     json()(req, res, next);
+//   } else if (req.is('application/x-www-form-urlencoded')) {
+//     urlencoded({ extended: true })(req, res, next);
+//   } else {
+//     next();
+//   }
+// });
+
+app.use(cors({
+  origin: '*', // Или укажите конкретные домены: ['https://npk-vdv.ru', 'https://tilda.cc']
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-Tilda-Api-Key', 'Origin', 'X-Requested-With', 'Accept'],
+  credentials: false
+}));
+
+// Упрощенный middleware для парсинга данных
+app.use(json());
+app.use(urlencoded({ extended: true }));
 
 // Middleware для проверки API ключа Tilda
 // const tildaAuthMiddleware = (req, res, next) => {
