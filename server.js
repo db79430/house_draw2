@@ -14,6 +14,8 @@ import db from './database/index.js';
 import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 // Создаем экземпляры контроллеров
 // const tinkoffController = new TinkoffController();
@@ -50,16 +52,16 @@ const app = express();
 //   }
 // });
 
-app.use(cors({
-  origin: '*', // Или укажите конкретные домены: ['https://npk-vdv.ru', 'https://tilda.cc']
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-Tilda-Api-Key', 'Origin', 'X-Requested-With', 'Accept'],
-  credentials: false
-}));
+// app.use(cors({
+//   origin: '*',
+//   methods: ['GET', 'POST', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'X-Tilda-Api-Key', 'Origin', 'X-Requested-With', 'Accept'],
+//   credentials: false
+// }));
 
-// Упрощенный middleware для парсинга данных
-app.use(json());
-app.use(urlencoded({ extended: true }));
+// // Упрощенный middleware для парсинга данных
+// app.use(json());
+// app.use(urlencoded({ extended: true }));
 
 // Middleware для проверки API ключа Tilda
 // const tildaAuthMiddleware = (req, res, next) => {
