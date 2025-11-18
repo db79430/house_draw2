@@ -20,10 +20,10 @@ const app = express();
 // const tildaController = new TildaController();
 
 // Проверяем, что методы существуют
-console.log('🔍 Проверка методов контроллеров:');
-console.log('tildaController.handleTildaWebhook:', TildaController.handleTildaWebhook);
-console.log('tinkoffController.handleNotification:', TinkoffController.handleNotification);
-console.log('emailController.testEmail:', EmailController.testEmail);
+// console.log('🔍 Проверка методов контроллеров:');
+// console.log('tildaController.handleTildaWebhook:', TildaController.handleTildaWebhook);
+// console.log('tinkoffController.handleNotification:', TinkoffController.handleNotification);
+// console.log('emailController.testEmail:', EmailController.testEmail);
 
 // CORS Middleware
 app.use((req, res, next) => {
@@ -187,8 +187,8 @@ app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => {
 });
 
 app.post('/check-payment', tildaAuthMiddleware, (req, res) => {
-  if (typeof tildaController.checkPaymentStatus === 'function') {
-    return tildaController.checkPaymentStatus(req, res);
+  if (typeof TildaController.checkPaymentStatus === 'function') {
+    return TildaController.checkPaymentStatus(req, res);
   } else {
     return fallbackTildaHandler(req, res);
   }
