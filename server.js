@@ -15,7 +15,10 @@ import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
 app.use(cors());
+
+// Парсинг данных
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Создаем экземпляры контроллеров
 // const tinkoffController = new TinkoffController();
