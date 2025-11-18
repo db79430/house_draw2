@@ -36,13 +36,19 @@ class TinkoffService {
       const url = `${this.baseURL}`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
 
-      const response = await axios({
-        method: 'POST',
-        url: url,
-        data: requestData,
+      // const response = await axios({
+      //   method: 'POST',
+      //   url: url,
+      //   data: requestData,
+      //   timeout: 15000,
+      //   maxRedirects: 5,
+      //   validateStatus: null,
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   }
+      // });
+      const response = await axios.post(`${url}Init`, paymentData, {
         timeout: 15000,
-        maxRedirects: 5,
-        validateStatus: null,
         headers: {
           'Content-Type': 'application/json'
         }
