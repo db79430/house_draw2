@@ -306,4 +306,4 @@ class TildaController {
   }
 }
 
-export default TildaController();
+export default TildaController;

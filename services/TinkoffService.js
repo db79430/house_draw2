@@ -122,4 +122,4 @@ class TinkoffService {
   }
 }
 
-export default TinkoffService();
+export default TinkoffService;

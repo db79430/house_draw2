@@ -101,4 +101,4 @@ class TinkoffController {
   }
 }
 
-export default TinkoffController();
+export default TinkoffController;
