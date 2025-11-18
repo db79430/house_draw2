@@ -15,15 +15,15 @@ import db from './database/index.js';
 const app = express();
 
 // Создаем экземпляры контроллеров
-const tinkoffController = new TinkoffController();
-const emailController = new EmailController();
-const tildaController = new TildaController();
+// const tinkoffController = new TinkoffController();
+// const emailController = new EmailController();
+// const tildaController = new TildaController();
 
 // Проверяем, что методы существуют
 console.log('🔍 Проверка методов контроллеров:');
-console.log('tildaController.handleTildaWebhook:', typeof tildaController.handleTildaWebhook);
-console.log('tinkoffController.handleNotification:', typeof tinkoffController.handleNotification);
-console.log('emailController.testEmail:', typeof emailController.testEmail);
+console.log('tildaController.handleTildaWebhook:', TildaController.handleTildaWebhook);
+console.log('tinkoffController.handleNotification:', TinkoffController.handleNotification);
+console.log('emailController.testEmail:', EmailController.testEmail);
 
 // CORS Middleware
 app.use((req, res, next) => {
@@ -162,37 +162,63 @@ app.get('/', (req, res) => {
   });
 });
 
-// Tilda Webhook routes
-app.post('/tilda-webhook', tildaAuthMiddleware, 
-  tildaController.handleTildaWebhook?.bind(tildaController) || fallbackTildaHandler
-);
+app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
+  if (typeof TildaController.handleTildaWebhook === 'function') {
+    return TildaController.handleTildaWebhook(req, res);
+  } else {
+    return fallbackTildaHandler(req, res);
+  }
+});
 
-app.post('/tilda-form-submit', tildaAuthMiddleware,
-  tildaController.handleTildaWebhook?.bind(tildaController) || fallbackTildaHandler
-);
+app.post('/tilda-form-submit', tildaAuthMiddleware, (req, res) => {
+  if (typeof TildaController.handleTildaWebhook === 'function') {
+    return TildaController.handleTildaWebhook(req, res);
+  } else {
+    return fallbackTildaHandler(req, res);
+  }
+});
 
-app.post('/tilda-validate', tildaAuthMiddleware,
-  tildaController.validateForm?.bind(tildaController) || fallbackTildaHandler
-);
+app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => {
+  if (typeof TildaController.validateForm === 'function') {
+    return TildaController.validateForm(req, res);
+  } else {
+    return fallbackTildaHandler(req, res);
+  }
+});
 
-app.post('/check-payment', tildaAuthMiddleware,
-  tildaController.checkPaymentStatus?.bind(tildaController) || fallbackTildaHandler
-);
+app.post('/check-payment', tildaAuthMiddleware, (req, res) => {
+  if (typeof tildaController.checkPaymentStatus === 'function') {
+    return tildaController.checkPaymentStatus(req, res);
+  } else {
+    return fallbackTildaHandler(req, res);
+  }
+});
 
 // Tinkoff Callback
-app.post('/tinkoff-callback',
-  tinkoffController.handleNotification?.bind(tinkoffController) || fallbackTinkoffHandler
-);
+app.post('/tinkoff-callback', (req, res) => {
+  if (typeof TinkoffController.handleNotification === 'function') {
+    return TinkoffController.handleNotification(req, res);
+  } else {
+    return fallbackTinkoffHandler(req, res);
+  }
+});
 
 // Email routes
-app.post('/test-email', tildaAuthMiddleware,
-  emailController.testEmail?.bind(emailController) || fallbackEmailHandler
-);
+app.post('/test-email', tildaAuthMiddleware, (req, res) => {
+  if (typeof EmailController.testEmail === 'function') {
+    return EmailController.testEmail(req, res);
+  } else {
+    return fallbackEmailHandler(req, res);
+  }
+});
 
-app.get('/test-smtp', tildaAuthMiddleware,
-  emailController.testSMTPConnection?.bind(emailController) || fallbackEmailHandler
-);
-
+app.get('/test-smtp', tildaAuthMiddleware, (req, res) => {
+  if (typeof EmailController.testSMTPConnection === 'function') {
+    return EmailController.testSMTPConnection(req, res);
+  } else {
+    return fallbackEmailHandler(req, res);
+  }
+});
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
   try {
