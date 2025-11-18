@@ -1,5 +1,4 @@
 import express, { json, urlencoded } from 'express';
-import cors from 'cors';
 import CONFIG from './config/index.js'
 import runMigrations from './database/migrate.js';
 
@@ -8,92 +7,125 @@ import TinkoffController from './controllers/TinkoffController.js';
 import EmailController from './controllers/EmailController.js';
 import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
-import  db  from './database/index.js';
-import  processFormAndPayment  from './controllers/SimpleTildaController.js'
+import db from './database/index.js';
 import TildaController from "./controllers/tildaFormControllers.js"
-import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    'https://npk-vdv.ru',
-    'https://www.npk-vdv.ru',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+// CORS Middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Tilda-Api-Key');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
-// Обработка preflight запросов
-// app.options('*', cors());
+// Middleware для проверки API ключа Tilda
+const tildaAuthMiddleware = (req, res, next) => {
+  // Tilda API ключ из настроек - ДОЛЖЕН СОВПАДАТЬ С TILDA!
+  const TILDA_API_KEY = '770a56bbd1fdada08l';
+  
+  // Получаем API ключ из заголовка
+  const apiKey = req.headers['x-tilda-api-key'];
+  
+  console.log('🔐 Проверка API ключа Tilda:', {
+    received: apiKey ? '***' + apiKey.slice(-4) : 'не указан',
+    expected: '***d08l'
+  });
+
+  // Пропускаем health check без API ключа
+  if (req.path === '/health' || req.path === '/') {
+    return next();
+  }
+
+  // Проверяем наличие API ключа
+  if (!apiKey) {
+    console.warn('⚠️ Попытка доступа без API ключа');
+    return res.status(401).json({
+      Success: false,
+      ErrorCode: 'MISSING_API_KEY',
+      Message: 'API key required in X-Tilda-Api-Key header'
+    });
+  }
+
+  // Проверяем корректность API ключа
+  if (apiKey !== TILDA_API_KEY) {
+    console.warn('❌ Неверный API ключ');
+    return res.status(403).json({
+      Success: false,
+      ErrorCode: 'INVALID_API_KEY', 
+      Message: 'Invalid API key'
+    });
+  }
+
+  console.log('✅ API ключ проверен успешно');
+  next();
+};
 
 // Middleware
-// app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
-// Создаем экземпляры контроллеров (если они классы)
-// const tinkoffController = new TinkoffController();
-// const emailController = new EmailController();
-// const tildaController = new TildaController();
+// ========== ROUTES ==========
 
-// Tilda form routes
-// app.post('/tilda-form-submit', (req, res) => TildaController.processFormAndPayment(req, res));
-// app.post('/tilda-webhook', (req, res) => TildaController.handleTildaWebhook(req, res));
-// app.post('/validate-form', (req, res) => TildaController.validateForm(req, res));
-// app.post('/validate-field', (req, res) => TildaController.validateField(req, res));
-// app.post('/check-payment', (req, res) => TildaController.checkPaymentStatus(req, res));
+// Health check (публичный)
+app.get('/health', async (req, res) => {
+  try {
+    await db.one('SELECT 1 as test');
+    
+    res.json({ 
+      status: 'OK', 
+      timestamp: new Date().toISOString(),
+      service: 'Tilda Webhook Handler',
+      message: 'Сервер работает корректно'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      database: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-app.post('/tilda-form-submit', (req, res) => {
-  // Добавляем CORS headers вручную для надежности
-  res.header('Access-Control-Allow-Origin', 'https://npk-vdv.ru');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
-  // Ваша логика обработки формы...
-  console.log('📥 Received form data:', req.body);
-  
-  // Здесь ваш код обработки платежа...
-  res.json({
-    Success: true,
-    Message: 'Form received successfully',
-    Data: req.body
+// Главная страница (публичная)
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Tilda Webhook Server is running',
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      'POST /tilda-webhook (protected)',
+      'POST /tilda-form-submit (protected)',
+      'POST /tinkoff-callback',
+      'GET /health'
+    ]
   });
 });
 
-
-// app.post('/tilda-form-submit', processFormAndPayment);
-
-// Payment routes
-// app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
-
-// Роуты для Tilda
-// app.post('/tilda-webhook', TildaController.handleTildaWebhook); // Основной вебхук
-// app.post('/tilda-form-submit', TildaController.handleTildaWebhook); // Для обратной совместимости
-// app.post('/tilda-validate', TildaController.validateForm); // Валидация формы
-
+// Tilda Webhook (защищенный)
 app.post('/tilda-webhook', tildaAuthMiddleware, TildaController.handleTildaWebhook);
 app.post('/tilda-form-submit', tildaAuthMiddleware, TildaController.handleTildaWebhook);
+
+// Tinkoff Callback (не защищаем - они сами шлют запросы)
+app.post('/tinkoff-callback', TinkoffController.handleNotification);
+
+// Дополнительные роуты (защищенные)
 app.post('/tilda-validate', tildaAuthMiddleware, TildaController.validateForm);
+app.post('/check-payment', tildaAuthMiddleware, TildaController.checkPaymentStatus);
 
-// Роуты для Тинькофф
-app.post('/tinkoff-callback', TinkoffController.handleNotification); // Уведомления о платежах
+// Email routes (защищенные)
+app.post('/test-email', tildaAuthMiddleware, EmailController.testEmail);
+app.get('/test-smtp', tildaAuthMiddleware, EmailController.testSMTPConnection);
 
-// Статус и проверки
-app.post('/check-payment', TildaController.checkPaymentStatus);
-
-
-// Email routes
-app.post('/test-email', (req, res) => EmailController.testEmail(req, res));
-app.get('/test-smtp', (req, res) => EmailController.testSMTPConnection(req, res));
-
-// Admin routes
-app.get('/admin/stats', async (req, res) => {
+// Admin routes (защищенные)
+app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
   try {
     const userStats = await UserServices.getSystemStats();
     const paymentStats = await PaymentRepository.getDailyStatistics();
@@ -112,36 +144,31 @@ app.get('/admin/stats', async (req, res) => {
   }
 });
 
-// Health check
-app.get('/health', async (req, res) => {
-  try {
-    await db.one('SELECT 1 as test');
-    
-    res.json({ 
-      status: 'OK', 
-      timestamp: new Date().toISOString(),
-      service: 'Tilda Webhook Handler'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'ERROR',
-      database: 'disconnected',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
+// Обработка 404
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Route not found',
+    method: req.method,
+    url: req.originalUrl,
+    available_routes: [
+      'GET /',
+      'GET /health',
+      'POST /tilda-webhook',
+      'POST /tinkoff-callback'
+    ]
+  });
 });
-
 
 // Start server
 async function startServer() {
   try {
     await runMigrations();
     
-    app.listen(CONFIG.APP.PORT, () => {
+    app.listen(CONFIG.APP.PORT, '0.0.0.0', () => {
       console.log('🚀 Server started successfully');
       console.log(`📍 Port: ${CONFIG.APP.PORT}`);
-      console.log(`🔑 TerminalKey: ${CONFIG.TINKOFF.TERMINAL_KEY}`);
+      console.log(`🔐 Tilda API Key: 770a56bbd1fdada08l`);
+      console.log(`🌐 URL: https://housedraw2-production.up.railway.app`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
