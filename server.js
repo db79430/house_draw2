@@ -240,7 +240,7 @@ app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
 });
 
 // Обработка 404
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
     method: req.method,
