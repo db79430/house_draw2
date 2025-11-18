@@ -15,6 +15,13 @@ class TildaController {
     
     try {
       console.log('📥 Raw данные от Tilda:', req.body);
+      if (!this.verifyTildaSignature(req)) {
+        console.warn('❌ Неверная подпись запроса от Tilda');
+        return res.status(401).json({
+          Success: false,
+          Message: 'Invalid signature'
+        });
+      }
 
       // Нормализуем данные из Tilda (разные форматы)
       const { formData, tildaData } = this.normalizeTildaData(req.body);
@@ -81,6 +88,24 @@ class TildaController {
         Message: error.message
       });
     }
+  }
+
+  verifyTildaSignature(req) {
+    // Если в Tilda настроена подпись запросов
+    const signature = req.headers['x-tilda-signature'];
+    const publicKey = req.headers['x-tilda-public-key'];
+    
+    if (CONFIG.TILDA.VERIFY_SIGNATURE && signature) {
+      // Здесь должна быть логика проверки подписи
+      // Tilda использует HMAC-SHA256 для подписи
+      console.log('🔐 Проверка подписи Tilda:', { signature, publicKey });
+      
+      // Временная заглушка - всегда возвращаем true для тестирования
+      // В продакшене нужно реализовать настоящую проверку
+      return true;
+    }
+    
+    return true; // Если проверка подписи не настроена
   }
 
   /**
@@ -152,7 +177,7 @@ class TildaController {
    */
   async createTinkoffPayment(user, formData) {
     const orderId = TokenGenerator.generateOrderId();
-    const amount = 1000; // 1000 рублей в копейках
+    const amount = 1000;
 
     const paymentData = {
       Amount: amount,

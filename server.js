@@ -11,6 +11,7 @@ import PaymentRepository from './repositories/PaymentRepository.js';
 import  db  from './database/index.js';
 import  processFormAndPayment  from './controllers/SimpleTildaController.js'
 import TildaController from "./controllers/tildaFormControllers.js"
+import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
 
@@ -72,9 +73,13 @@ app.post('/tilda-form-submit', (req, res) => {
 // app.post('/payment-notification', (req, res) => TinkoffController.handleNotification(req, res));
 
 // Роуты для Tilda
-app.post('/tilda-webhook', TildaController.handleTildaWebhook); // Основной вебхук
-app.post('/tilda-form-submit', TildaController.handleTildaWebhook); // Для обратной совместимости
-app.post('/tilda-validate', TildaController.validateForm); // Валидация формы
+// app.post('/tilda-webhook', TildaController.handleTildaWebhook); // Основной вебхук
+// app.post('/tilda-form-submit', TildaController.handleTildaWebhook); // Для обратной совместимости
+// app.post('/tilda-validate', TildaController.validateForm); // Валидация формы
+
+app.post('/tilda-webhook', tildaAuthMiddleware, TildaController.handleTildaWebhook);
+app.post('/tilda-form-submit', tildaAuthMiddleware, TildaController.handleTildaWebhook);
+app.post('/tilda-validate', tildaAuthMiddleware, TildaController.validateForm);
 
 // Роуты для Тинькофф
 app.post('/tinkoff-callback', TinkoffController.handleNotification); // Уведомления о платежах
@@ -114,9 +119,8 @@ app.get('/health', async (req, res) => {
     
     res.json({ 
       status: 'OK', 
-      database: 'connected',
       timestamp: new Date().toISOString(),
-      version: '1.0.0'
+      service: 'Tilda Webhook Handler'
     });
   } catch (error) {
     res.status(500).json({

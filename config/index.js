@@ -46,7 +46,11 @@ const CONFIG = {
   
   // Tilda settings
   TILDA: {
-    FORM_ID: process.env.TILDA_FORM_ID
+    API_KEY: process.env.TILDA_API_KEY || '770a56b6d1fdada08b15',
+    FORM_ID: process.env.TILDA_FORM_ID || 'bf403',
+    PROJECT_ID: process.env.TILDA_PROJECT_ID || '14245141',
+    VERIFY_SIGNATURE: process.env.TILDA_VERIFY_SIGNATURE === 'true'
+
   }
   
 };
