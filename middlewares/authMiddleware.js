@@ -1,42 +1,25 @@
-// Middleware для проверки API ключа Tilda (УПРОЩЕННАЯ ВЕРСИЯ ДЛЯ ТЕСТИРОВАНИЯ)
+// Middleware для проверки API ключа Tilda (ОТКЛЮЧЕНО ДЛЯ ТЕСТИРОВАНИЯ)
 const tildaAuthMiddleware = (req, res, next) => {
-    const TILDA_API_KEY = 'yhy1bcu4g5expmtldfv1';
+    const TILDA_API_KEY = '770a56bbd1fdada08l';
     
     // Получаем API ключ из разных источников
     const apiKeyFromHeader = req.headers['x-tilda-api-key'];
     const apiKeyFromBody = req.body.apikey || req.body.api_key;
     
-    console.log('🔐 Проверка API ключа Tilda:', {
+    console.log('🔐 Информация о API ключе (ПРОВЕРКА ОТКЛЮЧЕНА):', {
       fromHeader: apiKeyFromHeader ? '***' + apiKeyFromHeader.slice(-4) : 'не указан',
-      fromBody: apiKeyFromBody ? '***' + apiKeyFromBody.slice(-4) : 'не указан'
+      fromBody: apiKeyFromBody ? '***' + apiKeyFromBody.slice(-4) : 'не указан',
+      path: req.path,
+      method: req.method
     });
   
-    // ДЛЯ ТЕСТИРОВАНИЯ - пропускаем все запросы
-    console.log('⚠️ Пропускаем проверку API ключа для тестирования');
+    // Логируем все заголовки для отладки
+    console.log('📧 Все заголовки запроса:', req.headers);
+    console.log('📦 Тело запроса:', req.body);
+  
+    // ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ API КЛЮЧА
+    console.log('⚠️ Пропускаем проверку API ключа для тестирования Tilda');
     return next();
-  
-    // Раскомментируйте этот код позже, когда Tilda будет отправлять API ключ:
-    /*
-    if (!apiKeyFromHeader && !apiKeyFromBody) {
-      console.warn('⚠️ Попытка доступа без API ключа');
-      return res.status(401).json({
-        Success: false,
-        ErrorCode: 'MISSING_API_KEY',
-        Message: 'API key required'
-      });
-    }
-  
-    const apiKey = apiKeyFromHeader || apiKeyFromBody;
-    if (apiKey !== TILDA_API_KEY) {
-      console.warn('❌ Неверный API ключ');
-      return res.status(403).json({
-        Success: false,
-        ErrorCode: 'INVALID_API_KEY', 
-        Message: 'Invalid API key'
-      });
-    }
-  
-    console.log('✅ API ключ проверен успешно');
-    next();
-    */
   };
+
+  export default tildaAuthMiddleware;
