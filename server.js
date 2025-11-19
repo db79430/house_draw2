@@ -14,7 +14,19 @@ import db from './database/index.js';
 import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Methods', '*');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Парсинг данных
 app.use(express.json());
@@ -257,19 +269,19 @@ app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
 });
 
 // Обработка 404
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    method: req.method,
-    url: req.originalUrl,
-    available_routes: [
-      'GET /',
-      'GET /health',
-      'POST /tilda-webhook',
-      'POST /tinkoff-callback'
-    ]
-  });
-});
+// app.use((req, res) => {
+//   res.status(404).json({
+//     error: 'Route not found',
+//     method: req.method,
+//     url: req.originalUrl,
+//     available_routes: [
+//       'GET /',
+//       'GET /health',
+//       'POST /tilda-webhook',
+//       'POST /tinkoff-callback'
+//     ]
+//   });
+// });
 
 // Start server
 async function startServer() {
