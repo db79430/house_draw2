@@ -135,7 +135,7 @@ const fallbackTildaHandler = async (req, res) => {
   res.json({
     Success: true,
     Message: 'Tilda webhook received (fallback)',
-    PaymentURL: 'https://www.tinkoff.ru/fallback-payment',
+    PaymentURL: 'https://pay.tbank.ru/new/fU1ppgqa',
     Status: 'redirect'
   });
 };
