@@ -223,9 +223,9 @@ app.get('/', (req, res) => {
 //   }
 // });
 
-app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
-  return TildaController.handleTildaWebhook(req, res);
-});
+// app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
+//   return TildaController.handleTildaWebhook(req, res);
+// });
 
 // app.post('/tilda-form-submit', tildaAuthMiddleware, (req, res) => {
 //   if (typeof TildaController.handleTildaWebhook === 'function') {
