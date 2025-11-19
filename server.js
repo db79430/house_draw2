@@ -121,23 +121,119 @@ app.use(express.urlencoded({ extended: true }));
 const fallbackTildaHandler = async (req, res) => {
   console.log('🎯 Fallback Tilda handler');
   
-  // Обработка тестового запроса
-  if (req.body.test === 'test') {
-    return res.json({
-      Success: true,
-      Message: 'Test connection successful',
-      Test: 'OK',
-      Timestamp: new Date().toISOString()
-    });
+  try {
+    // Обработка тестового запроса
+    if (req.body.test === 'test') {
+      return res.json({
+        Success: true,
+        Message: 'Test connection successful',
+        Test: 'OK',
+        Timestamp: new Date().toISOString()
+      });
+    }
+
+    // Получаем данные из Tilda
+    const tildaData = req.body;
+    console.log('📦 Tilda data received:', tildaData);
+
+    // Формируем данные для Tinkoff API согласно документации
+    const paymentData = {
+      TerminalKey: process.env.TERMINAL_KEY,
+      Amount: Number(tildaData.amount || tildaData.Amount || 10000), // в копейках
+      OrderId: tildaData.orderid || tildaData.OrderId || `TILDA_${Date.now()}`,
+      Description: tildaData.description || tildaData.Description || 'Оплата заказа',
+      CustomerKey: tildaData.email || tildaData.customerEmail || 'tilda_customer',
+      SuccessURL: tildaData.success_url || process.env.SUCCESS_URL,
+      FailURL: tildaData.fail_url || process.env.FAIL_URL,
+      NotificationURL: process.env.WEBHOOK_URL, // URL для уведомлений
+      PayType: 'O', // O - одностадийная оплата
+      Receipt: tildaData.receipt || {
+        Email: tildaData.email,
+        Phone: tildaData.phone,
+        Taxation: 'osn',
+        Items: [
+          {
+            Name: tildaData.product_name || 'Товар',
+            Price: Number(tildaData.amount || 10000),
+            Quantity: 1,
+            Amount: Number(tildaData.amount || 10000),
+            PaymentMethod: 'full_payment',
+            PaymentObject: 'commodity',
+            Tax: 'vat20'
+          }
+        ]
+      }
+    };
+
+    console.log('📤 Sending to Tinkoff API:', paymentData);
+
+    // Вызываем Tinkoff API Init метод
+    const tinkoffResponse = await axios.post(
+      'https://securepay.tinkoff.ru/v2/Init',
+      paymentData,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    console.log('✅ Tinkoff API response:', tinkoffResponse.data);
+
+    // Проверяем успешность запроса
+    if (tinkoffResponse.data.Success) {
+      // Согласно документации, PaymentURL приходит в ответе
+      const paymentUrl = tinkoffResponse.data.PaymentURL;
+      
+      console.log('🔗 Payment URL received:', paymentUrl);
+      
+      return res.json({
+        Success: true,
+        Message: 'Payment initialized successfully',
+        PaymentURL: paymentUrl, // URL для редиректа на оплату
+        PaymentId: tinkoffResponse.data.PaymentId,
+        Status: 'NEW'
+      });
+    } else {
+      // Обработка ошибки от Tinkoff
+      console.error('❌ Tinkoff API error:', tinkoffResponse.data);
+      
+      return res.status(400).json({
+        Success: false,
+        Message: tinkoffResponse.data.Message || 'Payment initialization failed',
+        Details: tinkoffResponse.data.Details,
+        ErrorCode: tinkoffResponse.data.ErrorCode
+      });
+    }
+
+  } catch (error) {
+    console.error('💥 Error in fallbackTildaHandler:', error);
+    
+    // Обработка различных типов ошибок
+    if (error.response) {
+      // Ошибка от Tinkoff API
+      return res.status(400).json({
+        Success: false,
+        Message: 'Tinkoff API error',
+        Error: error.response.data,
+        StatusCode: error.response.status
+      });
+    } else if (error.request) {
+      // Нет соединения с Tinkoff API
+      return res.status(500).json({
+        Success: false,
+        Message: 'Cannot connect to payment service'
+      });
+    } else {
+      // Другие ошибки
+      return res.status(500).json({
+        Success: false,
+        Message: 'Internal server error',
+        Error: error.message
+      });
+    }
   }
-  
-  // Базовый ответ
-  res.json({
-    Success: true,
-    Message: 'Tilda webhook received (fallback)',
-    PaymentURL: 'https://pay.tbank.ru/new/fU1ppgqa',
-    Status: 'redirect'
-  });
 };
 
 const fallbackTinkoffHandler = (req, res) => {
