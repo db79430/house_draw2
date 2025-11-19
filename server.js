@@ -120,7 +120,6 @@ app.use(express.urlencoded({ extended: true }));
 const fallbackTildaHandler = async (req, res) => {
   console.log('🎯 Fallback Tilda handler');
   
-  // Обработка тестового запроса
   if (req.body.test === 'test') {
     return res.json({
       Success: true,
@@ -130,13 +129,14 @@ const fallbackTildaHandler = async (req, res) => {
     });
   }
   
-  // Базовый ответ
+  // Предполагаем, что paymentURL приходит в теле запроса
+  const paymentURL = req.body.paymentURL || req.body.PaymentURL;
+  
   res.json({
-    Success: true,
     Success: true,
     Message: 'Tilda webhook received (fallback)',
     PaymentURL: paymentURL, 
-    Status: 'redirect'  
+    Status: paymentURL ? 'redirect' : 'processed'
   });
 };
 
