@@ -153,7 +153,7 @@ const fallbackTildaHandler = async (req, res) => {
   }
   
   // Получаем paymentURL из запроса или используем значение по умолчанию
-  const paymentURL = req.body.paymentURL || req.body.PaymentURL || '/payment/default';
+  const paymentURL = req.body.paymentURL || req.body.PaymentURL;
   
   // Возвращаем JSON с URL для редиректа (если Tilda сама выполняет редирект)
   return res.json({
@@ -161,7 +161,6 @@ const fallbackTildaHandler = async (req, res) => {
     Message: 'Tilda webhook received (fallback)',
     PaymentURL: paymentURL,
     Status: 'redirect',
-    RedirectURL: paymentURL
   });
 };
 
