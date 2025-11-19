@@ -303,7 +303,7 @@ app.post('/tinkoff-callback', (req, res) => tinkoffController.handleNotification
 app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
 
 // Fallback route (если нужен)
-app.post('/tilda-fallback', tildaAuthMiddleware, fallbackTildaHandler);
+app.post('/tilda-fallback', tildaAuthMiddleware);
 
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
