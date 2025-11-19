@@ -278,14 +278,27 @@ app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
 // });
 
 // Tilda routes
-app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => TildaController.validateForm(req, res));
-app.post('/check-payment', tildaAuthMiddleware, (req, res) => TildaController.checkPaymentStatus(req, res));
+// app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => TildaController.validateForm(req, res));
+// app.post('/check-payment', tildaAuthMiddleware, (req, res) => TildaController.checkPaymentStatus(req, res));
+
+// // Tinkoff Callback
+// app.post('/tinkoff-callback', (req, res) => TinkoffController.handleNotification(req, res));
+
+// // Email routes
+// app.post('/test-email', tildaAuthMiddleware, (req, res) => EmailController.testEmail(req, res));
+
+
+app.post('/tilda-webhook', tildaAuthMiddleware, TildaController.handleTildaWebhook.bind(TildaController));
+// Tilda routes
+app.post('/tilda-validate', tildaAuthMiddleware, TildaController.validateForm.bind(TildaController));
+
+app.post('/check-payment', tildaAuthMiddleware, TildaController.checkPaymentStatus.bind(TildaController));
 
 // Tinkoff Callback
-app.post('/tinkoff-callback', (req, res) => TinkoffController.handleNotification(req, res));
+app.post('/tinkoff-callback', TinkoffController.handleNotification.bind(TinkoffController));
 
 // Email routes
-app.post('/test-email', tildaAuthMiddleware, (req, res) => EmailController.testEmail(req, res));
+app.post('/test-email', tildaAuthMiddleware, EmailController.testEmail.bind(EmailController));
 
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
