@@ -98,9 +98,9 @@ class TinkoffService {
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId,
         Description: (paymentData.Description || 'Payment').substring(0, 250),
-        SuccessURL: paymentData.SuccessURL,
-        FailURL: paymentData.FailURL,
-        NotificationURL: paymentData.NotificationURL,
+        // SuccessURL: paymentData.SuccessURL,
+        // FailURL: paymentData.FailURL,
+        // NotificationURL: paymentData.NotificationURL,
         DATA: paymentData.DATA || {}
       };
   
@@ -111,7 +111,7 @@ class TinkoffService {
       requestData.Token = TokenGenerator.generateTokenSimple(requestData);
   
       // Формируем полный URL для Init
-      const url = `${this.baseURL}Init`;
+      const url = `${this.baseURL}`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
   
       const response = await axios.post(url, requestData, { // ← Отправляем requestData!
