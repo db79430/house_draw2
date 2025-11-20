@@ -73,7 +73,7 @@ class TildaController {
       return res.json({
         Success: true,
         PaymentURL: paymentResult.paymentUrl,
-        RedirectUrl: paymentResult.paymentUrl, // Дублируем для совместимости
+        RedirectUrl: paymentResult.paymentUrl,
         Status: 'redirect',
         PaymentId: paymentResult.tinkoffPaymentId,
         OrderId: paymentResult.orderId,
@@ -183,9 +183,9 @@ class TildaController {
       Amount: amount,
       OrderId: orderId,
       Description: 'Вступительный взнос в клуб',
-      SuccessURL: CONFIG.APP.SUCCESS_URL,
-      FailURL: CONFIG.APP.FAIL_URL,
-      NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+      // SuccessURL: CONFIG.APP.SUCCESS_URL,
+      // FailURL: CONFIG.APP.FAIL_URL,
+      // NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
       DATA: {
         Name: user.fullname,
         Email: user.email,
