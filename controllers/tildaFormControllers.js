@@ -180,6 +180,7 @@ class TildaController {
     const amount = 1000;
 
     const paymentData = {
+      TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
       Description: 'Вступительный взнос в клуб',
