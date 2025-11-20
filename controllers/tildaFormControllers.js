@@ -175,44 +175,87 @@ class TildaController {
   /**
    * Создание платежа в Тинькофф
    */
-  async createTinkoffPayment(user, formData) {
-    const orderId = TokenGenerator.generateOrderId();
-    const amount = 1000;
+  // async createTinkoffPayment(user, formData) {
+  //   const orderId = TokenGenerator.generateOrderId();
+  //   const amount = 1000;
 
-    const paymentData = {
-      TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
-      Amount: amount,
-      OrderId: orderId,
-      Description: 'Вступительный взнос в клуб',
-      // SuccessURL: CONFIG.APP.SUCCESS_URL,
-      // FailURL: CONFIG.APP.FAIL_URL,
-      // NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
-      DATA: {
-        Name: user.fullname,
-        Email: user.email,
-        Phone: user.phone,
-        UserId: user.id,
-        FormId: 'bf403'
-      }
-    };
+  //   const paymentData = {
+  //     TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
+  //     Amount: amount,
+  //     OrderId: orderId,
+  //     Description: 'Вступительный взнос в клуб',
+  //     // SuccessURL: CONFIG.APP.SUCCESS_URL,
+  //     // FailURL: CONFIG.APP.FAIL_URL,
+  //     // NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+  //     DATA: {
+  //       Name: user.fullname,
+  //       Email: user.email,
+  //       Phone: user.phone,
+  //       UserId: user.id,
+  //     }
+  //   };
 
-    console.log('📤 Отправка в Tinkoff:', paymentData);
+  //   console.log('📤 Отправка в Tinkoff:', paymentData);
 
-    const tinkoffService = new TinkoffService();
+  //   const tinkoffService = new TinkoffService();
     
-    const tinkoffResponse = await tinkoffService.initPayment(paymentData);
+  //   const tinkoffResponse = await tinkoffService.initPayment(paymentData);
     
-    if (!tinkoffResponse.Success) {
-      throw new Error(tinkoffResponse.Message || 'Ошибка создания платежа в Тинькофф');
+  //   if (!tinkoffResponse.Success) {
+  //     throw new Error(tinkoffResponse.Message || 'Ошибка создания платежа в Тинькофф');
+  //   }
+
+  //   return {
+  //     orderId,
+  //     amount,
+  //     tinkoffPaymentId: tinkoffResponse.PaymentId,
+  //     paymentUrl: tinkoffResponse.PaymentURL
+  //   };
+  // }
+
+  /**
+ * Создание платежа в Тинькофф
+ */
+async createTinkoffPayment(user, formData) {
+  const orderId = TokenGenerator.generateOrderId();
+  const amount = 1000;
+
+  // Правильные данные для Tinkoff API
+  const paymentData = {
+    TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
+    Amount: amount,
+    OrderId: orderId,
+    Description: 'Вступительный взнос в клуб',
+    SuccessURL: CONFIG.APP.SUCCESS_URL,
+    FailURL: CONFIG.APP.FAIL_URL,
+    NotificationURL: CONFIG.APP.NOTIFICATION_URL || `${CONFIG.APP.BASE_URL}/api/payment/notification`,
+    DATA: {
+      Name: user.fullname,
+      Email: user.email,
+      Phone: user.phone,
+      UserId: user.id,
     }
+  };
 
-    return {
-      orderId,
-      amount,
-      tinkoffPaymentId: tinkoffResponse.PaymentId,
-      paymentUrl: tinkoffResponse.PaymentURL
-    };
+  console.log('📤 Отправка в Tinkoff:', paymentData);
+
+  const tinkoffService = new TinkoffService();
+  
+  // Передаем правильные данные
+  const tinkoffResponse = await tinkoffService.initPayment(paymentData);
+  
+  if (!tinkoffResponse.Success) {
+    console.error('❌ Tinkoff API Error:', tinkoffResponse);
+    throw new Error(tinkoffResponse.Message || tinkoffResponse.ErrorMessage || 'Ошибка создания платежа в Тинькофф');
   }
+
+  return {
+    orderId,
+    amount,
+    tinkoffPaymentId: tinkoffResponse.PaymentId,
+    paymentUrl: tinkoffResponse.PaymentURL
+  };
+}
 
   /**
    * Валидация формы без создания платежа
