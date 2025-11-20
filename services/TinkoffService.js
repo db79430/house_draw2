@@ -6,7 +6,7 @@ import TokenGenerator from '../utils/tokenGenerator.js';
 class TinkoffService {
   constructor() {
     // Убедимся что URL правильный
-    this.baseURL = CONFIG.TINKOFF.BASE_URL || 'https://securepay.tinkoff.ru/v2';
+    this.baseURL = CONFIG.TINKOFF.BASE_URL || 'https://securepay.tinkoff.ru/v2/Init';
     this.terminalKey = CONFIG.TINKOFF.TERMINAL_KEY;
     
     console.log('🔧 [TinkoffService] Initialized with:');
