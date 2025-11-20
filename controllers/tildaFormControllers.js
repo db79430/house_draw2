@@ -196,8 +196,10 @@ class TildaController {
     };
 
     console.log('📤 Отправка в Tinkoff:', paymentData);
+
+    const tinkoffService = new TinkoffService();
     
-    const tinkoffResponse = await TinkoffService.initPayment(paymentData);
+    const tinkoffResponse = await tinkoffService.initPayment(paymentData);
     
     if (!tinkoffResponse.Success) {
       throw new Error(tinkoffResponse.Message || 'Ошибка создания платежа в Тинькофф');

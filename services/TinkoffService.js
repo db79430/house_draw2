@@ -23,7 +23,7 @@ class TinkoffService {
         TerminalKey: this.terminalKey,
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId,
-        Description: (paymentData.Description || 'Payment').substring(0, 250)
+        Description: (paymentData.Description || 'Payment').substring(0, 250),
       };
 
       console.log('📋 [TinkoffService] Request data:', requestData);
