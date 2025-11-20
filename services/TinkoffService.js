@@ -111,7 +111,7 @@ class TinkoffService {
       requestData.Token = TokenGenerator.generateTokenSimple(requestData);
   
       // Формируем полный URL для Init
-      const url = `${this.baseURL}`;
+      const url = `${this.baseURL}Init`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
   
       const response = await axios.post(url, requestData, { // ← Отправляем requestData!
