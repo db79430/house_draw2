@@ -40,14 +40,14 @@ class TildaController {
       }
 
       // Проверяем существующего пользователя
-      const existingUser = await TildaFormService.findUserByFormData(formData);
-      if (existingUser) {
-        return res.json({
-          Success: false,
-          ErrorCode: 'USER_EXISTS', 
-          Message: 'Пользователь с таким email или телефоном уже зарегистрирован'
-        });
-      }
+      // const existingUser = await TildaFormService.findUserByFormData(formData);
+      // if (existingUser) {
+      //   return res.json({
+      //     Success: false,
+      //     ErrorCode: 'USER_EXISTS', 
+      //     Message: 'Пользователь с таким email или телефоном уже зарегистрирован'
+      //   });
+      // }
 
       // Создаем пользователя
       const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
