@@ -220,6 +220,10 @@ async createTinkoffPayment(user, formData) {
   const orderId = TokenGenerator.generateOrderId();
   const amount = 1000;
 
+  if (!CONFIG.TINKOFF.TERMINAL_KEY || !CONFIG.TINKOFF.PASSWORD) {
+    throw new Error('Tinkoff terminal configuration is missing');
+  }
+
   // Правильные данные для Tinkoff API
   const paymentData = {
     TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
