@@ -241,7 +241,6 @@ async createTinkoffPayment(user, formData) {
       // UserId: user.id,
     }
   };
-x
   console.log('📤 Отправка в Tinkoff:', paymentData);
 
   const tinkoffService = new TinkoffService();
