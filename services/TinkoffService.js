@@ -5,6 +5,14 @@ import TokenGenerator from '../utils/tokenGenerator.js';
 
 class TinkoffService {
   constructor() {
+
+    console.log('🔧 [TinkoffService] Initializing...');
+    
+    // Проверяем что конфигурация загружена
+    if (!CONFIG.TINKOFF) {
+      throw new Error('Tinkoff configuration is missing - CONFIG.TINKOFF is undefined');
+    }
+    
     // Убедимся что URL правильный
     this.baseURL = CONFIG.TINKOFF.BASE_URL;
     this.terminalKey = CONFIG.TINKOFF.TERMINAL_KEY;
