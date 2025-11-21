@@ -180,7 +180,7 @@ class TinkoffService {
         method: 'POST',
         url: url,
         data: requestData,
-        timeout: 15000,
+        timeout: 30000,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -221,7 +221,7 @@ class TinkoffService {
         method: 'POST',
         url: `${this.baseURL}`,
         data: testData,
-        timeout: 10000
+        timeout: 30000
       });
 
       return {
