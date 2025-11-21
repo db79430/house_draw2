@@ -125,12 +125,14 @@ class UserRepository {
     }
   }
 
-  static async updatePassword(userId, hashedPassword) {
+  static async updatePassword(userId, newPassword) {
     try {
+      // ВРЕМЕННО: Сохраняем пароль как есть (без хэширования)
       await pool.execute(
         'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
-        [hashedPassword, userId]
+        [newPassword, userId]
       );
+      console.log('✅ Password updated for user:', userId);
     } catch (error) {
       console.error('❌ Error updating password:', error);
       throw error;

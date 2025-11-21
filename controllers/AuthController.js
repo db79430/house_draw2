@@ -1,117 +1,95 @@
-import AuthService from "../services/AuthService.js";
+import AuthService from '../services/AuthService.js';
 
 class AuthController {
-    constructor() {
-      this.authService = new AuthService();
-    }
-  
-    async login(req, res) {
-      try {
-        console.log('🎯 POST /auth-login вызван!');
-        console.log('📦 Тело запроса:', req.body);
-        
-        const { login, password } = req.body;
-        
-        if (!login || !password) {
-          return res.status(400).json({
-            success: false,
-            message: 'Заполните все поля'
-          });
-        }
-  
-        const result = await this.authService.loginUser(login, password);
-  
-        res.json({
-          success: true,
-          message: 'Вход выполнен успешно',
-          ...result
-        });
-  
-      } catch (error) {
-        console.error('❌ Ошибка входа:', error.message);
-        res.status(401).json({
+  constructor() {
+    this.authService = new AuthService();
+  }
+
+  async login(req, res) {
+    try {
+      console.log('🎯 POST /auth-login вызван!');
+      console.log('📦 Тело запроса:', req.body);
+      
+      const { login, password } = req.body;
+      
+      if (!login || !password) {
+        return res.status(400).json({
           success: false,
-          message: error.message
+          message: 'Заполните все поля'
         });
       }
-    }
-  
-    async validate(req, res) {
-      try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        const result = await this.authService.validateToken(token);
-  
-        if (result.valid) {
-          res.json({
-            success: true,
-            user: result.user
-          });
-        } else {
-          res.status(401).json({
-            success: false,
-            message: result.error
-          });
-        }
-  
-      } catch (error) {
-        console.error('❌ Ошибка валидации токена:', error.message);
-        res.status(401).json({
-          success: false,
-          message: 'Недействительный токен'
-        });
-      }
-    }
-  
-    async getProfile(req, res) {
-      try {
-        const result = await this.authService.getUserProfile(req.user.userId);
-        res.json(result);
-  
-      } catch (error) {
-        console.error('❌ Ошибка получения профиля:', error.message);
-        res.status(500).json({
-          success: false,
-          message: error.message
-        });
-      }
-    }
-  
-    async changePassword(req, res) {
-      try {
-        const { currentPassword, newPassword } = req.body;
-        
-        const result = await this.authService.changePassword(
-          req.user.userId, 
-          currentPassword, 
-          newPassword
-        );
-  
-        res.json(result);
-  
-      } catch (error) {
-        console.error('❌ Ошибка смены пароля:', error.message);
-        res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-    }
-  
-    async logout(req, res) {
-      try {
-        // В JWT обычно логаут на клиенте, но можно добавить blacklist
-        res.json({
-          success: true,
-          message: 'Выход выполнен успешно'
-        });
-      } catch (error) {
-        console.error('❌ Ошибка выхода:', error.message);
-        res.status(500).json({
-          success: false,
-          message: 'Ошибка сервера'
-        });
-      }
+
+      const result = await this.authService.loginUser(login, password);
+
+      res.json({
+        success: true,
+        message: 'Вход выполнен успешно',
+        ...result
+      });
+
+    } catch (error) {
+      console.error('❌ Ошибка входа:', error.message);
+      res.status(401).json({
+        success: false,
+        message: error.message
+      });
     }
   }
-  
-  export default AuthController;
+
+  async validate(req, res) {
+    try {
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      const result = await this.authService.validateToken(token);
+
+      if (result.valid) {
+        res.json({
+          success: true,
+          user: result.user
+        });
+      } else {
+        res.status(401).json({
+          success: false,
+          message: result.error
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Ошибка валидации токена:', error.message);
+      res.status(401).json({
+        success: false,
+        message: 'Недействительный токен'
+      });
+    }
+  }
+
+  async getProfile(req, res) {
+    try {
+      const result = await this.authService.getUserProfile(req.user.userId);
+      res.json(result);
+
+    } catch (error) {
+      console.error('❌ Ошибка получения профиля:', error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async logout(req, res) {
+    try {
+      res.json({
+        success: true,
+        message: 'Выход выполнен успешно'
+      });
+    } catch (error) {
+      console.error('❌ Ошибка выхода:', error.message);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка сервера'
+      });
+    }
+  }
+}
+
+export default AuthController;

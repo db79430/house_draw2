@@ -1,7 +1,5 @@
+// services/AuthService.js
 import UserRepository from '../repositories/UserRepository.js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import User from '../models/Users.js';
 
 class AuthService {
   async loginUser(login, password) {
@@ -21,23 +19,16 @@ class AuthService {
         throw new Error('Аккаунт не активирован. Дождитесь данных для входа после оплаты.');
       }
 
-      // Проверка пароля
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      // Простая проверка пароля
+      const isPasswordValid = password === user.password;
+      
       if (!isPasswordValid) {
         console.log('❌ Invalid password for user:', login);
         throw new Error('Неверный пароль');
       }
 
-      // Генерация JWT токена
-      const token = jwt.sign(
-        { 
-          userId: user.id,
-          email: user.email,
-          login: user.login 
-        },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '30d' }
-      );
+      // Генерация простого токена
+      const token = this.generateSimpleToken(user.id);
 
       // Обновляем последний вход
       await UserRepository.updateLastLogin(user.id);
@@ -62,14 +53,20 @@ class AuthService {
     }
   }
 
+  // Функция для генерации простого токена
+  generateSimpleToken(userId) {
+    return `simple-token-${userId}-${Date.now()}`;
+  }
+
   async validateToken(token) {
     try {
       if (!token) {
         throw new Error('Токен отсутствует');
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      const user = await User.findById(decoded.userId);
+      // Простая валидация токена
+      const userId = this.parseSimpleToken(token);
+      const user = await UserRepository.findById(userId);
       
       if (!user) {
         throw new Error('Пользователь не найден');
@@ -95,9 +92,15 @@ class AuthService {
     }
   }
 
+  // Функция для парсинга простого токена
+  parseSimpleToken(token) {
+    const match = token.match(/simple-token-(\d+)-/);
+    return match ? parseInt(match[1]) : null;
+  }
+
   async getUserProfile(userId) {
     try {
-      const user = await User.findById(userId);
+      const user = await UserRepository.findById(userId);
       
       if (!user) {
         throw new Error('Пользователь не найден');
@@ -122,42 +125,9 @@ class AuthService {
     }
   }
 
-  async changePassword(userId, currentPassword, newPassword) {
-    try {
-      const user = await User.findById(userId);
-      
-      if (!user) {
-        throw new Error('Пользователь не найден');
-      }
-
-      // Проверка текущего пароля
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isCurrentPasswordValid) {
-        throw new Error('Неверный текущий пароль');
-      }
-
-      // Хэширование нового пароля
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      
-      // Обновление пароля
-      await UserRepository.updatePassword(userId, hashedPassword);
-
-      console.log('✅ Password changed for user:', user.email);
-
-      return {
-        success: true,
-        message: 'Пароль успешно изменен'
-      };
-
-    } catch (error) {
-      console.error('❌ Error changing password:', error.message);
-      throw error;
-    }
-  }
-
   async checkUserStatus(email) {
     try {
-      const user = await User.findByEmail(email);
+      const user = await UserRepository.findByEmail(email);
       
       if (!user) {
         return {

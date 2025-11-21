@@ -315,7 +315,7 @@ app.post('/tilda-fallback', tildaAuthMiddleware);
 app.post('/auth-login', (req, res) => authController.login(req, res));
 app.post('/auth-validate', (req, res) => authController.validate(req, res));
 app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
-app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
+// app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 // Admin routes (защищенные)
