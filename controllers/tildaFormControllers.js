@@ -245,92 +245,31 @@ class TildaController {
    * Нормализация данных из Tilda (поддерживает разные форматы)
    */
   normalizeTildaData(tildaData) {
-    let formData = {};
-    let tildaMeta = {};
+    console.log('🔍 Все данные от Tilda:', JSON.stringify(tildaData, null, 2));
   
-    console.log('🔍 Анализируем структуру данных Tilda:', Object.keys(tildaData));
+    // 🔧 ПРОСТО КОПИРУЕМ ВСЕ ПОЛЯ КРОМЕ ТЕХНИЧЕСКИХ
+    const formData = {};
+    const technicalFields = ['formid', 'pageid', 'tranid', 'projectid', 'X-Tilda-Api-Key'];
   
-    // 🔧 ФОРМАТ 1: Прямые поля в корне (новый формат Tilda)
-    if (tildaData.FullName || tildaData.Email || tildaData.Phone || 
-        tildaData.name || tildaData.email || tildaData.phone) {
-      
-      console.log('📝 Обнаружен формат 1: Прямые поля в корне');
-      
-      formData = {
-        FullName: tildaData.FullName || tildaData.name || '',
-        Email: tildaData.Email || tildaData.email || '',
-        Phone: tildaData.Phone || tildaData.phone || tildaData.tel || '',
-        Age: tildaData.Age || tildaData.age || '',
-        Yeardate: tildaData.Yeardate || tildaData.yeardate || tildaData.birthdate || '',
-        City: tildaData.City || tildaData.city || '',
-        Conditions: this.normalizeCheckbox(tildaData.Conditions || tildaData.conditions || tildaData.agree),
-        Checkbox: this.normalizeCheckbox(tildaData.Checkbox || tildaData.checkbox || tildaData.personaldata)
-      };
-    } 
-    // 🔧 ФОРМАТ 2: Вложенные fields (старый формат)
-    else if (tildaData.fields) {
-      console.log('📝 Обнаружен формат 2: Вложенные fields');
-      
-      formData = {
-        FullName: tildaData.fields.name || tildaData.fields.Name || tildaData.fields.FullName || '',
-        Email: tildaData.fields.email || tildaData.fields.Email || '',
-        Phone: tildaData.fields.phone || tildaData.fields.Phone || tildaData.fields.tel || '',
-        Age: tildaData.fields.age || tildaData.fields.Age || '',
-        Yeardate: tildaData.fields.yeardate || tildaData.fields.Yeardate || tildaData.fields.birthdate || '',
-        City: tildaData.fields.city || tildaData.fields.City || '',
-        Conditions: this.normalizeCheckbox(tildaData.fields.conditions || tildaData.fields.agree || tildaData.fields.Conditions),
-        Checkbox: this.normalizeCheckbox(tildaData.fields.checkbox || tildaData.fields.personaldata || tildaData.fields.Checkbox)
-      };
-    }
-    // 🔧 ФОРМАТ 3: Formparams (альтернативный формат)
-    else if (tildaData.formparams) {
-      console.log('📝 Обнаружен формат 3: Formparams');
-      
-      Object.keys(tildaData.formparams).forEach(key => {
-        const match = key.match(/\[(.*?)\]/);
-        if (match) {
-          formData[match[1]] = tildaData.formparams[key];
+    Object.keys(tildaData).forEach(key => {
+      if (!technicalFields.includes(key) && tildaData[key] !== undefined && tildaData[key] !== '') {
+        // Обрабатываем чекбоксы
+        if (key === 'Conditions' || key === 'Checkbox') {
+          formData[key] = this.normalizeCheckbox(tildaData[key]);
+        } else {
+          formData[key] = tildaData[key];
         }
-      });
-    }
-    // 🔧 ФОРМАТ 4: Все поля в корне с префиксами (ваш текущий случай)
-    else {
-      console.log('📝 Обнаружен формат 4: Все поля в корне');
-      
-      // Собираем все поля которые могут быть в данных
-      formData = {
-        FullName: tildaData.FullName || '',
-        Email: tildaData.Email || '',
-        Phone: tildaData.Phone || '',
-        Age: tildaData.Age || '',
-        Yeardate: tildaData.Yeardate || '',
-        City: tildaData.City || '',
-        Conditions: this.normalizeCheckbox(tildaData.Conditions),
-        Checkbox: this.normalizeCheckbox(tildaData.Checkbox)
-      };
+      }
+    });
   
-      // 🔧 ДОПОЛНИТЕЛЬНО: Проверяем если поля пришли без заглавных букв
-      if (!formData.FullName && tildaData.fullname) formData.FullName = tildaData.fullname;
-      if (!formData.Email && tildaData.email) formData.Email = tildaData.email;
-      if (!formData.Phone && tildaData.phone) formData.Phone = tildaData.phone;
-      if (!formData.Yeardate && tildaData.yeardate) formData.Yeardate = tildaData.yeardate;
-      if (!formData.City && tildaData.city) formData.City = tildaData.city;
-      if (!formData.Conditions && tildaData.conditions) formData.Conditions = this.normalizeCheckbox(tildaData.conditions);
-      if (!formData.Checkbox && tildaData.checkbox) formData.Checkbox = this.normalizeCheckbox(tildaData.checkbox);
-    }
-  
-    // 🔧 ДЕБАГ: Логируем что получилось
     console.log('📊 Извлеченные данные формы:', formData);
   
-    // Мета-данные Tilda
-    tildaMeta = {
+    const tildaMeta = {
       formid: tildaData.formid || CONFIG.TILDA?.FORM_ID || 'bf403',
       pageid: tildaData.pageid || '',
       tranid: tildaData.tranid || '',
       projectid: tildaData.projectid || CONFIG.TILDA?.PROJECT_ID || '14245141'
     };
-  
-    console.log('📋 Мета-данные Tilda:', tildaMeta);
   
     return { formData, tildaData: tildaMeta };
   }
@@ -339,10 +278,13 @@ class TildaController {
    * Нормализация чекбоксов (Tilda отправляет 'on' для отмеченных)
    */
   normalizeCheckbox(value) {
-    if (value === 'on' || value === 'yes' || value === true) {
+    if (value === 'on' || value === 'yes' || value === true || value === 'true') {
       return 'yes';
     }
-    return 'no';
+    if (value === 'off' || value === 'no' || value === false || value === 'false') {
+      return 'no';
+    }
+    return value || 'no'; // Если значение есть, но не распознано - оставляем как есть
   }
 
   /**
