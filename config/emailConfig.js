@@ -5,12 +5,14 @@ let emailEnabled = false;
 
 // Безопасная инициализация
 try {
-  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_') && 're_FpZ4w6zQ_JoAsqWJBugouex7vjKib1UPZ') {
+  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) {
     resend = new Resend(process.env.RESEND_API_KEY);
     emailEnabled = true;
     console.log('✅ Resend initialized successfully');
+    console.log('📧 Using API key:', process.env.RESEND_API_KEY.substring(0, 10) + '...');
   } else {
     console.log('⚠️ RESEND_API_KEY not configured. Emails will be simulated.');
+    console.log('📧 Current RESEND_API_KEY:', process.env.RESEND_API_KEY || 'NOT SET');
   }
 } catch (error) {
   console.error('❌ Resend init error:', error.message);
