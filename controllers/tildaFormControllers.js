@@ -6,7 +6,6 @@ import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 
-
 class TildaController {
   /**
    * Основной метод для обработки вебхука от Tilda
@@ -40,23 +39,22 @@ class TildaController {
         });
       }
 
-      // 🔧 ПРОВЕРКА СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ
-      const existingUser = await this.checkExistingUser(formData);
-      if (existingUser) {
-        console.log('⚠️ Пользователь уже существует:', existingUser.email);
+      // 🔧 ПРОВЕРКА СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ И ЕГО ПЛАТЕЖЕЙ
+      const existingUserCheck = await this.checkExistingUserAndPayments(formData);
+      if (existingUserCheck.hasActivePayment) {
+        console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
         
-        // Если пользователь уже активен - возвращаем ошибку
-        if (existingUser.membership_status === 'active') {
-          return res.json({
-            Success: false,
-            ErrorCode: 'USER_ALREADY_ACTIVE', 
-            Message: 'Пользователь с таким email или телефоном уже зарегистрирован и активирован'
-          });
-        }
-        
-        // Если пользователь существует но не активен - создаем новый платеж
-        console.log('🔄 Пользователь существует, но не активен. Создаем новый платеж...');
-        return await this.handleExistingUser(existingUser, res);
+        return res.json({
+          Success: false,
+          ErrorCode: 'ALREADY_PAID', 
+          Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.'
+        });
+      }
+
+      // Если пользователь существует но не оплатил - создаем новый платеж
+      if (existingUserCheck.user) {
+        console.log('🔄 Пользователь существует, но не оплатил. Создаем платеж...');
+        return await this.handleExistingUser(existingUserCheck.user, res);
       }
 
       // Создаем нового пользователя
@@ -101,9 +99,9 @@ class TildaController {
   }
 
   /**
-   * Проверка существующего пользователя
+   * Проверка существующего пользователя и его платежей
    */
-  async checkExistingUser(formData) {
+  async checkExistingUserAndPayments(formData) {
     try {
       const { Email, Phone } = formData;
       
@@ -111,8 +109,22 @@ class TildaController {
       if (Email) {
         const usersByEmail = await User.findByEmail(Email);
         if (usersByEmail && usersByEmail.length > 0) {
-          // Возвращаем самого нового пользователя с этим email
-          return usersByEmail[0];
+          const user = usersByEmail[0];
+          
+          // 🔧 ПРОВЕРЯЕМ ЕСТЬ ЛИ УСПЕШНЫЕ ПЛАТЕЖИ У ЭТОГО ПОЛЬЗОВАТЕЛЯ
+          const hasSuccessfulPayment = await this.checkUserSuccessfulPayments(user.id);
+          
+          if (hasSuccessfulPayment) {
+            return {
+              user: user,
+              hasActivePayment: true
+            };
+          }
+          
+          return {
+            user: user,
+            hasActivePayment: false
+          };
         }
       }
       
@@ -120,20 +132,60 @@ class TildaController {
       if (Phone) {
         const usersByPhone = await User.findByPhone(Phone);
         if (usersByPhone && usersByPhone.length > 0) {
-          // Возвращаем самого нового пользователя с этим телефоном
-          return usersByPhone[0];
+          const user = usersByPhone[0];
+          
+          // 🔧 ПРОВЕРЯЕМ ЕСТЬ ЛИ УСПЕШНЫЕ ПЛАТЕЖИ У ЭТОГО ПОЛЬЗОВАТЕЛЯ
+          const hasSuccessfulPayment = await this.checkUserSuccessfulPayments(user.id);
+          
+          if (hasSuccessfulPayment) {
+            return {
+              user: user,
+              hasActivePayment: true
+            };
+          }
+          
+          return {
+            user: user,
+            hasActivePayment: false
+          };
         }
       }
       
-      return null;
+      return {
+        user: null,
+        hasActivePayment: false
+      };
     } catch (error) {
-      console.error('❌ Ошибка проверки существующего пользователя:', error);
-      return null;
+      console.error('❌ Ошибка проверки существующего пользователя и платежей:', error);
+      return {
+        user: null,
+        hasActivePayment: false
+      };
     }
   }
 
   /**
-   * Обработка существующего пользователя
+   * Проверка успешных платежей пользователя
+   */
+  async checkUserSuccessfulPayments(userId) {
+    try {
+      const successfulPayments = await Payment.findSuccessfulPaymentsByUserId(userId);
+      
+      if (successfulPayments && successfulPayments.length > 0) {
+        console.log(`✅ Найдено ${successfulPayments.length} успешных платежей для пользователя:`, userId);
+        return true;
+      }
+      
+      console.log('❌ У пользователя нет успешных платежей:', userId);
+      return false;
+    } catch (error) {
+      console.error('❌ Ошибка проверки платежей пользователя:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Обработка существующего пользователя (без успешных платежей)
    */
   async handleExistingUser(existingUser, res) {
     try {
@@ -149,11 +201,11 @@ class TildaController {
         userId: existingUser.id,
         amount: paymentResult.amount,
         tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: 'Вступительный взнос в клуб (повторная оплата)',
+        description: 'Вступительный взнос в клуб (повторная попытка оплаты)',
         status: 'pending'
       });
 
-      console.log('✅ Создан повторный платеж для существующего пользователя:', existingUser.email);
+      console.log('✅ Создан платеж для существующего пользователя:', existingUser.email);
 
       return res.json({
         Success: true,

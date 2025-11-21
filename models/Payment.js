@@ -90,6 +90,45 @@ class Payment {
       throw error;
     }
   }
+  static async findSuccessfulPaymentsByUserId(userId) {
+    try {
+      const query = `
+        SELECT * FROM payments 
+        WHERE user_id = $1 
+        AND status = 'completed'
+        AND amount = 1000  // 10 рублей в копейках
+        ORDER BY created_at DESC
+      `;
+      
+      const payments = await db.any(query, [userId]);
+      console.log(`🔍 Найдено успешных платежей для пользователя ${userId}:`, payments.length);
+      
+      return payments;
+    } catch (error) {
+      console.error('❌ Error finding successful payments by user ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Проверка наличия успешного платежа пользователя
+   */
+  static async hasSuccessfulPayment(userId) {
+    try {
+      const query = `
+        SELECT COUNT(*) as count FROM payments 
+        WHERE user_id = $1 
+        AND status = 'completed'
+        AND amount = 1000
+      `;
+      
+      const result = await db.one(query, [userId]);
+      return result.count > 0;
+    } catch (error) {
+      console.error('❌ Error checking if user has successful payment:', error);
+      return false;
+    }
+  }
 
   static async getDailyStats(date = null) {
     const targetDate = date || new Date().toISOString().split('T')[0];
