@@ -147,63 +147,130 @@ class TinkoffService {
   //   }
   // }
 
-  async initPayment(paymentData) {
-    console.log('🚀 [TinkoffService] initPayment called');
+  // async initPayment(paymentData) {
+  //   console.log('🚀 [TinkoffService] initPayment called');
     
-    try {
-      const requestData = {
-        TerminalKey: this.terminalKey,
-        Amount: Number(paymentData.Amount),
-        OrderId: paymentData.OrderId.toString(),
-        Description: (paymentData.Description || 'Payment').substring(0, 240),
-        // SuccessURL: paymentData.SuccessURL,
-        // FailURL: paymentData.FailURL,
-        // NotificationURL: paymentData.NotificationURL,
-        DATA: paymentData.DATA || {}
-      };
+  //   try {
+  //     const requestData = {
+  //       TerminalKey: this.terminalKey,
+  //       Amount: Number(paymentData.Amount),
+  //       OrderId: paymentData.OrderId.toString(),
+  //       Description: (paymentData.Description || 'Payment').substring(0, 240),
+  //       // SuccessURL: paymentData.SuccessURL,
+  //       // FailURL: paymentData.FailURL,
+  //       // NotificationURL: paymentData.NotificationURL,
+  //       DATA: paymentData.DATA || {}
+  //     };
+
+  //     console.log('📋 [TinkoffService] Final request data (BEFORE token):', JSON.stringify(requestData, null, 2));
   
-      console.log('📋 [TinkoffService] Request data:', {
-        TerminalKey: requestData.TerminalKey,
-        Amount: requestData.Amount,
-        OrderId: requestData.OrderId,
-        Description: requestData.Description
-      });
+  //     console.log('📋 [TinkoffService] Request data:', {
+  //       TerminalKey: requestData.TerminalKey,
+  //       Amount: requestData.Amount,
+  //       OrderId: requestData.OrderId,
+  //       Description: requestData.Description
+  //     });
   
-      // ИСПРАВЛЕНИЕ: Используем Tinkoff-specific метод
-      console.log('🔐 [TinkoffService] Generating Tinkoff token...');
-      requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
+  //     // ИСПРАВЛЕНИЕ: Используем Tinkoff-specific метод
+  //     console.log('🔐 [TinkoffService] Generating Tinkoff token...');
+  //     requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
   
-      const url = `${this.baseURL}/Init`;
-      console.log('📤 [TinkoffService] Sending POST request to:', url);
+  //     const url = `${this.baseURL}/Init`;
+  //     console.log('📤 [TinkoffService] Sending POST request to:', url);
   
-      const response = await axios({
-        method: 'POST',
-        url: url,
-        data: requestData,
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
+  //     const response = await axios({
+  //       method: 'POST',
+  //       url: url,
+  //       data: requestData,
+  //       timeout: 10000,
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json'
+  //       }
+  //     });
   
-      console.log('✅ [TinkoffService] Response received:', {
-        Success: response.data.Success,
-        ErrorCode: response.data.ErrorCode,
-        Message: response.data.Message
-      });
+  //     console.log('✅ [TinkoffService] Response received:', {
+  //       Success: response.data.Success,
+  //       ErrorCode: response.data.ErrorCode,
+  //       Message: response.data.Message
+  //     });
   
-      if (!response.data.Success) {
-        throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
-      }
+  //     if (!response.data.Success) {
+  //       throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
+  //     }
   
-      return response.data;
+  //     return response.data;
   
-    } catch (error) {
-      console.error('❌ [TinkoffService] Request failed:', error.message);
-      throw error;
+  //   } catch (error) {
+  //     console.error('❌ [TinkoffService] Request failed:', error.message);
+  //     throw error;
+  //   }
+  // }
+
+  // services/TinkoffService.js
+async initPayment(paymentData) {
+  console.log('🚀 [TinkoffService] initPayment called');
+  
+  try {
+    // ВАЛИДАЦИЯ данных перед отправкой
+    TokenGenerator.validatePaymentData(paymentData);
+    
+    // Подготовка данных - УБЕРИТЕ ВСЕ undefined поля
+    const requestData = {
+      TerminalKey: this.terminalKey,
+      Amount: Number(paymentData.Amount),
+      OrderId: paymentData.OrderId.toString(),
+      Description: (paymentData.Description || 'Payment').substring(0, 240),
+    };
+
+    // Добавляем только если они есть и не undefined
+    if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
+      requestData.DATA = paymentData.DATA;
     }
+    if (paymentData.SuccessURL) {
+      requestData.SuccessURL = paymentData.SuccessURL;
+    }
+    if (paymentData.FailURL) {
+      requestData.FailURL = paymentData.FailURL;
+    }
+    if (paymentData.NotificationURL) {
+      requestData.NotificationURL = paymentData.NotificationURL;
+    }
+
+    console.log('📋 [TinkoffService] Final request data (CLEANED):', JSON.stringify(requestData, null, 2));
+
+    // Генерация токена с очищенными данными
+    console.log('🔐 [TinkoffService] Generating token...');
+    requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
+
+    const url = `${this.baseURL}/Init`;
+    console.log('📤 [TinkoffService] Sending POST request to:', url);
+
+    const response = await axios({
+      method: 'POST',
+      url: url,
+      data: requestData,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    console.log('✅ [TinkoffService] Response received:', response.data);
+
+    if (!response.data.Success) {
+      console.error('❌ [TinkoffService] Tinkoff API Error details:', response.data);
+      throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
+    }
+
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ [TinkoffService] Request failed:', error.message);
+    throw error;
   }
+}
 
   // Тестовый метод для проверки соединения
   async testConnection() {
