@@ -317,7 +317,7 @@ class TinkoffService {
   
       // Генерация токена
       console.log('🔐 [TinkoffService] Generating token...');
-      cleanData.Token = TokenGenerator.generateTokenTinkoff(cleanData);
+      cleanData.Token = TokenGenerator.generateTokenMinimal(cleanData);
   
       const url = `${this.baseURL}/Init`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
