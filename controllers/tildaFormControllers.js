@@ -246,7 +246,7 @@ async createTinkoffPayment(user, formData) {
   const tinkoffService = new TinkoffService();
   
   // Передаем правильные данные
-  const tinkoffResponse = await tinkoffService.initPayment(paymentData);
+  const tinkoffResponse = await tinkoffService.initPayment(paymentData) || await tinkoffService.testConnection(paymentData);
   
   if (!tinkoffResponse.Success) {
     console.error('❌ Tinkoff API Error:', tinkoffResponse);

@@ -156,9 +156,9 @@ class TinkoffService {
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId.toString(),
         Description: (paymentData.Description || 'Payment').substring(0, 240),
-        SuccessURL: paymentData.SuccessURL,
-        FailURL: paymentData.FailURL,
-        NotificationURL: paymentData.NotificationURL,
+        // SuccessURL: paymentData.SuccessURL,
+        // FailURL: paymentData.FailURL,
+        // NotificationURL: paymentData.NotificationURL,
         DATA: paymentData.DATA || {}
       };
   
@@ -173,7 +173,7 @@ class TinkoffService {
       console.log('🔐 [TinkoffService] Generating Tinkoff token...');
       requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
   
-      const url = `${this.baseURL}/Init`;
+      const url = `${this.baseURL}`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
   
       const response = await axios({
