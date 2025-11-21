@@ -173,6 +173,32 @@ class User {
     }
   }
 
+  static async findByLoginOrEmail(login) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT * FROM users WHERE login = ? OR email = ?',
+        [login, login]
+      );
+      return rows[0] || null;
+    } catch (error) {
+      console.error('❌ Error finding user by login/email:', error);
+      throw error;
+    }
+  }
+
+  static async updateLastLogin(userId) {
+    try {
+      await pool.execute(
+        'UPDATE users SET last_login = NOW() WHERE id = ?',
+        [userId]
+      );
+    } catch (error) {
+      console.error('❌ Error updating last login:', error);
+      throw error;
+    }
+  }
+
+
   static async updatePaymentStatus(paymentId, status, tinkoffStatus = null) {
     try {
       const query = `

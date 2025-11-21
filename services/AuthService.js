@@ -1,5 +1,6 @@
 // services/AuthService.js
 import UserRepository from '../repositories/UserRepository.js';
+import User from '../models/Users.js';
 
 class AuthService {
   async loginUser(login, password) {
@@ -7,7 +8,7 @@ class AuthService {
       console.log('🔐 Attempting login for:', login);
       
       // Поиск пользователя по логину или email
-      const user = await UserRepository.findByLoginOrEmail(login);
+      const user = await User.findByLoginOrEmail(login);
       if (!user) {
         console.log('❌ User not found:', login);
         throw new Error('Пользователь не найден');
@@ -31,7 +32,7 @@ class AuthService {
       const token = this.generateSimpleToken(user.id);
 
       // Обновляем последний вход
-      await UserRepository.updateLastLogin(user.id);
+      await User.updateLastLogin(user.id);
 
       console.log('✅ Successful login for user:', user.email);
 
@@ -66,7 +67,7 @@ class AuthService {
 
       // Простая валидация токена
       const userId = this.parseSimpleToken(token);
-      const user = await UserRepository.findById(userId);
+      const user = await User.findById(userId);
       
       if (!user) {
         throw new Error('Пользователь не найден');
@@ -100,7 +101,7 @@ class AuthService {
 
   async getUserProfile(userId) {
     try {
-      const user = await UserRepository.findById(userId);
+      const user = await User.findById(userId);
       
       if (!user) {
         throw new Error('Пользователь не найден');
@@ -127,7 +128,7 @@ class AuthService {
 
   async checkUserStatus(email) {
     try {
-      const user = await UserRepository.findByEmail(email);
+      const user = await User.findByEmail(email);
       
       if (!user) {
         return {
