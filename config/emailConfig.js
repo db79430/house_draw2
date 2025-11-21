@@ -4,16 +4,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const transporter = createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.yandex.ru',
-  port: process.env.EMAIL_PORT || 465,
-  secure: true,
-  auth: {
-    user: process.env.YANDEX_EMAIL,
-    pass: process.env.YANDEX_APP_PASSWORD
-  },
-  debug: process.env.NODE_ENV === 'development',
-  logger: process.env.NODE_ENV === 'development'
-});
+    host: process.env.EMAIL_HOST || 'smtp.yandex.ru',
+    port: process.env.EMAIL_PORT || 587, // Попробуйте порт 587 вместо 465
+    secure: false, // Для порта 587 используйте false
+    auth: {
+      user: process.env.YANDEX_EMAIL,
+      pass: process.env.YANDEX_APP_PASSWORD
+    },
+    tls: {
+      rejectUnauthorized: false // Для обхода проблем с SSL
+    },
+    connectionTimeout: 30000, // 30 секунд
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+  });
 
 // Проверка соединения при инициализации
 transporter.verify((error, success) => {
