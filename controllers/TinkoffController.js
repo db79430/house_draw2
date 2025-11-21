@@ -75,17 +75,19 @@ class TinkoffController {
   //   }
   // }
 
-  async processSuccessfulPayment (orderId) {
+  async processSuccessfulPayment(orderId) {
     try {
       console.log('💰 Processing successful payment for order:', orderId);
       
+      // Используем исправленный метод
       const payment = await Payment.findByOrderId(orderId);
       if (!payment) {
         console.error('❌ Платеж не найден:', orderId);
         return;
       }
   
-      const user = await User.findById(payment.userId);
+      // Теперь получаем пользователя отдельно
+      const user = await User.findById(payment.user_id);
       if (!user) {
         console.error('❌ Пользователь не найден для платежа:', orderId);
         return;
@@ -95,7 +97,7 @@ class TinkoffController {
       await Payment.updateStatus(orderId, 'completed');
   
       // Обновляем статус пользователя
-      await User.updateMembershipStatus(user.id, 'active');
+      await User.updateMembershipStatus(payment.user_id, 'active');
   
       console.log('✅ Payment processed, sending email to:', user.email);
   
@@ -104,7 +106,7 @@ class TinkoffController {
         user.email,
         user.login,
         user.password,
-        user.fullname
+        user.fullname || 'Пользователь'
       );
   
       if (emailResult.success) {
@@ -116,8 +118,7 @@ class TinkoffController {
     } catch (error) {
       console.error('❌ Ошибка обработки успешного платежа:', error);
     }
-  };
-
+  }
 
 
   /**
