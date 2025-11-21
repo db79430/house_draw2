@@ -360,8 +360,14 @@ class TinkoffService {
         TerminalKey: this.terminalKey,
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId.toString(),
+        NotificationURL: `${process.env.APP_URL}/tinkoff-callback`,
         Description: (paymentData.Description || 'Payment').substring(0, 240),
       };
+
+      console.log('📋 Request data with NotificationURL:', {
+        OrderId: requestData.OrderId,
+        NotificationURL: requestData.NotificationURL
+      });
   
       // Добавляем опциональные поля в ЗАПРОС (но не в токен!)
       if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
@@ -425,7 +431,7 @@ class TinkoffService {
         Description: 'Connection test'
       };
 
-      testData.Token = TokenGenerator.generateTokenSimple(testData);
+      testData.Token = TokenGenerator.generateTokenExample(testData);
 
       const response = await axios({
         method: 'POST',
