@@ -134,22 +134,22 @@ class User {
 
   static async updatePassword(userId, newPassword) {
     try {
-      // Хэшируем пароль перед сохранением
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      // ВРЕМЕННО: Сохраняем пароль как есть (без хэширования)
+      const query = `
+        UPDATE users 
+        SET password_hash = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, email
+      `;
       
-      await this.update(userId, { 
-        password: hashedPassword,
-        updated_at: new Date()
-      });
-      
-      console.log('✅ Password updated for user:', userId);
-      return true;
+      const result = await db.one(query, [newPassword, userId]);
+      console.log('✅ Password updated for user:', result.email);
+      return result;
     } catch (error) {
       console.error('❌ Error updating password:', error);
-      return false;
+      throw error;
     }
   }
-
 
 
   static async findByEmail(email) {
@@ -175,11 +175,24 @@ class User {
 
   static async findByLoginOrEmail(login) {
     try {
-      const [rows] = await pool.execute(
-        'SELECT * FROM users WHERE login = ? OR email = ?',
-        [login, login]
-      );
-      return rows[0] || null;
+      const query = `
+        SELECT * FROM users 
+        WHERE login = $1 OR email = $1
+      `;
+      
+      const user = await db.oneOrNone(query, [login]);
+      
+      if (user) {
+        console.log('✅ User found by login/email:', { 
+          login: login, 
+          found: user.email,
+          status: user.membership_status 
+        });
+      } else {
+        console.log('❌ User not found with login/email:', login);
+      }
+      
+      return user;
     } catch (error) {
       console.error('❌ Error finding user by login/email:', error);
       throw error;
@@ -188,15 +201,26 @@ class User {
 
   static async updateLastLogin(userId) {
     try {
-      await pool.execute(
-        'UPDATE users SET last_login = NOW() WHERE id = ?',
-        [userId]
-      );
+      const query = `
+        UPDATE users 
+        SET last_login = NOW(), updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, email, last_login
+      `;
+      
+      const result = await db.one(query, [userId]);
+      console.log('✅ Last login updated for user:', { 
+        userId, 
+        email: result.email,
+        last_login: result.last_login 
+      });
+      return result;
     } catch (error) {
       console.error('❌ Error updating last login:', error);
       throw error;
     }
   }
+
 
 
   static async updatePaymentStatus(paymentId, status, tinkoffStatus = null) {
