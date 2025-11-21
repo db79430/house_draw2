@@ -13,6 +13,7 @@ import PaymentRepository from './repositories/PaymentRepository.js';
 import db from './database/index.js';
 import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 import diagnosticRoutes from './routes/network.js';
+import { checkEmailConfig }  from './config/emailConfig.js';
 
 const app = express();
 // app.use(cors());
@@ -327,6 +328,16 @@ app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
     });
   }
 });
+
+const emailConfig = checkEmailConfig();
+console.log('📧 Email configuration check:');
+console.log('  RESEND_API_KEY:', emailConfig.apiKeyExists ? '✅ Present' : '❌ Missing');
+console.log('  Resend configured:', emailConfig.resendConfigured ? '✅ Yes' : '❌ No');
+console.log('  From email:', emailConfig.fromEmail);
+
+if (!emailConfig.resendConfigured) {
+  console.log('⚠️  Email service is disabled. Emails will not be sent.');
+}
 
 // Обработка 404
 // app.use((req, res) => {

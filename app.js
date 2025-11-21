@@ -212,7 +212,7 @@ app.get('/check-keys', (req, res) => {
   res.json({
     terminalKey: CONFIG.TERMINAL_KEY,
     secretKey: '***' + CONFIG.SECRET_KEY.slice(-4),
-    baseUrl: CONFIG.BASE_URL,
+    baseUrl: CONFIG.TINKOFF.BASE_URL,
     status: 'active'
   });
 });

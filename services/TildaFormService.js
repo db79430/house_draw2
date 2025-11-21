@@ -73,12 +73,12 @@ class TildaFormService {
     }
 
     // Проверка возраста
-    if (formData.Age) {
-      const age = parseInt(formData.Age);
-      if (isNaN(age) || age < 18 || age > 100) {
-        errors.push('Возраст должен быть числом от 18 до 100 лет');
-      }
-    }
+    // if (formData.Age) {
+    //   const age = parseInt(formData.Age);
+    //   if (isNaN(age) || age < 18 || age > 100) {
+    //     errors.push('Возраст должен быть числом от 18 до 100 лет');
+    //   }
+    // }
 
     // Проверка даты рождения
     if (formData.Yeardate) {
@@ -187,16 +187,16 @@ class TildaFormService {
     }
 
     // Age validation
-    if (formData.Age) {
-      const age = parseInt(formData.Age);
-      if (isNaN(age)) {
-        errors.fields.age = 'Возраст должен быть числом';
-        errors.hasErrors = true;
-      } else if (age < 18 || age > 100) {
-        errors.fields.age = 'Возраст должен быть от 18 до 100 лет';
-        errors.hasErrors = true;
-      }
-    }
+    // if (formData.Age) {
+    //   const age = parseInt(formData.Age);
+    //   if (isNaN(age)) {
+    //     errors.fields.age = 'Возраст должен быть числом';
+    //     errors.hasErrors = true;
+    //   } else if (age < 18 || age > 100) {
+    //     errors.fields.age = 'Возраст должен быть от 18 до 100 лет';
+    //     errors.hasErrors = true;
+    //   }
+    // }
 
     // // Yeardate validation
     // if (formData.Yeardate) {

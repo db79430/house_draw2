@@ -294,11 +294,7 @@
 
 // export default EmailService;
 
-
-import dotenv from 'dotenv';
 import sendEmail from '../config/emailConfig.js';
-
-dotenv.config();
 
 class EmailService {
   /**
