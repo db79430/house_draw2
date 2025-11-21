@@ -360,7 +360,7 @@ class TinkoffService {
         TerminalKey: this.terminalKey,
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId.toString(),
-        NotificationURL: `${process.env.APP_URL}/tinkoff-callback`,
+        NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
         Description: (paymentData.Description || 'Payment').substring(0, 240),
       };
 

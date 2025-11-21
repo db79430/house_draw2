@@ -6,6 +6,7 @@ import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 
+
 class TildaController {
   /**
    * Основной метод для обработки вебхука от Tilda
@@ -232,7 +233,7 @@ async createTinkoffPayment(user, formData) {
     Description: 'Вступительный взнос в клуб',
     // SuccessURL: CONFIG.APP.SUCCESS_URL,
     // FailURL: CONFIG.APP.FAIL_URL,
-    // NotificationURL: CONFIG.APP.NOTIFICATION_URL || `${CONFIG.APP.BASE_URL}/api/payment/notification`,
+    NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
     DATA: {
       // Name: user.fullname,
       Email: user.email,
@@ -240,7 +241,7 @@ async createTinkoffPayment(user, formData) {
       // UserId: user.id,
     }
   };
-
+x
   console.log('📤 Отправка в Tinkoff:', paymentData);
 
   const tinkoffService = new TinkoffService();
