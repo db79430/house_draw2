@@ -3,10 +3,10 @@ import { Resend } from 'resend';
 let resend = null;
 let emailEnabled = false;
 
-// Проверяем и инициализируем Resend
 console.log('🔧 Checking Resend configuration...');
 console.log('📧 RESEND_API_KEY present:', !!process.env.RESEND_API_KEY);
 
+// Инициализируем Resend согласно документации
 if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) {
   try {
     resend = new Resend(process.env.RESEND_API_KEY);
@@ -20,69 +20,70 @@ if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) 
 }
 
 /**
- * Универсальная функция отправки email
- * Всегда возвращает валидный объект без поля 'id' чтобы избежать ошибок валидации
+ * Отправка email через Resend (согласно официальной документации)
  */
 async function sendEmail(to, subject, html, from = null) {
   const fromEmail = from || process.env.FROM_EMAIL || 'HouseDraw <onboarding@resend.dev>';
   
-  // Логируем информацию о письме
   console.log(`\n📧 EMAIL DETAILS:`);
   console.log(`   To: ${to}`);
   console.log(`   From: ${fromEmail}`);
   console.log(`   Subject: ${subject}`);
   console.log(`   Length: ${html.length} chars`);
   
-  if (!emailEnabled) {
+  if (!emailEnabled || !resend) {
     console.log('   Status: 📝 SIMULATED (RESEND_API_KEY not configured)');
     console.log('   Action: Email would be sent if RESEND_API_KEY was configured');
     
-    // Возвращаем простой объект без ID чтобы избежать ошибок валидации
     return {
       success: true,
       simulated: true,
-      message: 'Email simulation mode - RESEND_API_KEY not configured',
-      to: to,
-      subject: subject,
-      timestamp: new Date().toISOString()
+      message: 'Email simulation mode - RESEND_API_KEY not configured'
     };
   }
 
-  // Реальная отправка через Resend
+  // РЕАЛЬНАЯ ОТПРАВКА согласно документации Resend
   try {
     console.log('   Status: 🚀 SENDING via Resend...');
     
-    const data = await resend.emails.send({
+    // Синтаксис из официальной документации Resend
+    const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: Array.isArray(to) ? to : [to],
       subject: subject,
       html: html
     });
     
-    console.log('   Status: ✅ SENT successfully');
-    console.log('   Resend ID:', data.id);
+    if (error) {
+      console.error('   Status: ❌ SEND FAILED');
+      console.error('   Resend Error:', error);
+      return {
+        success: false,
+        error: error.message,
+        simulated: false
+      };
+    }
     
-    // Возвращаем данные от Resend
+    console.log('   Status: ✅ SENT successfully');
+    console.log('   Resend ID:', data?.id);
+    
     return {
       success: true,
-      ...data,
-      timestamp: new Date().toISOString()
+      data: data,
+      simulated: false
     };
   } catch (error) {
     console.error('   Status: ❌ SEND FAILED');
     console.error('   Error:', error.message);
     
-    // Возвращаем объект ошибки без проблемных полей
     return {
       success: false,
       error: error.message,
-      simulated: false,
-      timestamp: new Date().toISOString()
+      simulated: false
     };
   }
 }
 
-// Экспортируем функцию проверки статуса
 export function getEmailStatus() {
   return {
     enabled: emailEnabled,
