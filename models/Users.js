@@ -77,6 +77,41 @@ class User {
     }
   }
 
+   /**
+   * Поиск пользователя по ID
+   */
+   static async findById(userId) {
+    try {
+      const query = `
+        SELECT 
+          id,
+          fullname,
+          email,
+          phone,
+          login,
+          password,
+          membership_status,
+          created_at
+        FROM users 
+        WHERE id = $1
+      `;
+      
+      const user = await db.oneOrNone(query, [userId]);
+      
+      if (user) {
+        console.log('✅ User found by ID:', { id: user.id, email: user.email });
+      } else {
+        console.log('❌ User not found with ID:', userId);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('❌ Error finding user by ID:', error);
+      throw error;
+    }
+  }
+
+
   static async findByEmail(email) {
     try {
       const query = 'SELECT * FROM users WHERE email = $1 ORDER BY created_at DESC';
