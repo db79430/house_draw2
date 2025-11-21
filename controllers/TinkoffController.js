@@ -1,7 +1,7 @@
 // controllers/TinkoffController.js
-import EmailServices from '../services/EmailServices.js';
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
+import EmailService from '../services/EmailServices.js'
 
 class TinkoffController {
   /**
@@ -32,48 +32,93 @@ class TinkoffController {
   /**
    * Обработка успешного платежа
    */
-  async processSuccessfulPayment(orderId, paymentId) {
-    try {
-      console.log('✅ Оплата подтверждена для OrderId:', orderId);
+  // async processSuccessfulPayment(orderId, paymentId) {
+  //   try {
+  //     console.log('✅ Оплата подтверждена для OrderId:', orderId);
 
-      // Находим платеж в БД
+  //     // Находим платеж в БД
+  //     const payment = await Payment.findByOrderId(orderId);
+  //     if (!payment) {
+  //       console.error('❌ Платеж не найден:', orderId);
+  //       return;
+  //     }
+
+  //     // Находим пользователя
+  //     const user = await User.findById(payment.userId);
+  //     if (!user) {
+  //       console.error('❌ Пользователь не найден для платежа:', orderId);
+  //       return;
+  //     }
+
+  //     // Обновляем статус платежа
+  //     await Payment.updateStatus(orderId, 'completed');
+
+  //     // Обновляем статус пользователя
+  //     await User.updateMembershipStatus(user.id, 'active');
+
+  //     // Отправляем email с данными доступа
+  //     const emailResult = await EmailServices.sendCredentialsEmail(
+  //       user.email,
+  //       user.login,
+  //       user.password, // Должен быть зашифрован в БД
+  //       user.fullname
+  //     );
+
+  //     if (emailResult.success) {
+  //       console.log('✅ Email отправлен пользователю:', user.email);
+  //     } else {
+  //       console.error('❌ Ошибка отправки email:', emailResult.error);
+  //     }
+
+  //   } catch (error) {
+  //     console.error('❌ Ошибка обработки успешного платежа:', error);
+  //   }
+  // }
+
+  async processSuccessfulPayment (orderId) {
+    try {
+      console.log('💰 Processing successful payment for order:', orderId);
+      
       const payment = await Payment.findByOrderId(orderId);
       if (!payment) {
         console.error('❌ Платеж не найден:', orderId);
         return;
       }
-
-      // Находим пользователя
+  
       const user = await User.findById(payment.userId);
       if (!user) {
         console.error('❌ Пользователь не найден для платежа:', orderId);
         return;
       }
-
+  
       // Обновляем статус платежа
       await Payment.updateStatus(orderId, 'completed');
-
+  
       // Обновляем статус пользователя
       await User.updateMembershipStatus(user.id, 'active');
-
+  
+      console.log('✅ Payment processed, sending email to:', user.email);
+  
       // Отправляем email с данными доступа
-      const emailResult = await EmailServices.sendCredentialsEmail(
+      const emailResult = await EmailService.sendCredentialsEmail(
         user.email,
         user.login,
-        user.password, // Должен быть зашифрован в БД
+        user.password,
         user.fullname
       );
-
+  
       if (emailResult.success) {
         console.log('✅ Email отправлен пользователю:', user.email);
       } else {
         console.error('❌ Ошибка отправки email:', emailResult.error);
       }
-
+  
     } catch (error) {
       console.error('❌ Ошибка обработки успешного платежа:', error);
     }
-  }
+  };
+
+
 
   /**
    * Обработка неудачного платежа
