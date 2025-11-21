@@ -681,13 +681,14 @@ class TokenGenerator {
       errors.push('OrderId is required');
     }
     
-    // Проверяем что нет undefined значений
-    Object.keys(paymentData).forEach(key => {
+    // Проверяем только обязательные поля на undefined
+    const requiredFields = ['TerminalKey', 'Amount', 'OrderId'];
+    requiredFields.forEach(key => {
       if (paymentData[key] === undefined) {
-        errors.push(`Field ${key} is undefined`);
+        errors.push(`Required field ${key} is undefined`);
       }
     });
-
+  
     if (errors.length > 0) {
       throw new Error(`Payment data validation failed: ${errors.join(', ')}`);
     }

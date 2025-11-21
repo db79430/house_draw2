@@ -223,21 +223,17 @@ async initPayment(paymentData) {
       Description: (paymentData.Description || 'Payment').substring(0, 240),
     };
 
-    // Добавляем только если они есть и не undefined
-    if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
-      requestData.DATA = paymentData.DATA;
-    }
-    if (paymentData.SuccessURL) {
-      requestData.SuccessURL = paymentData.SuccessURL;
-    }
-    if (paymentData.FailURL) {
-      requestData.FailURL = paymentData.FailURL;
-    }
-    if (paymentData.NotificationURL) {
-      requestData.NotificationURL = paymentData.NotificationURL;
-    }
+    const optionalFields = ['DATA', 'SuccessURL', 'FailURL', 'NotificationURL'];
+    optionalFields.forEach(field => {
+      if (paymentData[field] !== undefined && paymentData[field] !== null && paymentData[field] !== '') {
+        requestData[field] = paymentData[field];
+        console.log(`✅ Added optional field: ${field}`);
+      } else {
+        console.log(`⏩ Skipped optional field: ${field} (undefined or empty)`);
+      }
+    });
 
-    console.log('📋 [TinkoffService] Final request data (CLEANED):', JSON.stringify(requestData, null, 2));
+    console.log('📋 [TinkoffService] Clean request data:', JSON.stringify(requestData, null, 2));
 
     // Генерация токена с очищенными данными
     console.log('🔐 [TinkoffService] Generating token...');
