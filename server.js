@@ -314,9 +314,9 @@ app.post('/tilda-fallback', tildaAuthMiddleware);
 // Auth routes 
 app.post('/auth-login', (req, res) => authController.login(req, res));
 app.post('/auth-validate', (req, res) => authController.validate(req, res));
-app.get('/auth-profile', authMiddleware, (req, res) => authController.getProfile(req, res));
-app.post('/auth-change-password', authMiddleware, (req, res) => authController.changePassword(req, res));
-app.post('/auth-logout', authMiddleware, (req, res) => authController.logout(req, res));
+app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
+app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
+app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
