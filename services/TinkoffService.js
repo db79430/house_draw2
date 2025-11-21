@@ -6,7 +6,7 @@ import TokenGenerator from '../utils/tokenGenerator.js';
 class TinkoffService {
   constructor() {
     // Убедимся что URL правильный
-    this.baseURL = CONFIG.TINKOFF.BASE_URL || 'https://securepay.tinkoff.ru/v2/Init';
+    this.baseURL = CONFIG.TINKOFF.BASE_URL;
     this.terminalKey = CONFIG.TINKOFF.TERMINAL_KEY;
     
     console.log('🔧 [TinkoffService] Initialized with:');
@@ -173,7 +173,7 @@ class TinkoffService {
       console.log('🔐 [TinkoffService] Generating Tinkoff token...');
       requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
   
-      const url = `${this.baseURL}`;
+      const url = `${this.baseURL}/Init`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
   
       const response = await axios({
@@ -219,7 +219,7 @@ class TinkoffService {
 
       const response = await axios({
         method: 'POST',
-        url: `${this.baseURL}`,
+        url: `${this.baseURL}/Init`,
         data: testData,
         timeout: 10000
       });
