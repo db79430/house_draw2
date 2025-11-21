@@ -3,55 +3,54 @@ import { Resend } from 'resend';
 let resend = null;
 let emailEnabled = false;
 
-console.log('🔧 Initializing Resend...');
-console.log('📧 RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+// Проверяем и инициализируем Resend
+console.log('🔧 Checking Resend configuration...');
+console.log('📧 RESEND_API_KEY present:', !!process.env.RESEND_API_KEY);
 
-// Инициализация Resend
 if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) {
   try {
     resend = new Resend(process.env.RESEND_API_KEY);
     emailEnabled = true;
     console.log('✅ Resend initialized successfully');
   } catch (error) {
-    console.error('❌ Resend initialization failed:', error);
+    console.error('❌ Resend initialization error:', error.message);
   }
 } else {
-  console.log('❌ RESEND_API_KEY is invalid or missing');
-  console.log('📧 Emails will be SIMULATED only');
+  console.log('⚠️ RESEND_API_KEY not configured. Emails will be logged but not sent.');
 }
 
-// Функция для генерации валидного UUID v4
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
+/**
+ * Универсальная функция отправки email
+ * Всегда возвращает валидный объект без поля 'id' чтобы избежать ошибок валидации
+ */
 async function sendEmail(to, subject, html, from = null) {
+  const fromEmail = from || process.env.FROM_EMAIL || 'HouseDraw <onboarding@resend.dev>';
+  
+  // Логируем информацию о письме
+  console.log(`\n📧 EMAIL DETAILS:`);
+  console.log(`   To: ${to}`);
+  console.log(`   From: ${fromEmail}`);
+  console.log(`   Subject: ${subject}`);
+  console.log(`   Length: ${html.length} chars`);
+  
   if (!emailEnabled) {
-    console.log(`📧 [SIMULATION] Would send to: ${to}`);
-    console.log(`📧 [SIMULATION] Subject: ${subject}`);
+    console.log('   Status: 📝 SIMULATED (RESEND_API_KEY not configured)');
+    console.log('   Action: Email would be sent if RESEND_API_KEY was configured');
     
-    // Возвращаем валидный UUID формат для Resend
-    return { 
-      id: generateUUID(),
-      from: from || process.env.FROM_EMAIL || 'HouseDraw <onboarding@resend.dev>',
-      to: Array.isArray(to) ? to : [to],
+    // Возвращаем простой объект без ID чтобы избежать ошибок валидации
+    return {
+      success: true,
+      simulated: true,
+      message: 'Email simulation mode - RESEND_API_KEY not configured',
+      to: to,
       subject: subject,
-      html: html,
-      created_at: new Date().toISOString(),
-      _simulated: true // Помечаем как симуляцию
+      timestamp: new Date().toISOString()
     };
   }
 
-  // РЕАЛЬНАЯ ОТПРАВКА
+  // Реальная отправка через Resend
   try {
-    const fromEmail = from || process.env.FROM_EMAIL || 'HouseDraw <onboarding@resend.dev>';
-    
-    console.log(`📧 [REAL] Sending email to: ${to}`);
-    console.log(`📧 [REAL] Subject: ${subject}`);
+    console.log('   Status: 🚀 SENDING via Resend...');
     
     const data = await resend.emails.send({
       from: fromEmail,
@@ -60,29 +59,35 @@ async function sendEmail(to, subject, html, from = null) {
       html: html
     });
     
-    console.log('✅ Email sent successfully via Resend');
-    console.log('📧 Email ID:', data.id);
-    return data;
-  } catch (error) {
-    console.error('❌ Email sending failed:', error);
+    console.log('   Status: ✅ SENT successfully');
+    console.log('   Resend ID:', data.id);
     
-    // Возвращаем валидную структуру даже при ошибке
-    return { 
-      id: generateUUID(),
+    // Возвращаем данные от Resend
+    return {
+      success: true,
+      ...data,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('   Status: ❌ SEND FAILED');
+    console.error('   Error:', error.message);
+    
+    // Возвращаем объект ошибки без проблемных полей
+    return {
+      success: false,
       error: error.message,
-      _error: true
+      simulated: false,
+      timestamp: new Date().toISOString()
     };
   }
 }
 
-export function isEmailServiceAvailable() {
-  return emailEnabled;
-}
-
+// Экспортируем функцию проверки статуса
 export function getEmailStatus() {
   return {
     enabled: emailEnabled,
-    apiKeyConfigured: !!(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')),
+    apiKeyExists: !!process.env.RESEND_API_KEY,
+    apiKeyValid: !!(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')),
     fromEmail: process.env.FROM_EMAIL || 'HouseDraw <onboarding@resend.dev>'
   };
 }

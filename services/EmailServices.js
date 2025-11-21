@@ -294,20 +294,54 @@
 
 // export default EmailService;
 
-import sendEmail from '../config/emailConfig.js';
+import sendEmail, {getEmailStatus} from '../config/emailConfig.js';
 
 class EmailService {
-  /**
-   * Отправляет приветственное письмо после успешной регистрации
-   */
+  static async sendCredentialsEmail(email, login, password, fullname) {
+    try {
+      const emailStatus = getEmailStatus();
+      const user = { email, fullname };
+      const subject = 'Данные для входа в личный кабинет 🔐';
+      const htmlContent = this.generateCredentialsTemplate(user, login, password);
+      
+      console.log(`\n🎯 Preparing to send credentials to: ${email}`);
+      console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
+      
+      const result = await sendEmail(email, subject, htmlContent);
+      
+      if (result.success) {
+        if (result.simulated) {
+          console.log('✅ Credentials would be sent (simulation mode)');
+          console.log(`   Login: ${login}`);
+          console.log(`   Password: ${password}`);
+        } else {
+          console.log('✅ Credentials sent successfully via Resend');
+        }
+        return { success: true, result };
+      } else {
+        console.error('❌ Failed to send credentials email');
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('❌ Error in sendCredentialsEmail:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Аналогично обновите другие методы...
   static async sendWelcomeEmail(user, login, password) {
     try {
       const subject = 'Добро пожаловать в клуб! 🎉';
       const htmlContent = this.generateWelcomeTemplate(user, login, password);
       
       const result = await sendEmail(user.email, subject, htmlContent);
-      console.log('✅ Welcome email sent to:', user.email);
-      return { success: true, result };
+      
+      if (result.success) {
+        console.log(`✅ Welcome email ${result.simulated ? 'simulated' : 'sent'} to: ${user.email}`);
+        return { success: true, result };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       console.error('❌ Error sending welcome email:', error);
       return { success: false, error: error.message };
