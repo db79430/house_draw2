@@ -216,67 +216,137 @@ class TinkoffService {
   // }
 
   // services/TinkoffService.js
-async initPayment(paymentData) {
-  console.log('🚀 [TinkoffService] initPayment called');
+// async initPayment(paymentData) {
+//   console.log('🚀 [TinkoffService] initPayment called');
   
-  try {
-    // ВАЛИДАЦИЯ данных перед отправкой
-    // await TokenGenerator.validatePaymentData(paymentData);
+//   try {
+//     // ВАЛИДАЦИЯ данных перед отправкой
+//     // await TokenGenerator.validatePaymentData(paymentData);
     
-    // Подготовка данных - УБЕРИТЕ ВСЕ undefined поля
-    const requestData = {
-      TerminalKey: this.terminalKey,
-      Amount: Number(paymentData.Amount),
-      OrderId: paymentData.OrderId.toString(),
-      Description: (paymentData.Description || 'Payment').substring(0, 240),
-    };
+//     // Подготовка данных - УБЕРИТЕ ВСЕ undefined поля
+//     const requestData = {
+//       TerminalKey: this.terminalKey,
+//       Amount: Number(paymentData.Amount),
+//       OrderId: paymentData.OrderId.toString(),
+//       Description: (paymentData.Description || 'Payment').substring(0, 240),
+//     };
 
-    const optionalFields = ['DATA', 'SuccessURL', 'FailURL', 'NotificationURL'];
-    optionalFields.forEach(field => {
-      if (paymentData[field] !== undefined && paymentData[field] !== null && paymentData[field] !== '') {
-        requestData[field] = paymentData[field];
-        console.log(`✅ Added optional field: ${field}`);
-      } else {
-        console.log(`⏩ Skipped optional field: ${field} (undefined or empty)`);
-      }
-    });
+//     const optionalFields = ['DATA', 'SuccessURL', 'FailURL', 'NotificationURL'];
+//     optionalFields.forEach(field => {
+//       if (paymentData[field] !== undefined && paymentData[field] !== null && paymentData[field] !== '') {
+//         requestData[field] = paymentData[field];
+//         console.log(`✅ Added optional field: ${field}`);
+//       } else {
+//         console.log(`⏩ Skipped optional field: ${field} (undefined or empty)`);
+//       }
+//     });
 
-    console.log('📋 [TinkoffService] Clean request data:', JSON.stringify(requestData, null, 2));
+//     console.log('📋 [TinkoffService] Clean request data:', JSON.stringify(requestData, null, 2));
 
-    // Генерация токена с очищенными данными
-    console.log('🔐 [TinkoffService] Generating token...');
-    requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
+//     // Генерация токена с очищенными данными
+//     console.log('🔐 [TinkoffService] Generating token...');
+//     requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
 
-    const url = `${this.baseURL}/Init`;
-    console.log('📤 [TinkoffService] Sending POST request to:', url);
+//     const url = `${this.baseURL}/Init`;
+//     console.log('📤 [TinkoffService] Sending POST request to:', url);
 
-    const response = await axios({
-      method: 'POST',
-      url: url,
-      data: requestData,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
+//     const response = await axios({
+//       method: 'POST',
+//       url: url,
+//       data: requestData,
+//       timeout: 30000,
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Accept': 'application/json'
+//       }
+//     });
 
-    console.log('✅ [TinkoffService] Response received:', response.data);
+//     console.log('✅ [TinkoffService] Response received:', response.data);
 
-    if (!response.data.Success) {
-      console.error('❌ [TinkoffService] Tinkoff API Error details:', response.data);
-      throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
-    }
+//     if (!response.data.Success) {
+//       console.error('❌ [TinkoffService] Tinkoff API Error details:', response.data);
+//       throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
+//     }
 
-    return response.data;
+//     return response.data;
 
-  } catch (error) {
-    console.error('❌ [TinkoffService] Request failed:', error.message);
-    throw error;
-  }
-}
+//   } catch (error) {
+//     console.error('❌ [TinkoffService] Request failed:', error.message);
+//     throw error;
+//   }
+// }
 
   // Тестовый метод для проверки соединения
+  async initPayment(paymentData) {
+    console.log('🚀 [TinkoffService] initPayment called');
+    
+    try {
+      // ПРОСТАЯ проверка
+      if (!paymentData.TerminalKey || !paymentData.Amount || !paymentData.OrderId) {
+        throw new Error('Missing required fields: TerminalKey, Amount, or OrderId');
+      }
+  
+      // Очищаем данные - УБИРАЕМ ВСЕ URL С "undefined"
+      const cleanData = {
+        TerminalKey: this.terminalKey,
+        Amount: Number(paymentData.Amount),
+        OrderId: paymentData.OrderId.toString(),
+        Description: (paymentData.Description || 'Payment').substring(0, 240),
+      };
+  
+      // ТОЛЬКО DATA - временно исключаем все URL
+      if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
+        cleanData.DATA = paymentData.DATA;
+      }
+  
+      // ВРЕМЕННО ЗАКОММЕНТИРУЕМ URL ПОЛЯ
+      // if (paymentData.SuccessURL && !paymentData.SuccessURL.includes('undefined')) {
+      //   cleanData.SuccessURL = paymentData.SuccessURL;
+      //   console.log('✅ Added SuccessURL');
+      // }
+      // if (paymentData.FailURL && !paymentData.FailURL.includes('undefined')) {
+      //   cleanData.FailURL = paymentData.FailURL;
+      //   console.log('✅ Added FailURL');
+      // }
+      // if (paymentData.NotificationURL && !paymentData.NotificationURL.includes('undefined')) {
+      //   cleanData.NotificationURL = paymentData.NotificationURL;
+      //   console.log('✅ Added NotificationURL');
+      // }
+  
+      console.log('📋 [TinkoffService] Clean data (NO URL):', cleanData);
+  
+      // Генерация токена
+      console.log('🔐 [TinkoffService] Generating token...');
+      cleanData.Token = TokenGenerator.generateTokenTinkoff(cleanData);
+  
+      const url = `${this.baseURL}/Init`;
+      console.log('📤 [TinkoffService] Sending POST request to:', url);
+  
+      const response = await axios({
+        method: 'POST',
+        url: url,
+        data: cleanData,
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+  
+      console.log('✅ [TinkoffService] Response received:', response.data);
+  
+      if (!response.data.Success) {
+        throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
+      }
+  
+      return response.data;
+  
+    } catch (error) {
+      console.error('❌ [TinkoffService] Request failed:', error.message);
+      throw error;
+    }
+  }
+  
   async testConnection() {
     try {
       const testData = {
