@@ -13,7 +13,7 @@ class Payment {
 
     const query = `
       INSERT INTO payments (order_id, user_id, amount, tinkoff_payment_id, description, tinkoff_response)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
 
