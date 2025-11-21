@@ -213,7 +213,7 @@ async initPayment(paymentData) {
   
   try {
     // ВАЛИДАЦИЯ данных перед отправкой
-    TokenGenerator.validatePaymentData(paymentData);
+    // await TokenGenerator.validatePaymentData(paymentData);
     
     // Подготовка данных - УБЕРИТЕ ВСЕ undefined поля
     const requestData = {
