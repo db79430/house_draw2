@@ -12,6 +12,7 @@ import UserServices from './services/UserServices.js';
 import PaymentRepository from './repositories/PaymentRepository.js';
 import db from './database/index.js';
 import tildaAuthMiddleware from './middlewares/authMiddleware.js';
+import diagnosticRoutes from './routes/network.js';
 
 const app = express();
 // app.use(cors());
@@ -31,6 +32,8 @@ app.use((req, res, next) => {
 // Парсинг данных
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use('/api', diagnosticRoutes);
 
 // Создаем экземпляры контроллеров
 // const tinkoffController = new TinkoffController();
