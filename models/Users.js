@@ -110,6 +110,29 @@ class User {
     }
   }
 
+  static async updateMembershipStatus(userId, status) {
+    try {
+      const query = `
+        UPDATE users 
+        SET membership_status = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, email, membership_status
+      `;
+      
+      const result = await db.one(query, [status, userId]);
+      console.log('✅ User membership status updated:', { 
+        userId, 
+        status,
+        email: result.email 
+      });
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating user membership status:', error);
+      throw error;
+    }
+  }
+
+
 
   static async findByEmail(email) {
     try {
