@@ -14,6 +14,7 @@ import db from './database/index.js';
 import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 import diagnosticRoutes from './routes/network.js';
 // import { checkEmailConfig }  from './config/emailConfig.js';
+import AuthController from './controllers/AuthController.js';
 
 const app = express();
 // app.use(cors());
@@ -294,6 +295,7 @@ app.get('/', (req, res) => {
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 
 const emailController = new EmailController();
+const authController = new AuthController();
 
 // Tilda routes
 app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => tildaController.handleTildaWebhook(req, res));
@@ -306,8 +308,15 @@ app.post('/tinkoff-callback', (req, res) => tinkoffController.handleNotification
 // Email routes
 app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
 
-// Fallback route (если нужен)
+// Fallback route 
 app.post('/tilda-fallback', tildaAuthMiddleware);
+
+// Auth routes 
+app.post('/auth-login', (req, res) => authController.login(req, res));
+app.post('/auth-validate', (req, res) => authController.validate(req, res));
+app.get('/auth-profile', authMiddleware, (req, res) => authController.getProfile(req, res));
+app.post('/auth-change-password', authMiddleware, (req, res) => authController.changePassword(req, res));
+app.post('/auth-logout', authMiddleware, (req, res) => authController.logout(req, res));
 
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
