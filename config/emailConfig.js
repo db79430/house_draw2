@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const transporter = createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.yandex.ru',
+    host: process.env.EMAIL_HOST || 'smtp.yandex.ru' || '77.88.21.158',
     port: process.env.EMAIL_PORT || 587, // Попробуйте порт 587 вместо 465
     secure: false, // Для порта 587 используйте false
     auth: {
