@@ -277,47 +277,116 @@ class TinkoffService {
 // }
 
   // Тестовый метод для проверки соединения
+  // async initPayment(paymentData) {
+  //   console.log('🚀 [TinkoffService] initPayment called');
+    
+  //   try {
+  //     // ПРОСТАЯ проверка
+  //     if (!paymentData.TerminalKey || !paymentData.Amount || !paymentData.OrderId) {
+  //       throw new Error('Missing required fields: TerminalKey, Amount, or OrderId');
+  //     }
+  
+  //     // Очищаем данные - УБИРАЕМ ВСЕ URL С "undefined"
+  //     const cleanData = {
+  //       TerminalKey: this.terminalKey,
+  //       Amount: Number(paymentData.Amount),
+  //       OrderId: paymentData.OrderId.toString(),
+  //       Description: (paymentData.Description || 'Payment').substring(0, 240),
+  //     };
+  
+  //     // ТОЛЬКО DATA - временно исключаем все URL
+  //     // if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
+  //     //   cleanData.DATA = paymentData.DATA;
+  //     // }
+  
+  //     // ВРЕМЕННО ЗАКОММЕНТИРУЕМ URL ПОЛЯ
+  //     // if (paymentData.SuccessURL && !paymentData.SuccessURL.includes('undefined')) {
+  //     //   cleanData.SuccessURL = paymentData.SuccessURL;
+  //     //   console.log('✅ Added SuccessURL');
+  //     // }
+  //     // if (paymentData.FailURL && !paymentData.FailURL.includes('undefined')) {
+  //     //   cleanData.FailURL = paymentData.FailURL;
+  //     //   console.log('✅ Added FailURL');
+  //     // }
+  //     // if (paymentData.NotificationURL && !paymentData.NotificationURL.includes('undefined')) {
+  //     //   cleanData.NotificationURL = paymentData.NotificationURL;
+  //     //   console.log('✅ Added NotificationURL');
+  //     // }
+  
+  //     console.log('📋 [TinkoffService] Clean data (NO URL):', cleanData);
+  
+  //     // Генерация токена
+  //     console.log('🔐 [TinkoffService] Generating token...');
+  //     cleanData.Token = TokenGenerator.generateTokenTinkoff(cleanData);
+  
+  //     const url = `${this.baseURL}/Init`;
+  //     console.log('📤 [TinkoffService] Sending POST request to:', url);
+  
+  //     const response = await axios({
+  //       method: 'POST',
+  //       url: url,
+  //       data: cleanData,
+  //       timeout: 30000,
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json'
+  //       }
+  //     });
+  
+  //     console.log('✅ [TinkoffService] Response received:', response.data);
+  
+  //     if (!response.data.Success) {
+  //       throw new Error(`Tinkoff Error ${response.data.ErrorCode}: ${response.data.Message}`);
+  //     }
+  
+  //     return response.data;
+  
+  //   } catch (error) {
+  //     console.error('❌ [TinkoffService] Request failed:', error.message);
+  //     throw error;
+  //   }
+  // }
+
   async initPayment(paymentData) {
     console.log('🚀 [TinkoffService] initPayment called');
     
     try {
-      // ПРОСТАЯ проверка
       if (!paymentData.TerminalKey || !paymentData.Amount || !paymentData.OrderId) {
         throw new Error('Missing required fields: TerminalKey, Amount, or OrderId');
       }
   
-      // Очищаем данные - УБИРАЕМ ВСЕ URL С "undefined"
-      const cleanData = {
+      // Полные данные для запроса (включая DATA, Description и URL)
+      const requestData = {
         TerminalKey: this.terminalKey,
         Amount: Number(paymentData.Amount),
         OrderId: paymentData.OrderId.toString(),
         Description: (paymentData.Description || 'Payment').substring(0, 240),
       };
   
-      // ТОЛЬКО DATA - временно исключаем все URL
+      // Добавляем опциональные поля в ЗАПРОС (но не в токен!)
       if (paymentData.DATA && Object.keys(paymentData.DATA).length > 0) {
-        cleanData.DATA = paymentData.DATA;
+        requestData.DATA = paymentData.DATA;
+        console.log('✅ Added DATA to request');
+      }
+      
+      if (paymentData.SuccessURL && !paymentData.SuccessURL.includes('undefined')) {
+        requestData.SuccessURL = paymentData.SuccessURL;
+        console.log('✅ Added SuccessURL to request');
+      }
+      if (paymentData.FailURL && !paymentData.FailURL.includes('undefined')) {
+        requestData.FailURL = paymentData.FailURL;
+        console.log('✅ Added FailURL to request');
+      }
+      if (paymentData.NotificationURL && !paymentData.NotificationURL.includes('undefined')) {
+        requestData.NotificationURL = paymentData.NotificationURL;
+        console.log('✅ Added NotificationURL to request');
       }
   
-      // ВРЕМЕННО ЗАКОММЕНТИРУЕМ URL ПОЛЯ
-      // if (paymentData.SuccessURL && !paymentData.SuccessURL.includes('undefined')) {
-      //   cleanData.SuccessURL = paymentData.SuccessURL;
-      //   console.log('✅ Added SuccessURL');
-      // }
-      // if (paymentData.FailURL && !paymentData.FailURL.includes('undefined')) {
-      //   cleanData.FailURL = paymentData.FailURL;
-      //   console.log('✅ Added FailURL');
-      // }
-      // if (paymentData.NotificationURL && !paymentData.NotificationURL.includes('undefined')) {
-      //   cleanData.NotificationURL = paymentData.NotificationURL;
-      //   console.log('✅ Added NotificationURL');
-      // }
+      console.log('📋 [TinkoffService] Full request data:', requestData);
   
-      console.log('📋 [TinkoffService] Clean data (NO URL):', cleanData);
-  
-      // Генерация токена
-      console.log('🔐 [TinkoffService] Generating token...');
-      cleanData.Token = TokenGenerator.generateTokenMinimal(cleanData);
+      // Генерация токена - ТОЛЬКО из 4 полей (независимо от того, что в запросе)
+      console.log('🔐 [TinkoffService] Generating token (4 FIELDS ONLY)...');
+      requestData.Token = TokenGenerator.generateTokenTinkoff(requestData);
   
       const url = `${this.baseURL}/Init`;
       console.log('📤 [TinkoffService] Sending POST request to:', url);
@@ -325,7 +394,7 @@ class TinkoffService {
       const response = await axios({
         method: 'POST',
         url: url,
-        data: cleanData,
+        data: requestData,
         timeout: 30000,
         headers: {
           'Content-Type': 'application/json',
