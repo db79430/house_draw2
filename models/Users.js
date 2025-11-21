@@ -89,7 +89,6 @@ class User {
           email,
           phone,
           login,
-          password,
           membership_status,
           created_at
         FROM users 
