@@ -10,23 +10,61 @@ class TinkoffController {
    */
   async handleNotification(req, res) {
     try {
-      console.log('📨 Уведомление от Tinkoff:', req.body);
+      const { OrderId, Success, Status, PaymentId } = req.body;
+      
+      if (Success && Status === 'CONFIRMED') {
+        // Находим пользователя по OrderId
+        const user = await User.findByOrderId(OrderId);
+        
+        if (!user) {
+          console.error('❌ Пользователь не найден для платежа:', OrderId);
+          return res.status(200).send('OK');
+        }
 
-      const { OrderId, Status, Success, PaymentId } = req.body;
+        // 🔧 ПРОВЕРЯЕМ, НЕ БЫЛ ЛИ УЖЕ ОТПРАВЛЕН EMAIL
+        if (user.membership_status === 'active') {
+          console.log('⚠️ Пользователь уже активен, email не отправляем:', user.email);
+          
+          // Просто обновляем статус платежа
+          await Payment.updateStatus(OrderId, 'completed');
+          return res.status(200).send('OK');
+        }
 
-      // Всегда отвечаем OK Tinkoff
-      res.json({ Success: true });
+        // Обновляем статус пользователя на активный
+        await User.updateMembershipStatus(user.id, 'active');
+        
+        // Обновляем статус платежа
+        await Payment.updateStatus(OrderId, 'completed');
 
-      // Обрабатываем асинхронно
-      if (Status === 'CONFIRMED' && Success) {
-        await this.processSuccessfulPayment(OrderId, PaymentId);
-      } else if (Status === 'REJECTED' || Status === 'CANCELED') {
-        await this.processFailedPayment(OrderId, PaymentId);
+        console.log('✅ Payment processed, sending email to:', user.email);
+
+        // 🔧 ПРОВЕРЯЕМ, ЕСТЬ ЛИ УЖЕ ПАРОЛЬ У ПОЛЬЗОВАТЕЛЯ
+        let password = user.password_hash;
+        if (!password) {
+          // Генерируем пароль только если его нет
+          password = Helpers.generatePassword();
+          await User.updatePassword(user.id, password);
+        }
+
+        // Отправляем email с данными для входа
+        const emailResult = await EmailService.sendCredentialsEmail(
+          user.email,
+          user.login || user.email,
+          password,
+          user.fullname || 'Пользователь'
+        );
+
+        if (emailResult.success) {
+          console.log('✅ Email отправлен пользователю:', user.email);
+        } else {
+          console.error('❌ Ошибка отправки email:', emailResult.error);
+        }
       }
 
+      res.status(200).send('OK');
     } catch (error) {
       console.error('❌ Ошибка обработки уведомления:', error);
-      // Всегда OK для Tinkoff даже при ошибках
+      res.status(200).send('OK');
     }
   }
 

@@ -67,6 +67,27 @@ class User {
     }
   }
 
+  static async isUserActive(email, phone) {
+    try {
+      let query = '';
+      let params = [];
+      
+      if (email) {
+        query = `SELECT * FROM users WHERE email = $1 AND membership_status = 'active' LIMIT 1`;
+        params = [email];
+      } else if (phone) {
+        query = `SELECT * FROM users WHERE phone = $1 AND membership_status = 'active' LIMIT 1`;
+        params = [phone];
+      }
+      
+      const user = await db.oneOrNone(query, params);
+      return !!user;
+    } catch (error) {
+      console.error('❌ Error checking if user is active:', error);
+      return false;
+    }
+  }
+
   static async findByOrderId(orderId) {
     try {
       const query = 'SELECT * FROM users WHERE payment_id = $1';

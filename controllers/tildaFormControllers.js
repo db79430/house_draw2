@@ -40,17 +40,26 @@ class TildaController {
         });
       }
 
-      // Проверяем существующего пользователя
-      // const existingUser = await TildaFormService.findUserByFormData(formData);
-      // if (existingUser) {
-      //   return res.json({
-      //     Success: false,
-      //     ErrorCode: 'USER_EXISTS', 
-      //     Message: 'Пользователь с таким email или телефоном уже зарегистрирован'
-      //   });
-      // }
+      // 🔧 ПРОВЕРКА СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ
+      const existingUser = await this.checkExistingUser(formData);
+      if (existingUser) {
+        console.log('⚠️ Пользователь уже существует:', existingUser.email);
+        
+        // Если пользователь уже активен - возвращаем ошибку
+        if (existingUser.membership_status === 'active') {
+          return res.json({
+            Success: false,
+            ErrorCode: 'USER_ALREADY_ACTIVE', 
+            Message: 'Пользователь с таким email или телефоном уже зарегистрирован и активирован'
+          });
+        }
+        
+        // Если пользователь существует но не активен - создаем новый платеж
+        console.log('🔄 Пользователь существует, но не активен. Создаем новый платеж...');
+        return await this.handleExistingUser(existingUser, res);
+      }
 
-      // Создаем пользователя
+      // Создаем нового пользователя
       const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
       
       // Создаем платеж в Тинькофф
@@ -88,6 +97,77 @@ class TildaController {
         ErrorCode: 'PROCESSING_ERROR',
         Message: error.message
       });
+    }
+  }
+
+  /**
+   * Проверка существующего пользователя
+   */
+  async checkExistingUser(formData) {
+    try {
+      const { Email, Phone } = formData;
+      
+      // Проверяем по email
+      if (Email) {
+        const usersByEmail = await User.findByEmail(Email);
+        if (usersByEmail && usersByEmail.length > 0) {
+          // Возвращаем самого нового пользователя с этим email
+          return usersByEmail[0];
+        }
+      }
+      
+      // Проверяем по телефону
+      if (Phone) {
+        const usersByPhone = await User.findByPhone(Phone);
+        if (usersByPhone && usersByPhone.length > 0) {
+          // Возвращаем самого нового пользователя с этим телефоном
+          return usersByPhone[0];
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Ошибка проверки существующего пользователя:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Обработка существующего пользователя
+   */
+  async handleExistingUser(existingUser, res) {
+    try {
+      // Создаем новый платеж для существующего пользователя
+      const paymentResult = await this.createTinkoffPayment(existingUser, {});
+      
+      // Обновляем пользователя с новым payment_id
+      await User.updateTinkoffPaymentId(existingUser.id, paymentResult.tinkoffPaymentId);
+
+      // Сохраняем новый платеж в БД
+      await Payment.create({
+        orderId: paymentResult.orderId,
+        userId: existingUser.id,
+        amount: paymentResult.amount,
+        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+        description: 'Вступительный взнос в клуб (повторная оплата)',
+        status: 'pending'
+      });
+
+      console.log('✅ Создан повторный платеж для существующего пользователя:', existingUser.email);
+
+      return res.json({
+        Success: true,
+        PaymentURL: paymentResult.paymentUrl,
+        RedirectUrl: paymentResult.paymentUrl,
+        Status: 'redirect',
+        PaymentId: paymentResult.tinkoffPaymentId,
+        OrderId: paymentResult.orderId,
+        Message: 'Платеж успешно создан'
+      });
+
+    } catch (error) {
+      console.error('❌ Ошибка обработки существующего пользователя:', error);
+      throw error;
     }
   }
 
