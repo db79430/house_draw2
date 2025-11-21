@@ -230,14 +230,14 @@ async createTinkoffPayment(user, formData) {
     Amount: amount,
     OrderId: orderId,
     Description: 'Вступительный взнос в клуб',
-    SuccessURL: CONFIG.APP.SUCCESS_URL,
-    FailURL: CONFIG.APP.FAIL_URL,
-    NotificationURL: CONFIG.APP.NOTIFICATION_URL || `${CONFIG.APP.BASE_URL}/api/payment/notification`,
+    // SuccessURL: CONFIG.APP.SUCCESS_URL,
+    // FailURL: CONFIG.APP.FAIL_URL,
+    // NotificationURL: CONFIG.APP.NOTIFICATION_URL || `${CONFIG.APP.BASE_URL}/api/payment/notification`,
     DATA: {
-      Name: user.fullname,
+      // Name: user.fullname,
       Email: user.email,
       Phone: user.phone,
-      UserId: user.id,
+      // UserId: user.id,
     }
   };
 
