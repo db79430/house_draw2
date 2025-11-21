@@ -295,6 +295,8 @@
 // export default EmailService;
 
 import sendEmail, {getEmailStatus} from '../config/emailConfig.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 class EmailService {
   static async sendCredentialsEmail(email, login, password, fullname) {
@@ -302,7 +304,7 @@ class EmailService {
       const emailStatus = getEmailStatus();
       const user = { email, fullname };
       const subject = 'Данные для входа в личный кабинет 🔐';
-      const htmlContent = this.generateCredentialsTemplate(user, login, password);
+      const htmlContent = this.generateWelcomeTemplate(user, login, password);
       
       console.log(`\n🎯 Preparing to send credentials to: ${email}`);
       console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
@@ -370,75 +372,39 @@ class EmailService {
    * Шаблон приветственного письма
    */
   static generateWelcomeTemplate(user, login, password) {
-    const appUrl = process.env.APP_URL || 'https://your-club.com';
+    const appUrl = process.env.APP_URL || 'https://npk-vdv.ru/auth';
     const supportEmail = process.env.SUPPORT_EMAIL || 'support@your-club.com';
     const supportPhone = process.env.SUPPORT_PHONE || '+7 (999) 999-99-99';
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
-        .content { padding: 40px 30px; background: #f9f9f9; }
-        .credentials { background: white; border: 2px dashed #667eea; padding: 25px; margin: 25px 0; border-radius: 8px; }
-        .footer { text-align: center; padding: 25px; color: #666; font-size: 13px; background: white; }
-        .button { display: inline-block; background: #667eea; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 15px 0; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 8px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 style="margin: 0; font-size: 32px;">Добро пожаловать в клуб! 🎉</h1>
-        </div>
-        <div class="content">
-            <h2 style="color: #333;">Уважаемый(ая) ${user.fullname},</h2>
-            
-            <p>Мы рады приветствовать вас в нашем клубе! Ваша регистрация успешно завершена.</p>
-            
-            <p>Теперь у вас есть доступ к эксклюзивным возможностям:</p>
-            <ul>
-                <li>Участие в розыгрышах призов</li>
-                <li>Личный кабинет с историей участий</li>
-                <li>Специальные предложения для членов клуба</li>
-                <li>Поддержка 24/7</li>
-            </ul>
+    // Читаем основной шаблон
+    const templatePath = path.join(process.cwd(), 'email-templates', 'welcome-email.html');
+    let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
-            <div class="credentials">
-                <h3 style="color: #333; margin-top: 0;">🔐 Ваши данные для входа:</h3>
-                <p><strong>Логин:</strong> ${login}</p>
-                <p><strong>Пароль:</strong> ${password}</p>
-                <p><strong>Ссылка для входа:</strong> <a href="${appUrl}/login">${appUrl}/login</a></p>
-            </div>
+    // Читаем statement section
+    const statementPath = path.join(process.cwd(), 'email-templates', 'statement-section.html');
+    const statementContent = fs.readFileSync(statementPath, 'utf8')
+      .replace(/{{fullname}}/g, user.fullname)
+      .replace(/{{email}}/g, user.email);
 
-            <p style="color: #666;">Рекомендуем сохранить эти данные в надежном месте.</p>
+    // Заменяем все плейсхолдеры
+    htmlContent = htmlContent
+      .replace(/{{fullname}}/g, user.fullname)
+      .replace(/{{login}}/g, login)
+      .replace(/{{password}}/g, password)
+      .replace(/{{appUrl}}/g, appUrl)
+      .replace(/{{supportEmail}}/g, supportEmail)
+      .replace(/{{supportPhone}}/g, supportPhone)
+      .replace('{{statement}}', statementContent);
 
-            <div style="text-align: center;">
-                <a href="${appUrl}/login" class="button">Войти в личный кабинет</a>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>Если у вас возникли вопросы, свяжитесь с нами:</p>
-            <p>Email: ${supportEmail} | Телефон: ${supportPhone}</p>
-            <p>© 2024 Ваш Клуб. Все права защищены.</p>
-        </div>
-    </div>
-</body>
-</html>
-    `;
+    return htmlContent;
   }
+
 
   /**
    * Шаблон письма с данными для входа
    */
   static generateCredentialsTemplate(user, login, password) {
-    const appUrl = process.env.APP_URL || 'https://your-club.com';
+    const appUrl = process.env.APP_URL || 'https://npk-vdv.ru/auth';
 
     return `
 <!DOCTYPE html>
@@ -471,11 +437,6 @@ class EmailService {
                 <p><strong>Пароль:</strong> ${password}</p>
                 <p><strong>Ссылка для входа:</strong> <a href="${appUrl}/login">${appUrl}/login</a></p>
             </div>
-
-            <div class="warning">
-                <p><strong>⚠️ Важно:</strong> Сохраните эти данные. Для безопасности рекомендуется сменить пароль после первого входа.</p>
-            </div>
-
             <div style="text-align: center;">
                 <a href="${appUrl}/login" class="button">Войти в личный кабинет</a>
             </div>

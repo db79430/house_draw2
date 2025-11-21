@@ -132,6 +132,24 @@ class User {
     }
   }
 
+  static async updatePassword(userId, newPassword) {
+    try {
+      // Хэшируем пароль перед сохранением
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      await this.update(userId, { 
+        password: hashedPassword,
+        updated_at: new Date()
+      });
+      
+      console.log('✅ Password updated for user:', userId);
+      return true;
+    } catch (error) {
+      console.error('❌ Error updating password:', error);
+      return false;
+    }
+  }
+
 
 
   static async findByEmail(email) {
