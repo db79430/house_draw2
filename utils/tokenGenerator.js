@@ -5,16 +5,17 @@ import CONFIG from '../config/index.js';
 class TokenGenerator {
   /**
    * Генерация токена строго по документации Tinkoff
-   * С защитой от undefined значений
    */
   static generateTokenTinkoff(paymentData) {
     console.log('🔐 [TokenGenerator] Generating token for Tinkoff API...');
     
     try {
-      // ПРОВЕРКА КОНФИГУРАЦИИ ПЕРЕД ГЕНЕРАЦИЕЙ
-      if (!CONFIG.TINKOFF.SECRET_KEY) {
+      // ИСПРАВЛЕНИЕ: Используем PASSWORD, а не SECRET_KEY
+      if (!CONFIG.TINKOFF.PASSWORD) {
         throw new Error('TINKOFF.PASSWORD is not configured in the application');
       }
+
+      console.log('🔑 [TokenGenerator] Using password:', CONFIG.TINKOFF.PASSWORD ? 'SET' : 'MISSING');
 
       // ВАЖНО: Порядок полей ДОЛЖЕН БЫТЬ ИМЕННО ТАКИМ
       const tokenObject = {};
@@ -22,7 +23,7 @@ class TokenGenerator {
       // 1. Обязательные поля в ПРАВИЛЬНОМ порядке
       tokenObject.Amount = paymentData.Amount.toString();
       tokenObject.OrderId = paymentData.OrderId;
-      tokenObject.Password = CONFIG.TINKOFF.SECRET_KEY; // Пароль из конфига
+      tokenObject.Password = CONFIG.TINKOFF.PASSWORD; // ← ИСПРАВЛЕНИЕ: PASSWORD
       tokenObject.TerminalKey = paymentData.TerminalKey;
       
       // 2. Опциональные поля (если присутствуют в запросе и не undefined)
@@ -51,7 +52,7 @@ class TokenGenerator {
       }
 
       // ОТЛАДКА: Выведем что именно идет в токен
-      console.log('📋 [TokenGenerator] Fields for token:');
+      console.log('📋 [TokenGenerator] All fields for token generation:');
       Object.keys(tokenObject).forEach(key => {
         if (key === 'Password') {
           console.log(`   ${key}: ***${tokenObject[key].slice(-4)}`);
@@ -71,7 +72,7 @@ class TokenGenerator {
         // Пропускаем undefined, null и пустые строки
         if (this._isValidValue(value)) {
           tokenString += value.toString();
-          console.log(`   ➕ ${key}: ${key === 'Password' ? '***' + value.slice(-4) : value}`);
+          console.log(`   ➕ [${key}]: ${key === 'Password' ? '***' + value.slice(-4) : value}`);
         }
       });
 
@@ -79,8 +80,8 @@ class TokenGenerator {
       
       // Безопасное маскирование пароля
       const maskedString = tokenString.replace(
-        CONFIG.TINKOFF.SECRET_KEY, 
-        '***' + CONFIG.TINKOFF.SECRET_KEY.slice(-4)
+        CONFIG.TINKOFF.PASSWORD, // ← ИСПРАВЛЕНИЕ: PASSWORD
+        '***' + CONFIG.TINKOFF.PASSWORD.slice(-4) // ← ИСПРАВЛЕНИЕ: PASSWORD
       );
       console.log('🔗 [TokenGenerator] Token string (masked):', maskedString);
 
@@ -99,24 +100,13 @@ class TokenGenerator {
   }
 
   /**
-   * Проверка что значение валидно для токена
-   */
-  static _isValidValue(value) {
-    return value !== undefined && 
-           value !== null && 
-           value !== '' && 
-           value !== 'undefined' &&
-           !value.toString().includes('undefined');
-  }
-
-  /**
    * Упрощенная генерация токена только с обязательными полями
    */
   static generateTokenSimple(paymentData) {
     console.log('🔐 [TokenGenerator] Using simple token generation...');
     
-    // Проверка конфигурации
-    if (!CONFIG.TINKOFF.SECRET_KEY) {
+    // ИСПРАВЛЕНИЕ: Используем PASSWORD, а не SECRET_KEY
+    if (!CONFIG.TINKOFF.PASSWORD) {
       throw new Error('TINKOFF.PASSWORD is not configured');
     }
 
@@ -124,7 +114,7 @@ class TokenGenerator {
     const tokenData = {
       Amount: paymentData.Amount.toString(),
       OrderId: paymentData.OrderId,
-      Password: CONFIG.TINKOFF.SECRET_KEY,
+      Password: CONFIG.TINKOFF.PASSWORD, // ← ИСПРАВЛЕНИЕ: PASSWORD
       TerminalKey: paymentData.TerminalKey
     };
 
@@ -144,6 +134,17 @@ class TokenGenerator {
 
     console.log('✅ [TokenGenerator] Simple token generated:', token);
     return token;
+  }
+
+  /**
+   * Проверка что значение валидно для токена
+   */
+  static _isValidValue(value) {
+    return value !== undefined && 
+           value !== null && 
+           value !== '' && 
+           value !== 'undefined' &&
+           !value.toString().includes('undefined');
   }
 
   static generateOrderId() {
