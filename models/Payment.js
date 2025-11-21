@@ -13,7 +13,7 @@ class Payment {
 
     const query = `
       INSERT INTO payments (order_id, user_id, amount, tinkoff_payment_id, description, tinkoff_response)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
 
@@ -39,7 +39,13 @@ class Payment {
   static async findByOrderId(orderId) {
     try {
       const query = `
-        SELECT p.*, u.name, u.email 
+        SELECT 
+          p.*, 
+          u.id as user_id,
+          u.email,
+          u.fullname,
+          u.login,
+          u.membership_status
         FROM payments p 
         LEFT JOIN users u ON p.user_id = u.id 
         WHERE p.order_id = $1
