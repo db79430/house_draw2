@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_users_payment_status ON users(payment_status);
 CREATE INDEX IF NOT EXISTS idx_users_membership_status ON users(membership_status);
 CREATE INDEX IF NOT EXISTS idx_users_payment_id ON users(payment_id);
 CREATE INDEX IF NOT EXISTS idx_users_tilda_transaction_id ON users(tilda_transaction_id);
-CREATE INDEX idx_users_membership_number ON users(membership_number);
+CREATE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
 
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
