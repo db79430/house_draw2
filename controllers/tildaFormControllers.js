@@ -100,6 +100,7 @@ class TildaController {
   async handleTildaWebhook(req, res) {
     console.log('🔍 Получен вебхук от Tilda...');
     
+    
     try {
       console.log('📥 Raw данные от Tilda:', req.body);
       if (!this.verifyTildaSignature(req)) {
@@ -112,8 +113,34 @@ class TildaController {
   
       // Нормализуем данные из Tilda (разные форматы)
       const { formData, tildaData } = this.normalizeTildaData(req.body);
+
+      // Создаем нового пользователя
+      const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
       
+      // Создаем платеж в Тинькофф
+      const paymentResult = await this.createTinkoffPayment(userResult.user, formData);
+      
+      // Обновляем пользователя с payment_id
+      await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
+
+      const memberNumber = User.generateUniqueMemberNumber();
+      await User.updateMemberNumber(userResult.user.id, memberNumber);
+  
+      // Сохраняем платеж в БД
+      await Payment.create({
+        orderId: paymentResult.orderId,
+        userId: userResult.user.id,
+        amount: paymentResult.amount,
+        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+        description: `Вступительный взнос в клуб (Член клуба: ${memberNumber})`,
+        status: 'pending',
+        memberNumber: memberNumber
+      });
+
+       // Генерируем номер члена клуба если его нет - ИСПРАВЛЕННАЯ ОШИБКА
+     
       console.log('🔄 Нормализованные данные:', { formData, tildaData });
+      console.log ('Номер членства клуба', memberNumber )
   
       // Валидация формы
       const validationErrors = TildaFormService.validateFormData(formData);
@@ -130,14 +157,7 @@ class TildaController {
       const existingUserCheck = await this.checkExistingUserAndPayments(formData);
       if (existingUserCheck.hasActivePayment) {
         console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
-        
-        // Генерируем номер члена клуба если его нет - ИСПРАВЛЕННАЯ ОШИБКА
-        let memberNumber = existingUserCheck.user.membership_number;
-        if (!memberNumber) {
-          memberNumber = this.generateMemberNumber(); 
-          await User.updateMemberNumber(existingUserCheck.user.id, memberNumber);
-        }
-        
+      
         return res.json({
           Success: false,
           ErrorCode: 'ALREADY_PAID', 
@@ -152,33 +172,11 @@ class TildaController {
         console.log('🔄 Пользователь существует, но не оплатил. Создаем платеж...');
         return await this.handleExistingUser(existingUserCheck.user, formData, res);
       }
-  
-      // Создаем нового пользователя
-      const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
-      
-      // Генерируем номер члена клуба
-      const memberNumber = this.generateMemberNumber();
-      await User.updateMemberNumber(userResult.user.id, memberNumber);
-      
-      // Создаем платеж в Тинькофф
-      const paymentResult = await this.createTinkoffPayment(userResult.user, formData);
-      
-      // Обновляем пользователя с payment_id
-      await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
-  
-      // Сохраняем платеж в БД
-      await Payment.create({
-        orderId: paymentResult.orderId,
-        userId: userResult.user.id,
-        amount: paymentResult.amount,
-        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: `Вступительный взнос в клуб (Член клуба: ${memberNumber})`,
-        status: 'pending',
-        memberNumber: memberNumber
-      });
+
   
       // Успешный ответ для Tilda
       console.log('✅ Платеж создан для Tilda. Номер члена клуба:', memberNumber);
+
       return res.json({
         Success: true,
         PaymentURL: paymentResult.paymentUrl,
@@ -187,7 +185,6 @@ class TildaController {
         PaymentId: paymentResult.tinkoffPaymentId,
         OrderId: paymentResult.orderId,
         MemberNumber: memberNumber,
-        Message: 'Платеж успешно создан'
       });
   
     } catch (error) {
@@ -201,11 +198,11 @@ class TildaController {
   }
   
   // Новые вспомогательные методы для работы с номерами членов клуба
-  generateMemberNumber() {
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
-    return `CLUB-${timestamp}-${random}`;
-  }
+  // generateMemberNumber() {
+  //   const timestamp = Date.now().toString().slice(-6);
+  //   const random = Math.random().toString(36).substr(2, 3).toUpperCase();
+  //   return `CLUB-${timestamp}-${random}`;
+  // }
   
   // Обработка существующего пользователя (без оплаты)
   async handleExistingUser(user, formData, res) {
