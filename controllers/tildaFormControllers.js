@@ -131,11 +131,11 @@ class TildaController {
       if (existingUserCheck.hasActivePayment) {
         console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
         
-        // Генерируем номер члена клуба если его нет
+        // Генерируем номер члена клуба если его нет - ИСПРАВЛЕННАЯ ОШИБКА
         let memberNumber = existingUserCheck.user.membership_number;
         if (!memberNumber) {
-          const memberNumber = await User.generateUniqueMemberNumber();
-            await User.updateMemberNumber(userResult.user.id, memberNumber);
+          memberNumber = this.generateMemberNumber(); 
+          await User.updateMemberNumber(existingUserCheck.user.id, memberNumber);
         }
         
         return res.json({
@@ -143,7 +143,7 @@ class TildaController {
           ErrorCode: 'ALREADY_PAID', 
           Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
           MemberNumber: memberNumber,
-          RedirectUrl: `http://npk-vdv.ru/auth?memberNumber={{memberNumber}}`
+          RedirectUrl: `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}` 
         });
       }
   
@@ -321,10 +321,8 @@ class TildaController {
         });
       }
   
-      // Ищем пользователя по номеру члена клуба
-      const user = await User.findByMemberNumber({
-        membership_number: memberNumber
-      });
+      // Ищем пользователя по номеру члена клуба - ИСПРАВЛЕННЫЙ ВЫЗОВ
+      const user = await User.findByMemberNumber(memberNumber);
   
       if (!user) {
         console.log('❌ Член клуба не найден:', memberNumber);
@@ -334,12 +332,8 @@ class TildaController {
         });
       }
   
-      // Получаем информацию о платежах
-      const payments = await Payment.findLatestByUserId({ 
-        userId: user.id 
-      }).sort({ createdAt: -1 });
-  
-      const latestPayment = payments[0];
+      // Получаем информацию о платежах - ИСПРАВЛЕННЫЙ ВЫЗОВ
+      const latestPayment = await Payment.findLatestByUserId(user.id);
   
       // Форматируем данные для фронтенда
       const memberData = {
@@ -363,12 +357,12 @@ class TildaController {
           membership_status: user.membership_status,
           payment_status: user.payment_status,
           slot_number: user.slot_number,
-          created_at: user.createdAt
+          created_at: user.created_at
         },
         paymentData: latestPayment ? {
           status: latestPayment.status,
           amount: latestPayment.amount,
-          createdAt: latestPayment.createdAt,
+          created_at: latestPayment.created_at,
           description: latestPayment.description
         } : null
       };
@@ -615,41 +609,41 @@ class TildaController {
   /**
    * Обработка существующего пользователя (без успешных платежей)
    */
-  async handleExistingUser(existingUser, res) {
-    try {
-      // Создаем новый платеж для существующего пользователя
-      const paymentResult = await this.createTinkoffPayment(existingUser, {});
+  // async handleExistingUser(existingUser, res) {
+  //   try {
+  //     // Создаем новый платеж для существующего пользователя
+  //     const paymentResult = await this.createTinkoffPayment(existingUser, {});
       
-      // Обновляем пользователя с новым payment_id
-      await User.updateTinkoffPaymentId(existingUser.id, paymentResult.tinkoffPaymentId);
+  //     // Обновляем пользователя с новым payment_id
+  //     await User.updateTinkoffPaymentId(existingUser.id, paymentResult.tinkoffPaymentId);
 
-      // Сохраняем новый платеж в БД
-      await Payment.create({
-        orderId: paymentResult.orderId,
-        userId: existingUser.id,
-        amount: paymentResult.amount,
-        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: 'Вступительный взнос в клуб (повторная попытка оплаты)',
-        status: 'pending'
-      });
+  //     // Сохраняем новый платеж в БД
+  //     await Payment.create({
+  //       orderId: paymentResult.orderId,
+  //       userId: existingUser.id,
+  //       amount: paymentResult.amount,
+  //       tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+  //       description: 'Вступительный взнос в клуб (повторная попытка оплаты)',
+  //       status: 'pending'
+  //     });
 
-      console.log('✅ Создан платеж для существующего пользователя:', existingUser.email);
+  //     console.log('✅ Создан платеж для существующего пользователя:', existingUser.email);
 
-      return res.json({
-        Success: true,
-        PaymentURL: paymentResult.paymentUrl,
-        RedirectUrl: paymentResult.paymentUrl,
-        Status: 'redirect',
-        PaymentId: paymentResult.tinkoffPaymentId,
-        OrderId: paymentResult.orderId,
-        Message: 'Платеж успешно создан'
-      });
+  //     return res.json({
+  //       Success: true,
+  //       PaymentURL: paymentResult.paymentUrl,
+  //       RedirectUrl: paymentResult.paymentUrl,
+  //       Status: 'redirect',
+  //       PaymentId: paymentResult.tinkoffPaymentId,
+  //       OrderId: paymentResult.orderId,
+  //       Message: 'Платеж успешно создан'
+  //     });
 
-    } catch (error) {
-      console.error('❌ Ошибка обработки существующего пользователя:', error);
-      throw error;
-    }
-  }
+  //   } catch (error) {
+  //     console.error('❌ Ошибка обработки существующего пользователя:', error);
+  //     throw error;
+  //   }
+  // }
 
   verifyTildaSignature(req) {
     // Если в Tilda настроена подпись запросов
