@@ -331,6 +331,107 @@ class User {
     }
   }
 
+  static async updateMemberNumber(userId, memberNumber) {
+    try {
+      console.log('🔄 Обновление номера члена клуба:', { 
+        userId, 
+        memberNumber 
+      });
+      
+      const query = `
+        UPDATE users 
+        SET membership_number = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, email, membership_number, membership_status
+      `;
+      
+      const result = await db.one(query, [memberNumber, userId]);
+      
+      console.log('✅ Номер члена клуба обновлен:', { 
+        userId, 
+        memberNumber,
+        email: result.email 
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Ошибка обновления номера члена клуба:', error);
+      
+      // Если ошибка дублирования (уникальное ограничение)
+      if (error.code === '23505' && error.constraint && error.constraint.includes('membership_number')) {
+        console.log('⚠️ Номер члена клуба уже существует, генерируем новый...');
+        const newMemberNumber = `CLUB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+        return await this.updateMemberNumber(userId, newMemberNumber);
+      }
+      
+      throw error;
+    }
+  }
+  
+  // Также добавьте метод для поиска по номеру члена клуба
+  static async findByMemberNumber(memberNumber) {
+    try {
+      console.log('🔍 Поиск пользователя по номеру члена клуба:', memberNumber);
+      
+      const query = `
+        SELECT * FROM users 
+        WHERE membership_number = $1
+      `;
+      
+      const user = await db.oneOrNone(query, [memberNumber]);
+      
+      if (user) {
+        console.log('✅ Пользователь найден:', user.email);
+      } else {
+        console.log('❌ Пользователь не найден по номеру члена клуба:', memberNumber);
+      }
+      
+      return user;
+      
+    } catch (error) {
+      console.error('❌ Ошибка поиска по номеру члена клуба:', error);
+      throw error;
+    }
+  }
+  
+  // Метод для проверки существования номера члена клуба
+  static async isMemberNumberExists(memberNumber) {
+    try {
+      const query = `
+        SELECT COUNT(*) as count FROM users 
+        WHERE membership_number = $1
+      `;
+      
+      const result = await db.one(query, [memberNumber]);
+      return result.count > 0;
+      
+    } catch (error) {
+      console.error('❌ Ошибка проверки номера члена клуба:', error);
+      throw error;
+    }
+  }
+  
+  // Метод для генерации уникального номера члена клуба
+  static async generateUniqueMemberNumber() {
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    while (attempts < maxAttempts) {
+      const memberNumber = `CLUB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+      
+      const exists = await this.isMemberNumberExists(memberNumber);
+      if (!exists) {
+        return memberNumber;
+      }
+      
+      attempts++;
+      console.log(`⚠️ Номер ${memberNumber} уже существует, попытка ${attempts}/${maxAttempts}`);
+    }
+    
+    throw new Error('Не удалось сгенерировать уникальный номер члена клуба');
+  }
+
   // Добавьте недостающие методы
   static async update(userId, updateData) {
     try {

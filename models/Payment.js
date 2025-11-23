@@ -130,6 +130,37 @@ class Payment {
     }
   }
 
+  static async findLatestByUserId(userId) {
+    try {
+      console.log('🔍 Поиск последнего платежа пользователя:', userId);
+      
+      const query = `
+        SELECT * FROM payments 
+        WHERE user_id = $1 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `;
+      
+      const payment = await db.oneOrNone(query, [userId]);
+      
+      if (payment) {
+        console.log('✅ Последний платеж найден:', { 
+          userId, 
+          paymentId: payment.id,
+          status: payment.status 
+        });
+      } else {
+        console.log('ℹ️ Платежи не найдены для пользователя:', userId);
+      }
+      
+      return payment;
+      
+    } catch (error) {
+      console.error('❌ Ошибка поиска последнего платежа:', error);
+      throw error;
+    }
+  }
+
   static async getDailyStats(date = null) {
     const targetDate = date || new Date().toISOString().split('T')[0];
     

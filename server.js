@@ -305,6 +305,10 @@ app.post('/check-payment', tildaAuthMiddleware, (req, res) => tildaController.ch
 // Tinkoff Callback
 app.post('/tinkoff-callback', (req, res) => tinkoffController.handleNotification(req, res));
 
+// app.post('/find-order', tildaAuthMiddleware, (req, res) => tildaController.findOrder(req, res));
+
+app.get('/get-member/:memberNumber', tildaAuthMiddleware, (req, res) => tildaController.getMemberData(req, res));
+
 // Email routes
 app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
 

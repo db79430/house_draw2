@@ -10,6 +10,93 @@ class TildaController {
   /**
    * Основной метод для обработки вебхука от Tilda
    */
+  // async handleTildaWebhook(req, res) {
+  //   console.log('🔍 Получен вебхук от Tilda...');
+    
+  //   try {
+  //     console.log('📥 Raw данные от Tilda:', req.body);
+  //     if (!this.verifyTildaSignature(req)) {
+  //       console.warn('❌ Неверная подпись запроса от Tilda');
+  //       return res.status(401).json({
+  //         Success: false,
+  //         Message: 'Invalid signature'
+  //       });
+  //     }
+
+  //     // Нормализуем данные из Tilda (разные форматы)
+  //     const { formData, tildaData } = this.normalizeTildaData(req.body);
+      
+  //     console.log('🔄 Нормализованные данные:', { formData, tildaData });
+
+  //     // Валидация формы
+  //     const validationErrors = TildaFormService.validateFormData(formData);
+  //     if (validationErrors.length > 0) {
+  //       return res.json({
+  //         Success: false,
+  //         ErrorCode: 'VALIDATION_ERROR',
+  //         Message: validationErrors.join(', '),
+  //         Details: validationErrors
+  //       });
+  //     }
+
+  //     // 🔧 ПРОВЕРКА СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ И ЕГО ПЛАТЕЖЕЙ
+  //     const existingUserCheck = await this.checkExistingUserAndPayments(formData);
+  //     if (existingUserCheck.hasActivePayment) {
+  //       console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
+        
+  //       return res.json({
+  //         Success: false,
+  //         ErrorCode: 'ALREADY_PAID', 
+  //         Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.'
+  //       });
+  //     }
+
+  //     // Если пользователь существует но не оплатил - создаем новый платеж
+  //     if (existingUserCheck.user) {
+  //       console.log('🔄 Пользователь существует, но не оплатил. Создаем платеж...');
+  //       return await this.handleExistingUser(existingUserCheck.user, res);
+  //     }
+
+  //     // Создаем нового пользователя
+  //     const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
+      
+  //     // Создаем платеж в Тинькофф
+  //     const paymentResult = await this.createTinkoffPayment(userResult.user, formData);
+      
+  //     // Обновляем пользователя с payment_id
+  //     await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
+
+  //     // Сохраняем платеж в БД
+  //     await Payment.create({
+  //       orderId: paymentResult.orderId,
+  //       userId: userResult.user.id,
+  //       amount: paymentResult.amount,
+  //       tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+  //       description: 'Вступительный взнос в клуб',
+  //       status: 'pending'
+  //     });
+
+  //     // Успешный ответ для Tilda
+  //     console.log('✅ Платеж создан для Tilda');
+  //     return res.json({
+  //       Success: true,
+  //       PaymentURL: paymentResult.paymentUrl,
+  //       RedirectUrl: paymentResult.paymentUrl,
+  //       Status: 'redirect',
+  //       PaymentId: paymentResult.tinkoffPaymentId,
+  //       OrderId: paymentResult.orderId,
+  //       Message: 'Платеж успешно создан'
+  //     });
+
+  //   } catch (error) {
+  //     console.error('❌ Ошибка обработки вебхука:', error);
+  //     return res.json({
+  //       Success: false,
+  //       ErrorCode: 'PROCESSING_ERROR',
+  //       Message: error.message
+  //     });
+  //   }
+  // }
   async handleTildaWebhook(req, res) {
     console.log('🔍 Получен вебхук от Tilda...');
     
@@ -22,12 +109,12 @@ class TildaController {
           Message: 'Invalid signature'
         });
       }
-
+  
       // Нормализуем данные из Tilda (разные форматы)
       const { formData, tildaData } = this.normalizeTildaData(req.body);
       
       console.log('🔄 Нормализованные данные:', { formData, tildaData });
-
+  
       // Валидация формы
       const validationErrors = TildaFormService.validateFormData(formData);
       if (validationErrors.length > 0) {
@@ -38,56 +125,71 @@ class TildaController {
           Details: validationErrors
         });
       }
-
+  
       // 🔧 ПРОВЕРКА СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ И ЕГО ПЛАТЕЖЕЙ
       const existingUserCheck = await this.checkExistingUserAndPayments(formData);
       if (existingUserCheck.hasActivePayment) {
         console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
         
+        // Генерируем номер члена клуба если его нет
+        let memberNumber = existingUserCheck.user.membership_number;
+        if (!memberNumber) {
+          const memberNumber = await User.generateUniqueMemberNumber();
+            await User.updateMemberNumber(userResult.user.id, memberNumber);
+        }
+        
         return res.json({
           Success: false,
           ErrorCode: 'ALREADY_PAID', 
-          Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.'
+          Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
+          MemberNumber: memberNumber,
+          RedirectUrl: `http://npk-vdv.ru/auth?memberNumber={{memberNumber}}`
         });
       }
-
+  
       // Если пользователь существует но не оплатил - создаем новый платеж
       if (existingUserCheck.user) {
         console.log('🔄 Пользователь существует, но не оплатил. Создаем платеж...');
-        return await this.handleExistingUser(existingUserCheck.user, res);
+        return await this.handleExistingUser(existingUserCheck.user, formData, res);
       }
-
+  
       // Создаем нового пользователя
       const userResult = await TildaFormService.createUserFromForm(formData, tildaData);
+      
+      // Генерируем номер члена клуба
+      const memberNumber = this.generateMemberNumber();
+      await User.updateMemberNumber(userResult.user.id, memberNumber);
       
       // Создаем платеж в Тинькофф
       const paymentResult = await this.createTinkoffPayment(userResult.user, formData);
       
       // Обновляем пользователя с payment_id
       await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
-
+  
       // Сохраняем платеж в БД
       await Payment.create({
         orderId: paymentResult.orderId,
         userId: userResult.user.id,
         amount: paymentResult.amount,
         tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: 'Вступительный взнос в клуб',
-        status: 'pending'
+        description: `Вступительный взнос в клуб (Член клуба: ${memberNumber})`,
+        status: 'pending',
+        memberNumber: memberNumber
       });
-
+  
       // Успешный ответ для Tilda
-      console.log('✅ Платеж создан для Tilda');
+      console.log('✅ Платеж создан для Tilda. Номер члена клуба:', memberNumber);
       return res.json({
         Success: true,
         PaymentURL: paymentResult.paymentUrl,
-        RedirectUrl: paymentResult.paymentUrl,
+        RedirectUrl: `http://npk-vdv.ru/auth?memberNumber=${memberNumber}`,
         Status: 'redirect',
         PaymentId: paymentResult.tinkoffPaymentId,
         OrderId: paymentResult.orderId,
+        MemberNumber: memberNumber,
         Message: 'Платеж успешно создан'
       });
-
+  
     } catch (error) {
       console.error('❌ Ошибка обработки вебхука:', error);
       return res.json({
@@ -97,6 +199,267 @@ class TildaController {
       });
     }
   }
+  
+  // Новые вспомогательные методы для работы с номерами членов клуба
+  generateMemberNumber() {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
+    return `CLUB-${timestamp}-${random}`;
+  }
+  
+  // Обработка существующего пользователя (без оплаты)
+  async handleExistingUser(user, formData, res) {
+    try {
+      // Генерируем номер члена клуба если его нет
+      let memberNumber = user.membership_number;
+      if (!memberNumber) {
+        memberNumber = this.generateMemberNumber();
+        await User.updateMemberNumber(user.id, memberNumber);
+      }
+  
+      // Создаем платеж в Тинькофф
+      const paymentResult = await this.createTinkoffPayment(user, formData);
+      
+      // Обновляем пользователя с payment_id
+      await User.updateTinkoffPaymentId(user.id, paymentResult.tinkoffPaymentId);
+  
+      // Сохраняем платеж в БД
+      await Payment.create({
+        orderId: paymentResult.orderId,
+        userId: user.id,
+        amount: paymentResult.amount,
+        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
+        description: `Вступительный взнос в клуб (Член клуба: ${memberNumber})`,
+        status: 'pending',
+      });
+  
+      console.log('✅ Новый платеж создан для существующего пользователя:', memberNumber);
+      
+      return res.json({
+        Success: true,
+        PaymentURL: paymentResult.paymentUrl,
+        RedirectUrl: `http://npk-vdv.ru/auth?memberNumber=${memberNumber}`,
+        Status: 'redirect',
+        PaymentId: paymentResult.tinkoffPaymentId,
+        OrderId: paymentResult.orderId,
+      });
+  
+    } catch (error) {
+      console.error('❌ Ошибка обработки существующего пользователя:', error);
+      throw error;
+    }
+  }
+  
+  // Обновленный метод создания платежа в Тинькофф
+  // async createTinkoffPayment(user, formData, memberNumber) {
+  //   try {
+  //     const amount = 1000; // 10 рублей в копейках
+  //     const orderId = `club_${Date.now()}_${user.id}`;
+      
+  //     const paymentData = {
+  //       OrderId: orderId,
+  //       Amount: amount,
+  //       Description: `Вступительный взнос в клуб. Член клуба: ${memberNumber}`,
+  //       CustomerKey: user.id.toString(),
+  //       Receipt: {
+  //         Email: user.email,
+  //         Phone: user.phone,
+  //         Taxation: 'osn',
+  //         Items: [
+  //           {
+  //             Name: 'Вступительный взнос в клуб',
+  //             Price: amount,
+  //             Quantity: 1,
+  //             Amount: amount,
+  //             PaymentMethod: 'full_payment',
+  //             PaymentObject: 'service',
+  //             Tax: 'vat20'
+  //           }
+  //         ]
+  //       },
+  //       DATA: {
+  //         MemberNumber: memberNumber,
+  //         Email: user.email,
+  //         Phone: user.phone
+  //       }
+  //     };
+  
+  //     console.log('💳 Создание платежа в Тинькофф:', paymentData);
+  
+  //     const tinkoffResponse = await this.tinkoffApi.init(paymentData);
+      
+  //     if (tinkoffResponse.Success) {
+  //       return {
+  //         success: true,
+  //         paymentUrl: tinkoffResponse.PaymentURL,
+  //         orderId: orderId,
+  //         amount: amount,
+  //         tinkoffPaymentId: tinkoffResponse.PaymentId,
+  //         memberNumber: memberNumber
+  //       };
+  //     } else {
+  //       throw new Error(tinkoffResponse.Message || 'Ошибка создания платежа в Тинькофф');
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Ошибка создания платежа в Тинькофф:', error);
+  //     throw error;
+  //   }
+  // }
+  
+  // Добавьте метод для получения данных члена клуба
+  async getMemberData(req, res) {
+    try {
+      const { memberNumber } = req.params;
+      
+      console.log('🔍 Получение данных члена клуба:', memberNumber);
+  
+      if (!memberNumber) {
+        return res.status(400).json({
+          success: false,
+          error: 'Номер члена клуба обязателен'
+        });
+      }
+  
+      // Ищем пользователя по номеру члена клуба
+      const user = await User.findByMemberNumber({
+        membership_number: memberNumber
+      });
+  
+      if (!user) {
+        console.log('❌ Член клуба не найден:', memberNumber);
+        return res.status(404).json({
+          success: false,
+          error: 'Член клуба не найден'
+        });
+      }
+  
+      // Получаем информацию о платежах
+      const payments = await Payment.findLatestByUserId({ 
+        userId: user.id 
+      }).sort({ createdAt: -1 });
+  
+      const latestPayment = payments[0];
+  
+      // Форматируем данные для фронтенда
+      const memberData = {
+        success: true,
+        memberNumber: user.membership_number,
+        formData: {
+          FullName: user.fullname,
+          Phone: user.phone,
+          Email: user.email,
+          Yeardate: user.yeardate ? new Date(user.yeardate).toLocaleDateString('ru-RU') : '',
+          City: user.city || '',
+          Conditions: user.conditions === 'accepted' ? 'yes' : 'no',
+          Checkbox: user.checkbox === 'accepted' ? 'yes' : 'no'
+        },
+        tildaData: {
+          formid: user.tilda_form_id,
+          pageid: user.tilda_page_id,
+          tranid: user.tilda_transaction_id
+        },
+        userData: {
+          membership_status: user.membership_status,
+          payment_status: user.payment_status,
+          slot_number: user.slot_number,
+          created_at: user.createdAt
+        },
+        paymentData: latestPayment ? {
+          status: latestPayment.status,
+          amount: latestPayment.amount,
+          createdAt: latestPayment.createdAt,
+          description: latestPayment.description
+        } : null
+      };
+  
+      console.log('✅ Данные члена клуба получены:', user.email);
+      res.json(memberData);
+  
+    } catch (error) {
+      console.error('❌ Ошибка получения данных члена клуба:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера'
+      });
+    }
+  }
+  
+  // Метод для проверки статуса платежа
+  async checkPaymentStatus(req, res) {
+    try {
+      const { memberNumber } = req.params;
+      
+      console.log('🔍 Проверка статуса платежа для:', memberNumber);
+  
+      const user = await User.findOne({ membership_number: memberNumber });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'Член клуба не найден'
+        });
+      }
+  
+      const payment = await Payment.findOne({ 
+        userId: user.id 
+      }).sort({ createdAt: -1 });
+  
+      if (!payment) {
+        return res.json({
+          success: true,
+          paymentStatus: 'not_found',
+          memberNumber: memberNumber
+        });
+      }
+  
+      // Если платеж в ожидании, проверяем статус в Тинькофф
+      if (payment.status === 'pending' && payment.tinkoffPaymentId) {
+        try {
+          const tinkoffStatus = await this.tinkoffApi.getState({
+            PaymentId: payment.tinkoffPaymentId
+          });
+  
+          if (tinkoffStatus.Success) {
+            // Обновляем статус платежа если он изменился
+            if (tinkoffStatus.Status !== payment.status) {
+              await Payment.findByIdAndUpdate(payment._id, {
+                status: tinkoffStatus.Status
+              });
+  
+              // Если платеж успешен, обновляем статус пользователя
+              if (tinkoffStatus.Status === 'CONFIRMED') {
+                await User.findByIdAndUpdate(user.id, {
+                  payment_status: 'paid',
+                  membership_status: 'active'
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Ошибка проверки статуса в Тинькофф:', error);
+        }
+      }
+  
+      // Получаем обновленные данные
+      const updatedPayment = await Payment.findById(payment._id);
+      const updatedUser = await User.findById(user.id);
+  
+      res.json({
+        success: true,
+        paymentStatus: updatedPayment.status,
+        membershipStatus: updatedUser.membership_status,
+        memberNumber: memberNumber,
+        needsPayment: updatedPayment.status !== 'CONFIRMED'
+      });
+  
+    } catch (error) {
+      console.error('❌ Ошибка проверки статуса платежа:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера'
+      });
+    }
+  }
+
 
   /**
    * Проверка существующего пользователя и его платежей
@@ -161,6 +524,70 @@ class TildaController {
         user: null,
         hasActivePayment: false
       };
+    }
+  }
+
+   // Найти заказ по email или телефону
+   async findOrder(req, res) {
+    try {
+      const { email, phone } = req.body;
+      
+      console.log('🔍 Finding order by contact info:', { email, phone });
+
+      if (!email && !phone) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email or phone is required'
+        });
+      }
+
+      let user = null;
+
+      // Ищем по email
+      if (email) {
+        user = await User.findByEmail(email);
+      }
+
+      // Если не нашли по email, ищем по телефону
+      if (!user && phone) {
+        const normalizedPhone = Helpers.normalizePhone(phone);
+        user = await User.findByPhone(normalizedPhone);
+      }
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found'
+        });
+      }
+
+      // Форматируем данные для фронтенда
+      const orderData = {
+        success: true,
+        formData: {
+          FullName: user.fullname,
+          Phone: user.phone,
+          Email: user.email,
+          Yeardate: user.yeardate ? new Date(user.yeardate).toLocaleDateString('ru-RU') : '',
+          City: user.city || '',
+          Conditions: user.conditions === 'accepted' ? 'yes' : 'no',
+          Checkbox: user.checkbox === 'accepted' ? 'yes' : 'no'
+        },
+        tildaData: {
+          formid: user.tilda_form_id,
+          pageid: user.tilda_page_id,
+          tranid: user.tilda_transaction_id
+        }
+      };
+
+      res.json(orderData);
+
+    } catch (error) {
+      console.error('❌ Error in findOrder:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
     }
   }
 
