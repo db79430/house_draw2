@@ -27,10 +27,31 @@ CREATE TABLE IF NOT EXISTS users (
     tilda_page_id VARCHAR(50),
     email_sent BOOLEAN DEFAULT FALSE,
     email_sent_at TIMESTAMP,
-    membership_number VARCHAR(50) UNIQUE,
+    membership_number VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 🔥 ИСПРАВЛЕНИЕ: Убедимся что поле правильного типа
+DO $$ 
+BEGIN
+    -- Если поле существует но неправильного типа - исправим
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'users' AND column_name = 'membership_number') THEN
+        -- Изменяем тип если он не VARCHAR(50)
+        IF (SELECT character_maximum_length 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' AND column_name = 'membership_number') != 50 THEN
+            
+            ALTER TABLE users ALTER COLUMN membership_number TYPE VARCHAR(50);
+            RAISE NOTICE '✅ Исправлен тип membership_number на VARCHAR(50)';
+        END IF;
+    ELSE
+        -- Создаем поле если его нет
+        ALTER TABLE users ADD COLUMN membership_number VARCHAR(50);
+        RAISE NOTICE '✅ Создано поле membership_number';
+    END IF;
+END $$;
 
 -- Create payments table
 CREATE TABLE IF NOT EXISTS payments (
@@ -55,7 +76,10 @@ CREATE INDEX IF NOT EXISTS idx_users_payment_status ON users(payment_status);
 CREATE INDEX IF NOT EXISTS idx_users_membership_status ON users(membership_status);
 CREATE INDEX IF NOT EXISTS idx_users_payment_id ON users(payment_id);
 CREATE INDEX IF NOT EXISTS idx_users_tilda_transaction_id ON users(tilda_transaction_id);
-CREATE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
+
+-- 🔥 Убедимся что индекс для membership_number создан правильно
+DROP INDEX IF EXISTS idx_users_membership_number;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
 
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
@@ -77,3 +101,18 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 🔥 Проверка что все исправлено
+DO $$
+BEGIN
+    RAISE NOTICE '=== ПРОВЕРКА ТИПОВ ПОЛЕЙ ===';
+    
+    -- Проверим тип membership_number
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'users' AND column_name = 'membership_number'
+               AND data_type = 'character varying' AND character_maximum_length = 50) THEN
+        RAISE NOTICE '✅ membership_number: VARCHAR(50) - OK';
+    ELSE
+        RAISE NOTICE '❌ membership_number: НЕПРАВИЛЬНЫЙ ТИП!';
+    END IF;
+END $$;

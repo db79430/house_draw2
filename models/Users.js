@@ -333,9 +333,14 @@ class User {
 
   static async updateMemberNumber(userId, memberNumber) {
     try {
+      // 🔥 ВАЖНО: "распакуйте" Promise если это необходимо
+      const actualMemberNumber = typeof memberNumber === 'object' && typeof memberNumber.then === 'function' 
+        ? await memberNumber 
+        : memberNumber;
+      
       console.log('🔄 Обновление номера члена клуба:', { 
         userId, 
-        memberNumber 
+        memberNumber: actualMemberNumber 
       });
       
       const query = `
@@ -345,11 +350,11 @@ class User {
         RETURNING id, email, membership_number, membership_status
       `;
       
-      const result = await db.one(query, [memberNumber, userId]);
+      const result = await db.one(query, [actualMemberNumber, userId]);
       
       console.log('✅ Номер члена клуба обновлен:', { 
         userId, 
-        memberNumber,
+        memberNumber: actualMemberNumber,
         email: result.email 
       });
       
@@ -358,11 +363,10 @@ class User {
     } catch (error) {
       console.error('❌ Ошибка обновления номера члена клуба:', error);
       
-      // Если ошибка дублирования (уникальное ограничение)
-      if (error.code === '23505' && error.constraint && error.constraint.includes('membership_number')) {
-        console.log('⚠️ Номер члена клуба уже существует, генерируем новый...');
-        const newMemberNumber = `CLUB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
-        return await this.updateMemberNumber(userId, newMemberNumber);
+      // Если ошибка длины поля - значит поле все еще character(1)
+      if (error.message && error.message.includes('value too long for type character')) {
+        console.error('⚠️ ОШИБКА: поле membership_number все еще имеет тип character(1)!');
+        console.error('⚠️ Выполните в БД: ALTER TABLE users ALTER COLUMN membership_number TYPE VARCHAR(50);');
       }
       
       throw error;

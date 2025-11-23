@@ -124,6 +124,7 @@ class TildaController {
       await User.updateTinkoffPaymentId(userResult.user.id, paymentResult.tinkoffPaymentId);
 
       const memberNumber = User.generateUniqueMemberNumber();
+      console.log('🔢 Сгенерирован номер:', memberNumber);
       await User.updateMemberNumber(userResult.user.id, memberNumber);
   
       // Сохраняем платеж в БД
