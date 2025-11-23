@@ -414,22 +414,23 @@ class User {
   
   // Метод для генерации уникального номера члена клуба
   static async generateUniqueMemberNumber() {
-    let attempts = 0;
-    const maxAttempts = 5;
+    return `M${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    // let attempts = 0;
+    // const maxAttempts = 5;
     
-    while (attempts < maxAttempts) {
-      const memberNumber = `CLUB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+    // while (attempts < maxAttempts) {
+    //   const memberNumber = `CLUB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
       
-      const exists = await this.isMemberNumberExists(memberNumber);
-      if (!exists) {
-        return memberNumber;
-      }
+    //   const exists = await this.isMemberNumberExists(memberNumber);
+    //   if (!exists) {
+    //     return memberNumber;
+    //   }
       
-      attempts++;
-      console.log(`⚠️ Номер ${memberNumber} уже существует, попытка ${attempts}/${maxAttempts}`);
-    }
+    //   attempts++;
+    //   console.log(`⚠️ Номер ${memberNumber} уже существует, попытка ${attempts}/${maxAttempts}`);
+    // }
     
-    throw new Error('Не удалось сгенерировать уникальный номер члена клуба');
+    // throw new Error('Не удалось сгенерировать уникальный номер члена клуба');
   }
 
   // Добавьте недостающие методы
