@@ -234,11 +234,12 @@ class TildaController {
       });
   
       console.log('✅ Новый платеж создан для существующего пользователя:', memberNumber);
+      const redirectUrl = `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`;
       
-      return res.json({
+      res.json({
         Success: true,
         PaymentURL: paymentResult.paymentUrl,
-        RedirectUrl: `http://npk-vdv.ru/auth?memberNumber=${memberNumber}`,
+        RedirectUrl: redirectUrl,
         Status: 'redirect',
         PaymentId: paymentResult.tinkoffPaymentId,
         OrderId: paymentResult.orderId,
