@@ -1503,15 +1503,15 @@ class TildaController {
       }
 
       // Проверяем нет ли активных pending платежей
-      const activePayment = await Payment.findActiveByUserId(user.id);
-      if (activePayment) {
-        console.log('ℹ️ Активный платеж уже существует:', activePayment.id);
-        return res.json({
-          success: true,
-          paymentUrl: activePayment.payment_url,
-          message: 'Платеж уже создан'
-        });
-      }
+      // const activePayment = await Payment.findActiveByUserId(user.id);
+      // if (activePayment) {
+      //   console.log('ℹ️ Активный платеж уже существует:', activePayment.id);
+      //   return res.json({
+      //     success: true,
+      //     paymentUrl: activePayment.payment_url,
+      //     message: 'Платеж уже создан'
+      //   });
+      // }
 
       // СОЗДАЕМ ПЛАТЕЖ В ТИНЬКОФФ
       console.log('🚀 Создаем новый платеж в Тинькофф...');
