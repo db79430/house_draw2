@@ -307,7 +307,8 @@ app.post('/tinkoff-callback', (req, res) => tinkoffController.handleNotification
 
 // app.post('/find-order', tildaAuthMiddleware, (req, res) => tildaController.findOrder(req, res));
 
-app.get('/get-member/:memberNumber', (req, res) => tildaController.getMemberData(req, res));
+app.post('/create-payment', tildaAuthMiddleware, (req, res) => tildaController.createPayment(req, res));
+app.get('/get-member/:memberNumber',(req, res) => tildaController.getMemberData(req, res));
 
 // Email routes
 app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
