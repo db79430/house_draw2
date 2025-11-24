@@ -69,56 +69,56 @@ class TinkoffController {
   }
 
 
-async processSuccessfulPayment(orderId) {
-  try {
-    console.log('💰 Processing successful payment for order:', orderId);
+// async processSuccessfulPayment(orderId) {
+//   try {
+//     console.log('💰 Processing successful payment for order:', orderId);
     
-    const payment = await Payment.findByOrderId(orderId);
-    if (!payment) {
-      console.error('❌ Платеж не найден:', orderId);
-      return;
-    }
+//     const payment = await Payment.findByOrderId(orderId);
+//     if (!payment) {
+//       console.error('❌ Платеж не найден:', orderId);
+//       return;
+//     }
 
-    const user = await User.findById(payment.user_id);
-    if (!user) {
-      console.error('❌ Пользователь не найден для платежа:', orderId);
-      return;
-    }
+//     const user = await User.findById(payment.user_id);
+//     if (!user) {
+//       console.error('❌ Пользователь не найден для платежа:', orderId);
+//       return;
+//     }
 
-    // ✅ ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ МЕТОД ИЗ HELPERS
-    const newPassword = Helpers.generatePassword(10); // длина 10 символов
-    console.log('🔐 Generated password for user:', user.email, 'Password:', newPassword);
+//     // ✅ ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ МЕТОД ИЗ HELPERS
+//     const newPassword = Helpers.generatePassword(10); // длина 10 символов
+//     console.log('🔐 Generated password for user:', user.email, 'Password:', newPassword);
 
-    // ✅ ОБНОВЛЯЕМ ПАРОЛЬ В БАЗЕ ДАННЫХ
-    await User.updatePassword(payment.user_id, newPassword);
+//     // ✅ ОБНОВЛЯЕМ ПАРОЛЬ В БАЗЕ ДАННЫХ
+//     await User.updatePassword(payment.user_id, newPassword);
 
-    // Обновляем статус платежа
-    await Payment.updateStatus(orderId, 'completed');
+//     // Обновляем статус платежа
+//     await Payment.updateStatus(orderId, 'completed');
 
-    // Обновляем статус пользователя
-    await User.updateMembershipStatus(payment.user_id, 'active');
+//     // Обновляем статус пользователя
+//     await User.updateMembershipStatus(payment.user_id, 'active');
 
-    console.log('✅ Payment processed, sending email to:', user.email);
+//     console.log('✅ Payment processed, sending email to:', user.email);
 
-    // ✅ ПЕРЕДАЕМ СГЕНЕРИРОВАННЫЙ ПАРОЛЬ В EMAIL
-    const emailResult = await EmailService.sendCredentialsEmail(
-      user.email,
-      user.login || user.email, // используем email как логин если login нет
-      newPassword, // ← ПЕРЕДАЕМ НОВЫЙ ПАРОЛЬ
-      user.fullname || 'Пользователь'
-    );
+//     // ✅ ПЕРЕДАЕМ СГЕНЕРИРОВАННЫЙ ПАРОЛЬ В EMAIL
+//     const emailResult = await EmailService.sendCredentialsEmail(
+//       user.email,
+//       user.login || user.email, // используем email как логин если login нет
+//       newPassword, // ← ПЕРЕДАЕМ НОВЫЙ ПАРОЛЬ
+//       user.fullname || 'Пользователь'
+//     );
 
-    if (emailResult.success) {
-      console.log('✅ Email отправлен пользователю:', user.email);
-      console.log('🔐 Пароль для входа:', newPassword);
-    } else {
-      console.error('❌ Ошибка отправки email:', emailResult.error);
-    }
+//     if (emailResult.success) {
+//       console.log('✅ Email отправлен пользователю:', user.email);
+//       console.log('🔐 Пароль для входа:', newPassword);
+//     } else {
+//       console.error('❌ Ошибка отправки email:', emailResult.error);
+//     }
 
-  } catch (error) {
-    console.error('❌ Ошибка обработки успешного платежа:', error);
-  }
-}
+//   } catch (error) {
+//     console.error('❌ Ошибка обработки успешного платежа:', error);
+//   }
+// }
 
 
   /**
