@@ -90,22 +90,25 @@ class Payment {
       throw error;
     }
   }
+  
   static async findSuccessfulPaymentsByUserId(userId) {
     try {
+      console.log('🔍 Поиск успешных платежей пользователя:', userId);
+      
       const query = `
         SELECT * FROM payments 
         WHERE user_id = $1 
-        AND status = 'completed'
-        AND amount = 1000  // 10 рублей в копейках
+        AND status IN ('CONFIRMED', 'success', 'paid')
         ORDER BY created_at DESC
       `;
       
       const payments = await db.any(query, [userId]);
-      console.log(`🔍 Найдено успешных платежей для пользователя ${userId}:`, payments.length);
+      console.log(`✅ Найдено ${payments.length} успешных платежей для пользователя:`, userId);
       
       return payments;
+      
     } catch (error) {
-      console.error('❌ Error finding successful payments by user ID:', error);
+      console.error('❌ Ошибка поиска успешных платежей:', error);
       throw error;
     }
   }
