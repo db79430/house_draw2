@@ -363,6 +363,36 @@ app.post('/find-user-by-credentials', async (req, res) => {
   }
 });
 
+// Добавьте этот метод в ваш контроллер
+app.post('/find-user-by-email', async (req, res) => {
+  try {
+      const { email } = req.body;
+      console.log('🔍 Searching user by email:', email);
+      
+      if (!email) {
+          return res.json({ success: false, error: 'Email is required' });
+      }
+
+      // Ищем пользователя в базе по email
+      const user = await User.findOne({ where: { email } });
+      
+      if (user) {
+          console.log('✅ User found:', user.membership_number);
+          return res.json({
+              success: true,
+              memberNumber: user.membership_number,
+              email: user.email
+          });
+      } else {
+          console.log('❌ User not found with email:', email);
+          return res.json({ success: false, error: 'User not found' });
+      }
+  } catch (error) {
+      console.error('❌ Error finding user by email:', error);
+      return res.json({ success: false, error: 'Server error' });
+  }
+});
+
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
   try {
