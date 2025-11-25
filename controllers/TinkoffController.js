@@ -1,4 +1,3 @@
-// controllers/TinkoffController.js
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 import EmailService from '../services/EmailServices.js'
@@ -12,14 +11,23 @@ class TinkoffController {
     try {
       const { OrderId, Success, Status, PaymentId } = req.body;
       
+      console.log('🔔 Получено уведомление от Тинькофф:', { OrderId, Success, Status, PaymentId });
+      
       if (Success && Status === 'CONFIRMED') {
         // Находим пользователя по OrderId
         const user = await User.findByOrderId(OrderId);
         
-        // if (!user) {
-        //   console.error('❌ Пользователь не найден для платежа:', OrderId);
-        //   return res.status(200).send('OK');
-        // }
+        // ✅ ВАЖНО: РАСКОММЕНТИРОВАТЬ ПРОВЕРКУ НА NULL
+        if (!user) {
+          console.error('❌ Пользователь не найден для платежа:', OrderId);
+          return res.status(200).send('OK');
+        }
+
+        console.log('👤 Найден пользователь:', { 
+          id: user.id, 
+          email: user.email, 
+          membership_status: user.membership_status 
+        });
 
         // 🔧 ПРОВЕРЯЕМ, НЕ БЫЛ ЛИ УЖЕ ОТПРАВЛЕН EMAIL
         if (user.membership_status === 'active') {
@@ -44,6 +52,9 @@ class TinkoffController {
           // Генерируем пароль только если его нет
           password = Helpers.generatePassword();
           await User.updatePassword(user.id, password);
+          console.log('🔐 Сгенерирован новый пароль для пользователя:', user.email);
+        } else {
+          console.log('🔐 Используется существующий пароль для пользователя:', user.email);
         }
 
         // Отправляем email с данными для входа
@@ -59,6 +70,13 @@ class TinkoffController {
         } else {
           console.error('❌ Ошибка отправки email:', emailResult.error);
         }
+      } else {
+        console.log('ℹ️ Платеж не подтвержден или неуспешен:', { OrderId, Success, Status });
+        
+        // Обработка неудачных платежей
+        if (!Success) {
+          await this.processFailedPayment(OrderId, PaymentId);
+        }
       }
 
       res.status(200).send('OK');
@@ -67,59 +85,6 @@ class TinkoffController {
       res.status(200).send('OK');
     }
   }
-
-
-// async processSuccessfulPayment(orderId) {
-//   try {
-//     console.log('💰 Processing successful payment for order:', orderId);
-    
-//     const payment = await Payment.findByOrderId(orderId);
-//     if (!payment) {
-//       console.error('❌ Платеж не найден:', orderId);
-//       return;
-//     }
-
-//     const user = await User.findById(payment.user_id);
-//     if (!user) {
-//       console.error('❌ Пользователь не найден для платежа:', orderId);
-//       return;
-//     }
-
-//     // ✅ ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ МЕТОД ИЗ HELPERS
-//     const newPassword = Helpers.generatePassword(10); // длина 10 символов
-//     console.log('🔐 Generated password for user:', user.email, 'Password:', newPassword);
-
-//     // ✅ ОБНОВЛЯЕМ ПАРОЛЬ В БАЗЕ ДАННЫХ
-//     await User.updatePassword(payment.user_id, newPassword);
-
-//     // Обновляем статус платежа
-//     await Payment.updateStatus(orderId, 'completed');
-
-//     // Обновляем статус пользователя
-//     await User.updateMembershipStatus(payment.user_id, 'active');
-
-//     console.log('✅ Payment processed, sending email to:', user.email);
-
-//     // ✅ ПЕРЕДАЕМ СГЕНЕРИРОВАННЫЙ ПАРОЛЬ В EMAIL
-//     const emailResult = await EmailService.sendCredentialsEmail(
-//       user.email,
-//       user.login || user.email, // используем email как логин если login нет
-//       newPassword, // ← ПЕРЕДАЕМ НОВЫЙ ПАРОЛЬ
-//       user.fullname || 'Пользователь'
-//     );
-
-//     if (emailResult.success) {
-//       console.log('✅ Email отправлен пользователю:', user.email);
-//       console.log('🔐 Пароль для входа:', newPassword);
-//     } else {
-//       console.error('❌ Ошибка отправки email:', emailResult.error);
-//     }
-
-//   } catch (error) {
-//     console.error('❌ Ошибка обработки успешного платежа:', error);
-//   }
-// }
-
 
   /**
    * Обработка неудачного платежа
