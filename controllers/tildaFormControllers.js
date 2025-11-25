@@ -1450,11 +1450,11 @@ class TildaController {
   
       // ПЕРЕНАПРАВЛЯЕМ НА СТРАНИЦУ С ДАННЫМИ (БЕЗ ПЛАТЕЖА)
       return res.json({
-        Success: true,
-        RedirectUrl: redirectUrl, // 🔥 Убедитесь что это поле называется именно так
-        Status: 'redirect',
-        MemberNumber: memberNumber,
-        Message: 'Регистрация успешна. Переход к оплате.'
+        "formid": req.body.formid || "tilda-form",
+        "type": "success", 
+        "RedirectUrl": redirectUrl, // 🔥 именно такое название поля
+        "MemberNumber": memberNumber, // 🔥 добавляем для JavaScript
+        "message": "Регистрация успешна. Переход к оплате."
       });
   
     } catch (error) {

@@ -353,20 +353,20 @@ class EmailService {
   /**
    * Отправляет письмо с данными для входа после оплаты
    */
-  static async sendCredentialsEmail(email, login, password, fullname) {
-    try {
-      const user = { email, fullname };
-      const subject = 'Данные для входа в личный кабинет 🔐';
-      const htmlContent = this.generateCredentialsTemplate(user, login, password);
+  // static async sendCredentialsEmail(email, login, password, fullname) {
+  //   try {
+  //     const user = { email, fullname };
+  //     const subject = 'Данные для входа в личный кабинет 🔐';
+  //     const htmlContent = this.generateCredentialsTemplate(user, login, password);
       
-      const result = await sendEmail(email, subject, htmlContent);
-      console.log('✅ Login credentials sent to:', email);
-      return { success: true, result };
-    } catch (error) {
-      console.error('❌ Error sending credentials email:', error);
-      return { success: false, error: error.message };
-    }
-  }
+  //     const result = await sendEmail(email, subject, htmlContent);
+  //     console.log('✅ Login credentials sent to:', email);
+  //     return { success: true, result };
+  //   } catch (error) {
+  //     console.error('❌ Error sending credentials email:', error);
+  //     return { success: false, error: error.message };
+  //   }
+  // }
 
   /**
    * Шаблон приветственного письма
