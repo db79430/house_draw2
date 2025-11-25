@@ -275,7 +275,7 @@ class User {
     try {
       const query = `
         SELECT * FROM users 
-        WHERE login = $20 OR email = $20
+        WHERE login = $1 OR email = $1
       `;
       
       const user = await db.oneOrNone(query, [login]);

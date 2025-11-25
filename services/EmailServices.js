@@ -85,14 +85,19 @@ class EmailService {
         .replace(/{{appUrl}}/g, appUrl)
         .replace(/{{supportEmail}}/g, supportEmail)
         .replace(/{{supportPhone}}/g, supportPhone)
-        .replace('{{statement}}', statementContent);
+        .replace('{{statement}}', statementContent)
+        .replace('{{yeardate}}', user.yeardate)
+        .replace('{{phone}}', user.phone)
+        .replace('{{city}}', user.city)
+        .replace('{{membership_number}}', user.membership_number)
+
 
       return htmlContent;
       
     } catch (error) {
       console.log('⚠️ Template files not found, using fallback template');
       // Fallback шаблон если файлы не найдены
-      return this.getFallbackWelcomeTemplate(user, login, password, appUrl, supportEmail, supportPhone);
+      return this.getFallbackWelcomeTemplate(user, login, password, appUrl, supportEmail, supportPhone, yeardate, phone, city,membership_number);
     }
   }
 
@@ -126,14 +131,6 @@ class EmailService {
             <h2 style="color: #333;">Уважаемый(ая) ${user.fullname || 'Пользователь'},</h2>
             
             <p>Мы рады приветствовать вас в нашем клубе! Ваша регистрация успешно завершена.</p>
-            
-            <p>Теперь у вас есть доступ к эксклюзивным возможностям:</p>
-            <ul>
-                <li>Участие в розыгрышах призов</li>
-                <li>Личный кабинет с историей участий</li>
-                <li>Специальные предложения для членов клуба</li>
-                <li>Поддержка 24/7</li>
-            </ul>
 
             <div class="credentials">
                 <h3 style="color: #333; margin-top: 0;">🔐 Ваши данные для входа:</h3>
