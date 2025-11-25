@@ -14,16 +14,25 @@ class TinkoffController {
       console.log('🔔 Получено уведомление от Тинькофф:', { OrderId, Success, Status, PaymentId });
       
       if (Success && Status === 'CONFIRMED') {
-        // Находим пользователя по OrderId
-        const user = await User.findByOrderId(OrderId);
+        // Находим платеж по OrderId (вместе с данными пользователя)
+        const payment = await Payment.findByOrderId(OrderId);
         
-        // ✅ ВАЖНО: РАСКОММЕНТИРОВАТЬ ПРОВЕРКУ НА NULL
-        if (!user) {
-          console.error('❌ Пользователь не найден для платежа:', OrderId);
+        if (!payment) {
+          console.error('❌ Платеж не найден:', OrderId);
           return res.status(200).send('OK');
         }
 
-        console.log('👤 Найден пользователь:', { 
+        // Получаем пользователя из данных платежа
+        const user = {
+          id: payment.user_id,
+          email: payment.email,
+          fullname: payment.fullname,
+          login: payment.login,
+          membership_status: payment.membership_status,
+          password_hash: payment.password_hash
+        };
+
+        console.log('👤 Найден пользователь через платеж:', { 
           id: user.id, 
           email: user.email, 
           membership_status: user.membership_status 
@@ -99,7 +108,7 @@ class TinkoffController {
       // Можно отправить уведомление пользователю
       const payment = await Payment.findByOrderId(orderId);
       if (payment) {
-        const user = await User.findById(payment.userId);
+        const user = await User.findById(payment.user_id); // Исправлено: payment.user_id
         if (user) {
           console.log('ℹ️ Платеж отклонен для пользователя:', user.email);
           // await EmailServices.sendPaymentFailedEmail(user.email, user.fullname);
