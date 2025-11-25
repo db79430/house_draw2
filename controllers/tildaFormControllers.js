@@ -1447,6 +1447,14 @@ class TildaController {
       const redirectUrl = `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`;
       
       console.log('🎯 Перенаправляем на:', redirectUrl);
+
+      console.log('🔴 FINAL RESPONSE TO TILDA:', {
+        "formid": req.body.formid || "tilda-form",
+        "type": "success", 
+        "RedirectUrl": redirectUrl,
+        "MemberNumber": memberNumber,
+        "message": "Регистрация успешна. Переход к оплате."
+      });
   
       // ПЕРЕНАПРАВЛЯЕМ НА СТРАНИЦУ С ДАННЫМИ (БЕЗ ПЛАТЕЖА)
       return res.json({
