@@ -1444,7 +1444,7 @@ class TildaController {
       }
   
       // 🔥 ВАЖНО: Правильный RedirectUrl с параметром memberNumber
-      const redirectUrl = `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`;
+      const redirectUrl = `https://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`;
       
       console.log('🎯 Перенаправляем на:', redirectUrl);
 
