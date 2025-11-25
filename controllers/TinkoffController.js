@@ -16,10 +16,10 @@ class TinkoffController {
         // Находим пользователя по OrderId
         const user = await User.findByOrderId(OrderId);
         
-        if (!user) {
-          console.error('❌ Пользователь не найден для платежа:', OrderId);
-          return res.status(200).send('OK');
-        }
+        // if (!user) {
+        //   console.error('❌ Пользователь не найден для платежа:', OrderId);
+        //   return res.status(200).send('OK');
+        // }
 
         // 🔧 ПРОВЕРЯЕМ, НЕ БЫЛ ЛИ УЖЕ ОТПРАВЛЕН EMAIL
         if (user.membership_status === 'active') {
