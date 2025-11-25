@@ -1448,29 +1448,23 @@ class TildaController {
       
       console.log('🎯 Перенаправляем на:', redirectUrl);
 
-      console.log('🔴 FINAL RESPONSE TO TILDA:', {
-        "formid": req.body.formid || "tilda-form",
-        "type": "success", 
-        "RedirectUrl": redirectUrl,
-        "MemberNumber": memberNumber,
-        "message": "Регистрация успешна. Переход к оплате."
-      });
-  
-      // ПЕРЕНАПРАВЛЯЕМ НА СТРАНИЦУ С ДАННЫМИ (БЕЗ ПЛАТЕЖА)
-      return res.json({
+      const tildaResponse = {
         "formid": req.body.formid || "tilda-form",
         "type": "success", 
         "RedirectUrl": redirectUrl, // 🔥 именно такое название поля
-        "MemberNumber": memberNumber, // 🔥 добавляем для JavaScript
-        "message": "Регистрация успешна. Переход к оплате."
-      });
+        "Message": "Регистрация успешна. Переход к оплате."
+      };
+      
+      console.log('🔴 CLEAN RESPONSE TO TILDA:', tildaResponse);
+  
+      return res.json(tildaResponse);
   
     } catch (error) {
       console.error('❌ Ошибка обработки вебхука:', error);
       return res.json({
-        Success: false,
-        ErrorCode: 'PROCESSING_ERROR',
-        Message: error.message
+        "formid": req.body.formid || "tilda-form", 
+        "type": "error",
+        "Message": error.message
       });
     }
   }
