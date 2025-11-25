@@ -98,6 +98,83 @@ class User {
     }
   }
 
+  static async findOne(credentials) {
+    try {
+      const { email, phone } = credentials;
+      
+      if (!email && !phone) {
+        throw new Error('Email or phone is required');
+      }
+  
+      let query;
+      let params;
+  
+      if (email && phone) {
+        // Ищем по email ИЛИ phone
+        query = `
+          SELECT 
+            id,
+            fullname,
+            email,
+            phone,
+            membership_number,
+            membership_status,
+            created_at
+          FROM users 
+          WHERE email = $1 OR phone = $2
+          LIMIT 1
+        `;
+        params = [email, phone];
+      } else if (email) {
+        query = `
+          SELECT 
+            id,
+            fullname,
+            email,
+            phone,
+            membership_number,
+            membership_status,
+            created_at
+          FROM users 
+          WHERE email = $1
+        `;
+        params = [email];
+      } else {
+        query = `
+          SELECT 
+            id,
+            fullname,
+            email,
+            phone,
+            membership_number,
+            membership_status,
+            created_at
+          FROM users 
+          WHERE phone = $1
+        `;
+        params = [phone];
+      }
+      
+      const user = await db.oneOrNone(query, params);
+      
+      if (user) {
+        console.log('✅ User found:', { 
+          id: user.id, 
+          email: user.email,
+          phone: user.phone,
+          membership_number: user.membership_number 
+        });
+      } else {
+        console.log('❌ User not found with credentials:', { email, phone });
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('❌ Error finding user:', error);
+      throw error;
+    }
+  }
+
    /**
    * Поиск пользователя по ID
    */

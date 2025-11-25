@@ -15,6 +15,7 @@ import tildaAuthMiddleware from './middlewares/authMiddleware.js';
 import diagnosticRoutes from './routes/network.js';
 // import { checkEmailConfig }  from './config/emailConfig.js';
 import AuthController from './controllers/AuthController.js';
+import User from './models/Users.js';
 
 const app = express();
 // app.use(cors());
@@ -323,6 +324,44 @@ app.post('/auth-validate', (req, res) => authController.validate(req, res));
 app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 // app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
+
+// Эндпоинт для поиска пользователя по email/телефону
+app.post('/find-user-by-credentials', async (req, res) => {
+  try {
+      const { email, phone } = req.body;
+      console.log('🔍 Searching user by credentials:', { email, phone });
+      
+      // Ищем пользователя в базе данных
+      let user;
+      if (email) {
+          user = await User.findOne({ where: { email } });
+      } else if (phone) {
+          user = await User.findOne({ where: { phone } });
+      }
+      
+      if (user) {
+          console.log('✅ User found:', user.membership_number);
+          return res.json({
+              success: true,
+              memberNumber: user.membership_number,
+              email: user.email,
+              phone: user.phone
+          });
+      } else {
+          console.log('❌ User not found');
+          return res.json({
+              success: false,
+              error: 'User not found'
+          });
+      }
+  } catch (error) {
+      console.error('❌ Error finding user:', error);
+      return res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+      });
+  }
+});
 
 // Admin routes (защищенные)
 app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
