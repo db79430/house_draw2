@@ -326,92 +326,92 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 // Эндпоинт для поиска пользователя по email/телефону
-app.post('/find-user-by-credentials', async (req, res) => {
-  try {
-      const { email, phone } = req.body;
-      console.log('🔍 Searching user by credentials:', { email, phone });
+// app.post('/find-user-by-credentials', async (req, res) => {
+//   try {
+//       const { email, phone } = req.body;
+//       console.log('🔍 Searching user by credentials:', { email, phone });
       
-      // Ищем пользователя в базе данных
-      let user;
-      if (email) {
-          user = await User.findOne({ where: { email } });
-      } else if (phone) {
-          user = await User.findOne({ where: { phone } });
-      }
+//       // Ищем пользователя в базе данных
+//       let user;
+//       if (email) {
+//           user = await User.findOne({ where: { email } });
+//       } else if (phone) {
+//           user = await User.findOne({ where: { phone } });
+//       }
       
-      if (user) {
-          console.log('✅ User found:', user.membership_number);
-          return res.json({
-              success: true,
-              memberNumber: user.membership_number,
-              email: user.email,
-              phone: user.phone
-          });
-      } else {
-          console.log('❌ User not found');
-          return res.json({
-              success: false,
-              error: 'User not found'
-          });
-      }
-  } catch (error) {
-      console.error('❌ Error finding user:', error);
-      return res.status(500).json({
-          success: false,
-          error: 'Internal server error'
-      });
-  }
-});
+//       if (user) {
+//           console.log('✅ User found:', user.membership_number);
+//           return res.json({
+//               success: true,
+//               memberNumber: user.membership_number,
+//               email: user.email,
+//               phone: user.phone
+//           });
+//       } else {
+//           console.log('❌ User not found');
+//           return res.json({
+//               success: false,
+//               error: 'User not found'
+//           });
+//       }
+//   } catch (error) {
+//       console.error('❌ Error finding user:', error);
+//       return res.status(500).json({
+//           success: false,
+//           error: 'Internal server error'
+//       });
+//   }
+// });
 
-// Добавьте этот метод в ваш контроллер
-app.post('/find-user-by-email', async (req, res) => {
-  try {
-      const { email } = req.body;
-      console.log('🔍 Searching user by email:', email);
+// // Добавьте этот метод в ваш контроллер
+// app.post('/find-user-by-email', async (req, res) => {
+//   try {
+//       const { email } = req.body;
+//       console.log('🔍 Searching user by email:', email);
       
-      if (!email) {
-          return res.json({ success: false, error: 'Email is required' });
-      }
+//       if (!email) {
+//           return res.json({ success: false, error: 'Email is required' });
+//       }
 
-      // Ищем пользователя в базе по email
-      const user = await User.findOne({ where: { email } });
+//       // Ищем пользователя в базе по email
+//       const user = await User.findOne({ where: { email } });
       
-      if (user) {
-          console.log('✅ User found:', user.membership_number);
-          return res.json({
-              success: true,
-              memberNumber: user.membership_number,
-              email: user.email
-          });
-      } else {
-          console.log('❌ User not found with email:', email);
-          return res.json({ success: false, error: 'User not found' });
-      }
-  } catch (error) {
-      console.error('❌ Error finding user by email:', error);
-      return res.json({ success: false, error: 'Server error' });
-  }
-});
+//       if (user) {
+//           console.log('✅ User found:', user.membership_number);
+//           return res.json({
+//               success: true,
+//               memberNumber: user.membership_number,
+//               email: user.email
+//           });
+//       } else {
+//           console.log('❌ User not found with email:', email);
+//           return res.json({ success: false, error: 'User not found' });
+//       }
+//   } catch (error) {
+//       console.error('❌ Error finding user by email:', error);
+//       return res.json({ success: false, error: 'Server error' });
+//   }
+// });
 
-// Admin routes (защищенные)
-app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
-  try {
-    const userStats = await UserServices.getSystemStats();
-    const paymentStats = await PaymentRepository.getDailyStatistics();
+// // Admin routes (защищенные)
+// app.get('/admin/stats', tildaAuthMiddleware, async (req, res) => {
+//   try {
+//     const userStats = await UserServices.getSystemStats();
+//     const paymentStats = await PaymentRepository.getDailyStatistics();
     
-    res.json({
-      Success: true,
-      UserStats: userStats,
-      PaymentStats: paymentStats,
-      Timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.json({
-      Success: false,
-      Message: error.message
-    });
-  }
-});
+//     res.json({
+//       Success: true,
+//       UserStats: userStats,
+//       PaymentStats: paymentStats,
+//       Timestamp: new Date().toISOString()
+//     });
+//   } catch (error) {
+//     res.json({
+//       Success: false,
+//       Message: error.message
+//     });
+//   }
+// });
 
 // const emailConfig = checkEmailConfig();
 // console.log('📧 Email configuration check:');
