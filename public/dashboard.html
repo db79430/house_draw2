@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет - Клуб Природы</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-green: #4a7c3a;
+            --dark-green: #2d5016;
+            --light-green: #e8f5e8;
+            --accent-brown: #8b4513;
+            --earth-brown: #a0522d;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .dashboard {
+            padding: 40px 0;
+        }
+
+        .welcome-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border-left: 5px solid var(--primary-green);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary-green);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .purchase-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: var(--dark-green);
+            margin-bottom: 20px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slot-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .slot-option {
+            background: var(--light-green);
+            border: 2px solid var(--primary-green);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .slot-option:hover {
+            background: var(--primary-green);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .slot-option.selected {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--dark-green);
+        }
+
+        .slot-count {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .slot-price {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .slot-description {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .purchase-btn {
+            background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .purchase-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(74, 124, 58, 0.3);
+        }
+
+        .purchase-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .slots-section, .history-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .slot-card {
+            background: var(--light-green);
+            border: 1px solid #4a7c3a;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .slot-number {
+            font-weight: bold;
+            color: var(--dark-green);
+            margin-bottom: 5px;
+        }
+
+        .slot-date {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-table th {
+            background: var(--light-green);
+            color: var(--dark-green);
+            font-weight: bold;
+        }
+
+        .status-completed {
+            color: var(--primary-green);
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: var(--earth-brown);
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>🌿 Клуб Природы</h1>
+                </div>
+                <div class="user-info">
+                    <span id="userName">Загрузка...</span>
+                    <button class="logout-btn" onclick="logout()">Выйти</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div id="loading" class="loading">
+                Загрузка данных...
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div id="dashboardContent" style="display: none;">
+                <!-- Приветственная секция -->
+                <div class="welcome-section">
+                    <h2>Добро пожаловать, <span id="welcomeName"></span>!</h2>
+                    <p>Номер вашего членства: <strong id="membershipNumber"></strong></p>
+                    <p>Статус: <strong id="membershipStatus"></strong></p>
+                </div>
+
+                <!-- Статистика -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSlots">0</div>
+                        <div class="stat-label">Всего слотов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeSlots">0</div>
+                        <div class="stat-label">Активных слотов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="memberSince">-</div>
+                        <div class="stat-label">Участник с</div>
+                    </div>
+                </div>
+
+                <!-- Покупка слотов -->
+                <div class="purchase-section">
+                    <h2 class="section-title">🎯 Приобретение слотов</h2>
+                    
+                    <div class="slot-options">
+                        <div class="slot-option" data-count="1">
+                            <div class="slot-count">1 слот</div>
+                            <div class="slot-price">1 000 ₽</div>
+                            <div class="slot-description">Базовый пакет</div>
+                        </div>
+                        <div class="slot-option" data-count="3">
+                            <div class="slot-count">3 слота</div>
+                            <div class="slot-price">3 000 ₽</div>
+                            <div class="slot-description">Экономный выбор</div>
+                        </div>
+                        <div class="slot-option" data-count="5">
+                            <div class="slot-count">5 слотов</div>
+                            <div class="slot-price">5 000 ₽</div>
+                            <div class="slot-description">Популярный пакет</div>
+                        </div>
+                        <div class="slot-option" data-count="15">
+                            <div class="slot-count">15 слотов</div>
+                            <div class="slot-price">15 000 ₽</div>
+                            <div class="slot-description">Максимальный шанс</div>
+                        </div>
+                    </div>
+
+                    <button id="purchaseBtn" class="purchase-btn" disabled>
+                        Выберите количество слотов
+                    </button>
+                </div>
+
+                <!-- Мои слоты -->
+                <div class="slots-section">
+                    <h2 class="section-title">🎪 Мои слоты</h2>
+                    <div id="slotsContainer" class="slots-grid">
+                        <!-- Слоты будут загружены здесь -->
+                    </div>
+                </div>
+
+                <!-- История покупок -->
+                <div class="history-section">
+                    <h2 class="section-title">📊 История операций</h2>
+                    <div id="historyContainer">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Описание</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <!-- История будет загружена здесь -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedSlotCount = 0;
+        let userData = null;
+
+        // Проверка авторизации
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            userData = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!token || !userData.id) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            loadDashboard();
+            setupEventListeners();
+        });
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/user/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayDashboard(result.data);
+                } else {
+                    showError(result.message || 'Ошибка загрузки данных');
+                }
+            } catch (error) {
+                showError('Ошибка соединения с сервером');
+            }
+        }
+
+        function displayDashboard(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+
+            // Заполняем данные пользователя
+            document.getElementById('userName').textContent = data.user.fullname;
+            document.getElementById('welcomeName').textContent = data.user.fullname;
+            document.getElementById('membershipNumber').textContent = data.user.membership_number;
+            document.getElementById('membershipStatus').textContent = 
+                data.user.membership_status === 'active' ? 'Активен' : 'Неактивен';
+
+            // Статистика
+            document.getElementById('totalSlots').textContent = data.statistics.totalSlots;
+            document.getElementById('activeSlots').textContent = data.statistics.activeSlots;
+            document.getElementById('memberSince').textContent = 
+                new Date(data.user.created_at).toLocaleDateString('ru-RU');
+
+            // Отображаем слоты
+            displaySlots(data.slots);
+
+            // Отображаем историю
+            displayHistory(data.paymentHistory);
+        }
+
+        function displaySlots(slots) {
+            const container = document.getElementById('slotsContainer');
+            
+            if (slots.length === 0) {
+                container.innerHTML = '<p>У вас пока нет приобретенных слотов</p>';
+                return;
+            }
+
+            container.innerHTML = slots.map(slot => `
+                <div class="slot-card">
+                    <div class="slot-number">${slot.slot_number}</div>
+                    <div class="slot-date">
+                        Приобретен: ${new Date(slot.purchase_date).toLocaleDateString('ru-RU')}
+                    </div>
+                    <div class="slot-status">${slot.status === 'active' ? '✅ Активен' : '⏳ Ожидание'}</div>
+                </div>
+            `).join('');
+        }
+
+        function displayHistory(payments) {
+            const tbody = document.getElementById('historyBody');
+            
+            if (payments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Нет операций</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = payments.map(payment => `
+                <tr>
+                    <td>${new Date(payment.created_at).toLocaleDateString('ru-RU')}</td>
+                    <td>${payment.description}</td>
+                    <td>${payment.amount} ₽</td>
+                    <td class="status-${payment.status}">
+                        ${payment.status === 'completed' ? '✅ Завершено' : '⏳ В обработке'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function setupEventListeners() {
+            // Выбор количества слотов
+            document.querySelectorAll('.slot-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.slot-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    
+                    selectedSlotCount = parseInt(this.dataset.count);
+                    document.getElementById('purchaseBtn').disabled = false;
+                    document.getElementById('purchaseBtn').textContent = 
+                        `Приобрести ${selectedSlotCount} слотов за ${selectedSlotCount * 1000} ₽`;
+                });
+            });
+
+            // Кнопка покупки
+            document.getElementById('purchaseBtn').addEventListener('click', purchaseSlots);
+        }
+
+        async function purchaseSlots() {
+            if (selectedSlotCount === 0) return;
+
+            try {
+                const response = await fetch('/api/user/purchase-slots', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        slotCount: selectedSlotCount
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Перенаправляем на страницу оплаты Тинькофф
+                    window.open(result.data.paymentUrl, '_blank');
+                    
+                    // Обновляем данные через 5 секунд
+                    setTimeout(loadDashboard, 5000);
+                } else {
+                    showError(result.message || 'Ошибка создания платежа');
+                }
+            } catch (error) {
+                showError('Ошибка соединения с сервером');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
