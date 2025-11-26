@@ -11,7 +11,7 @@ const CONFIG = {
     URL: process.env.DATABASE_URL,
     
     // Резервные значения для production
-    HOST: process.env.DB_HOST,
+    HOST: process.env.DB_HOST || 'localhost',
     PORT: process.env.DB_PORT || 5432,
     NAME: process.env.DB_NAME,
     USER: process.env.DB_USER ,
