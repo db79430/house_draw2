@@ -215,13 +215,7 @@ app.get('/auth', (req, res) => {
   res.sendFile(path.join(__dirname, 'auth.html'));
 });
 
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
 
-app.get('/paymentfee', (req, res) => {
-  res.sendFile(path.join(__dirname, 'paymentfee.html'));
-});
 
 app.get('/dashboard', SlotController.getDashboard);
 app.post('/purchase-slots', SlotController.purchaseSlots);
@@ -229,6 +223,14 @@ app.get('/purchase-history', SlotController.getPurchaseHistory);
 
 app.get(/\/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/paymentfee', (req, res) => {
+  res.sendFile(path.join(__dirname, 'paymentfee.html'));
 });
 
 // app.listen(port, '0.0.0.0', () => {
