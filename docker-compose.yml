@@ -6,9 +6,9 @@ services:
     environment:
       - NODE_ENV=production
       - DB_NAME=house_draw_prod
-      - DB_USER=data                  
+      - DB_USER=house_draw_user               
       - DB_PASSWORD=secure_password_123
-      - DATABASE_URL=postgresql://data:secure_password_123@db:5432/house_draw_prod 
+      - DATABASE_URL=postgresql://house_draw_user:secure_password_123@db:5432/house_draw_prod 
     restart: unless-stopped
     depends_on:
       - db
@@ -17,7 +17,7 @@ services:
     image: postgres:14-alpine 
     environment:
       POSTGRES_DB: house_draw_prod    
-      POSTGRES_USER: data              
+      POSTGRES_USER: house_draw_user             
       POSTGRES_PASSWORD: secure_password_123
     volumes:
       - postgres_data:/var/lib/postgresql/data
