@@ -1,6 +1,7 @@
 -- Drop existing triggers to avoid conflicts
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
+DROP TRIGGER IF EXISTS update_slots_updated_at ON slots;
 DROP FUNCTION IF EXISTS update_updated_at_column;
 
 -- Create users table
@@ -69,7 +70,18 @@ CREATE TABLE IF NOT EXISTS payments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes
+-- Create slots table
+CREATE TABLE IF NOT EXISTS slots (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    slot_number VARCHAR(50) NOT NULL,
+    purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for users
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_payment_status ON users(payment_status);
@@ -81,10 +93,18 @@ CREATE INDEX IF NOT EXISTS idx_users_tilda_transaction_id ON users(tilda_transac
 DROP INDEX IF EXISTS idx_users_membership_number;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
 
+-- Create indexes for payments
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at);
+
+-- Create indexes for slots
+CREATE INDEX IF NOT EXISTS idx_slots_user_id ON slots(user_id);
+CREATE INDEX IF NOT EXISTS idx_slots_slot_number ON slots(slot_number);
+CREATE INDEX IF NOT EXISTS idx_slots_status ON slots(status);
+CREATE INDEX IF NOT EXISTS idx_slots_purchase_date ON slots(purchase_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_slots_unique_number ON slots(slot_number);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -95,11 +115,14 @@ BEGIN
 END;
 $func$ LANGUAGE plpgsql;
 
--- Create triggers
+-- Create triggers for all tables
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_slots_updated_at BEFORE UPDATE ON slots
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 🔥 Проверка что все исправлено
@@ -114,5 +137,19 @@ BEGIN
         RAISE NOTICE '✅ membership_number: VARCHAR(50) - OK';
     ELSE
         RAISE NOTICE '❌ membership_number: НЕПРАВИЛЬНЫЙ ТИП!';
+    END IF;
+
+    -- Проверим создание таблицы slots
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'slots') THEN
+        RAISE NOTICE '✅ Таблица slots создана успешно';
+    ELSE
+        RAISE NOTICE '❌ Таблица slots не создана!';
+    END IF;
+
+    -- Проверим индексы slots
+    IF EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'slots' AND indexname = 'idx_slots_user_id') THEN
+        RAISE NOTICE '✅ Индексы для slots созданы успешно';
+    ELSE
+        RAISE NOTICE '❌ Индексы для slots не созданы!';
     END IF;
 END $$;
