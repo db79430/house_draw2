@@ -18,6 +18,10 @@ import diagnosticRoutes from './routes/network.js';
 import AuthController from './controllers/AuthController.js';
 import User from './models/Users.js';
 import SlotController from './controllers/SlotController.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename)
 
 const app = express();
 // app.use(cors());
@@ -37,6 +41,8 @@ app.use((req, res, next) => {
 // Парсинг данных
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
 // app.use(express.static(__dirname));
 
 // app.use('/api', diagnosticRoutes);
@@ -64,19 +70,20 @@ app.get('/health', async (req, res) => {
 });
 
 // Главная страница (публичная)
-app.get('/', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Tilda Webhook Server is running',
-    timestamp: new Date().toISOString(),
-    endpoints: [
-      'POST /tilda-webhook (protected)',
-      'POST /tilda-form-submit (protected)',
-      'POST /tinkoff-callback',
-      'GET /health'
-    ]
-  });
-});
+// app.get('/', (req, res) => {
+//   res.json({ 
+//     status: 'OK', 
+//     message: 'Tilda Webhook Server is running',
+//     timestamp: new Date().toISOString(),
+//     endpoints: [
+//       'POST /tilda-webhook (protected)',
+//       'POST /tilda-form-submit (protected)',
+//       'POST /tinkoff-callback',
+//       'GET /health'
+//     ]
+//   });
+// });
+
 
 
 //   if (typeof TildaController.handleTildaWebhook === 'function') {
@@ -219,6 +226,15 @@ app.get('/paymentfee', (req, res) => {
 app.get('/dashboard', SlotController.getDashboard);
 app.post('/purchase-slots', SlotController.purchaseSlots);
 app.get('/purchase-history', SlotController.getPurchaseHistory);
+
+app.get(/\/(.*)/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// app.listen(port, '0.0.0.0', () => {
+//   console.log(`🚀 Server running on port ${port}`);
+//   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+// });
 
 // Эндпоинт для поиска пользователя по email/телефону
 // app.post('/find-user-by-credentials', async (req, res) => {
