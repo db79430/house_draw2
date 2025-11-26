@@ -340,7 +340,7 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 app.get('/dashboard', SlotController.getDashboard);
-app.post('/purchase-slots', SlotControllerController.purchaseSlots);
+app.post('/purchase-slots', SlotController.purchaseSlots);
 app.get('/purchase-history', SlotController.getPurchaseHistory);
 
 // Эндпоинт для поиска пользователя по email/телефону
