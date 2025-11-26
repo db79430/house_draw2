@@ -11,11 +11,11 @@ const CONFIG = {
     URL: process.env.DATABASE_URL,
     
     // Резервные значения для production
-    HOST: process.env.PGHOST || process.env.DB_HOST || 'postgres.railway.internal',
-    PORT: process.env.PGPORT || process.env.DB_PORT || 5432,
-    NAME: process.env.PGDATABASE || process.env.DB_NAME || 'railway',
-    USER: process.env.PGUSER || process.env.DB_USER || 'postgres',
-    PASSWORD: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'atqtzfUrVcTuGUReKaHBvrUmVXmuUHVV',
+    HOST: process.env.DB_HOST,
+    PORT: process.env.DB_PORT || 5432,
+    NAME: process.env.DB_NAME,
+    USER: process.env.DB_USER,
+    PASSWORD: process.env.DB_PASSWORD,
     SSL: true
   },
 
@@ -39,7 +39,7 @@ const CONFIG = {
   // Application settings
   APP: {
     PORT: process.env.PORT || 3000,
-    BASE_URL: process.env.BASE_URL || 'https://housedraw2-production.up.railway.app',
+    BASE_URL: process.env.BASE_URL,
     SUCCESS_URL: process.env.SUCCESS_URL,
     FAIL_URL: process.env.FAIL_URL
   },
