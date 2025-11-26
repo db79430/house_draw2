@@ -1,6 +1,7 @@
 import express, { json, urlencoded } from 'express';
 import CONFIG from './config/index.js'
 import runMigrations from './database/migrate.js';
+import path from 'path';
 
 // Импортируем классы контроллеров
 import TinkoffController from './controllers/TinkoffController.js';
