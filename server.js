@@ -466,7 +466,6 @@ async function startServer() {
       console.log('🚀 Server started successfully');
       console.log(`📍 Port: ${CONFIG.APP.PORT}`);
       console.log(`🔐 Tilda API Key: 770a56bbd1fdada08l`);
-      console.log(`🌐 URL: https://housedraw2-production.up.railway.app`);
       console.log('✅ Контроллеры инициализированы');
     });
   } catch (error) {

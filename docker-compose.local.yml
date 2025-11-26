@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .  # Просто билдим без указания стадии
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://house_draw_user:secure_password_123@host.docker.internal:5432/house_draw_prod
+    volumes:
+      - .:/app
+      - /app/node_modules
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
