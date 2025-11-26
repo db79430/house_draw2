@@ -16,6 +16,7 @@ import diagnosticRoutes from './routes/network.js';
 // import { checkEmailConfig }  from './config/emailConfig.js';
 import AuthController from './controllers/AuthController.js';
 import User from './models/Users.js';
+import SlotController from './controllers/SlotController.js';
 
 const app = express();
 // app.use(cors());
@@ -35,8 +36,21 @@ app.use((req, res, next) => {
 // Парсинг данных
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
 
 app.use('/api', diagnosticRoutes);
+
+app.get('/auth', (req, res) => {
+  res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/paymentfee', (req, res) => {
+  res.sendFile(path.join(__dirname, 'paymentfee.html'));
+});
 
 // Создаем экземпляры контроллеров
 // const tinkoffController = new TinkoffController();
@@ -324,6 +338,10 @@ app.post('/auth-validate', (req, res) => authController.validate(req, res));
 app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 // app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
+
+app.get('/dashboard', SlotController.getDashboard);
+app.post('/purchase-slots', SlotControllerController.purchaseSlots);
+app.get('/purchase-history', SlotController.getPurchaseHistory);
 
 // Эндпоинт для поиска пользователя по email/телефону
 // app.post('/find-user-by-credentials', async (req, res) => {

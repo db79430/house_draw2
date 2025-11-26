@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата вступительного взноса</title>
+    <style>
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .form-wrapper {
+            background: #fff;
+        }
+        
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+        
+        .data-value {
+            color: #555;
+            flex: 2;
+            text-align: right;
+        }
+        
+        #payment-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        #payment-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .member-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .manual-input {
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .manual-btn {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="payment-page" class="form-wrapper">
+            
+            <!-- Блок загрузки -->
+            <div id="loading-section" class="section active">
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                    <h2 style="color: #333; margin-bottom: 15px;">Загружаем ваши данные</h2>
+                    <p style="color: #666;">Пожалуйста, подождите...</p>
+                </div>
+            </div>
+
+            <!-- Блок данных пользователя -->
+            <div id="user-section" class="section">
+                <div class="member-header">
+                    <h2 style="margin: 0 0 15px 0;">✅ Регистрация успешна!</h2>
+                    <div style="font-size: 18px; margin-bottom: 10px;">Ваш номер члена клуба:</div>
+                    <div id="member-number" style="font-size: 28px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px;">-</div>
+                </div>
+                
+                <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="color: #333; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px;">📋 Ваши данные</h3>
+                    
+                    <div class="data-row">
+                        <div class="data-label">👤 ФИО:</div>
+                        <div id="user-fullname" class="data-value">-</div>
+                    </div>
+                    
+                    <div class="data-row">
+                        <div class="data-label">📧 Email:</div>
+                        <div id="user-email" class="data-value">-</div>
+                    </div>
+                    
+                    <div class="data-row">
+                        <div class="data-label">📞 Телефон:</div>
+                        <div id="user-phone" class="data-value">-</div>
+                    </div>
+                    
+                    <div class="data-row">
+                        <div class="data-label">🏙️ Город:</div>
+                        <div id="user-city" class="data-value">-</div>
+                    </div>
+                </div>
+
+                <!-- Блок оплаты -->
+                <div style="margin-top: 30px; text-align: center;">
+                    <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #666; font-size: 16px;">Для завершения регистрации оплатите вступительный взнос</p>
+                    </div>
+                    <button id="payment-btn">
+                        💳 Оплатить вступительный взнос
+                    </button>
+                </div>
+            </div>
+
+            <!-- Блок ручного ввода -->
+            <div id="manual-input-section" class="section">
+                <div style="text-align: center; padding: 50px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                    <h3 style="color: #333; margin-bottom: 15px;">Введите номер члена клуба</h3>
+                    <p id="manual-message" style="color: #666; margin-bottom: 25px;">Если вы только что зарегистрировались, введите номер который вам присвоили</p>
+                    
+                    <div style="max-width: 300px; margin: 0 auto;">
+                        <input type="text" id="manual-member-input" placeholder="Например: MPWHG" class="manual-input">
+                        <button onclick="loadWithManualNumber()" class="manual-btn">
+                            🔄 Загрузить данные
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://housedraw2-production.up.railway.app';
+
+        // Ищем данные пользователя
+        async function findMyUser() {
+            console.log('🔍 Searching for user data...');
+            
+            // 1. Пробуем найти в sessionStorage
+            const sessionMemberNumber = sessionStorage.getItem('currentMemberNumber');
+            if (sessionMemberNumber) {
+                console.log('✅ Found in sessionStorage:', sessionMemberNumber);
+                await loadUserData(sessionMemberNumber);
+                return;
+            }
+            
+            // 2. Пробуем найти в URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlMemberNumber = urlParams.get('memberNumber');
+            if (urlMemberNumber) {
+                console.log('✅ Found in URL:', urlMemberNumber);
+                await loadUserData(urlMemberNumber);
+                return;
+            }
+            
+            // 3. Если не нашли - показываем ручной ввод
+            console.log('❌ No memberNumber found, showing manual input');
+            showManualInput();
+        }
+
+        // Загрузка данных пользователя
+        async function loadUserData(memberNumber) {
+            try {
+                showLoading();
+                
+                console.log('📡 Loading user data for:', memberNumber);
+                const response = await fetch(`${API_BASE}/get-member/${memberNumber}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ User data received:', data);
+                    
+                    if (data.success) {
+                        displayUserData(data);
+                        // Сохраняем для будущего использования
+                        sessionStorage.setItem('currentMemberNumber', memberNumber);
+                    } else {
+                        throw new Error(data.error || 'User not found');
+                    }
+                } else {
+                    throw new Error('HTTP error: ' + response.status);
+                }
+            } catch (error) {
+                console.log('❌ Error loading user:', error);
+                showManualInput('Ошибка загрузки: ' + error.message);
+            }
+        }
+
+        // Отображение данных
+        function displayUserData(data) {
+            document.getElementById('member-number').textContent = data.memberNumber || 'Не указан';
+            document.getElementById('user-fullname').textContent = data.formData?.FullName || 'Не указано';
+            document.getElementById('user-email').textContent = data.formData?.Email || 'Не указано';
+            document.getElementById('user-phone').textContent = data.formData?.Phone || 'Не указано';
+            document.getElementById('user-city').textContent = data.formData?.City || 'Не указано';
+            
+            showUserSection();
+        }
+
+        // Создание платежа
+        async function createPayment() {
+            const memberNumber = document.getElementById('member-number').textContent;
+            
+            try {
+                const paymentBtn = document.getElementById('payment-btn');
+                paymentBtn.disabled = true;
+                paymentBtn.textContent = 'Создание платежа...';
+                
+                const response = await fetch(`${API_BASE}/create-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ memberNumber })
+                });
+
+                const result = await response.json();
+                
+                if (result.success && result.paymentUrl) {
+                    window.location.href = result.paymentUrl;
+                } else {
+                    alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+                    paymentBtn.disabled = false;
+                    paymentBtn.textContent = '💳 Оплатить вступительный взнос';
+                }
+            } catch (error) {
+                alert('Ошибка сети: ' + error.message);
+                document.getElementById('payment-btn').disabled = false;
+                document.getElementById('payment-btn').textContent = '💳 Оплатить вступительный взнос';
+            }
+        }
+
+        // Ручной ввод номера
+        function loadWithManualNumber() {
+            const manualNumber = document.getElementById('manual-member-input').value.trim();
+            if (manualNumber) {
+                console.log('⌨️ Manual input:', manualNumber);
+                loadUserData(manualNumber);
+            } else {
+                alert('Пожалуйста, введите номер члена клуба');
+            }
+        }
+
+        // Управление отображением
+        function showLoading() {
+            hideAllSections();
+            document.getElementById('loading-section').classList.add('active');
+        }
+
+        function showUserSection() {
+            hideAllSections();
+            document.getElementById('user-section').classList.add('active');
+        }
+
+        function showManualInput(message) {
+            hideAllSections();
+            document.getElementById('manual-input-section').classList.add('active');
+            
+            if (message) {
+                document.getElementById('manual-message').textContent = message;
+            }
+        }
+
+        function hideAllSections() {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Payment page loaded');
+            
+            document.getElementById('payment-btn').addEventListener('click', createPayment);
+            
+            // Обработчик Enter в поле ввода
+            document.getElementById('manual-member-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loadWithManualNumber();
+            });
+            
+            // Ищем данные пользователя
+            findMyUser();
+        });
+
+        // Делаем функцию глобальной для обработчика onclick
+        window.loadWithManualNumber = loadWithManualNumber;
+    </script>
+</body>
+</html>
