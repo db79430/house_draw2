@@ -8,7 +8,10 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
+      - DB_NAME=house_draw_prod
+      - DB_USER=house_draw_user
+      - DB_PASSWORD=secure_password_123
+      - DATABASE_URL=postgresql://house_draw_user:secure_password_123@localhost:5432/house_draw_prod
     restart: unless-stopped
     depends_on:
       - db
