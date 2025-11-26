@@ -1,8 +1,6 @@
 services:
   app:
-    build: 
-      context: .
-      target: production
+    build: .
     ports:
       - "3000:3000"   # ← ИЗМЕНИТЬ: Node.js на порту 3000
     environment:
