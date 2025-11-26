@@ -39,166 +39,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // app.use(express.static(__dirname));
 
-app.use('/api', diagnosticRoutes);
+// app.use('/api', diagnosticRoutes);
 
-app.get('/auth', (req, res) => {
-  res.sendFile(path.join(__dirname, 'auth.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-app.get('/paymentfee', (req, res) => {
-  res.sendFile(path.join(__dirname, 'paymentfee.html'));
-});
-
-// Создаем экземпляры контроллеров
-// const tinkoffController = new TinkoffController();
-// const emailController = new EmailController();
-// const tildaController = new TildaController();
-
-// Проверяем, что методы существуют
-// console.log('🔍 Проверка методов контроллеров:');
-// console.log('tildaController.handleTildaWebhook:', TildaController.handleTildaWebhook);
-// console.log('tinkoffController.handleNotification:', TinkoffController.handleNotification);
-// console.log('emailController.testEmail:', EmailController.testEmail);
-
-// CORS Middleware
-// app.use((req, res, next) => {
-//   res.header('Access-Control-Allow-Origin');
-//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Tilda-Api-Key');
-//   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  
-//   if (req.method === 'OPTIONS') {
-//     return res.status(200).end();
-//   }
-  
-//   next();
-// });
-
-// // Middleware для парсинга разных форматов данных
-// app.use((req, res, next) => {
-//   if (req.is('application/json')) {
-//     json()(req, res, next);
-//   } else if (req.is('application/x-www-form-urlencoded')) {
-//     urlencoded({ extended: true })(req, res, next);
-//   } else {
-//     next();
-//   }
-// });
-
-// app.use(cors({
-//   origin: '*',
-//   methods: ['GET', 'POST', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'X-Tilda-Api-Key', 'Origin', 'X-Requested-With', 'Accept'],
-//   credentials: false
-// }));
-
-// // Упрощенный middleware для парсинга данных
-// app.use(json());
-// app.use(urlencoded({ extended: true }));
-
-// Middleware для проверки API ключа Tilda
-// const tildaAuthMiddleware = (req, res, next) => {
-//   const TILDA_API_KEY = 'yhy1bcu4g5expmtldfv1';
-//   const apiKey = req.headers['x-tilda-api-key'];
-  
-//   console.log('🔐 Проверка API ключа Tilda:', {
-//     received: apiKey ? '***' + apiKey.slice(-4) : 'не указан',
-//     expected: '***d08l'
-//   });
-
-//   // Пропускаем health check без API ключа
-//   if (req.path === '/health' || req.path === '/') {
-//     return next();
-//   }
-
-//   if (!apiKey) {
-//     console.warn('⚠️ Попытка доступа без API ключа');
-//     return res.status(401).json({
-//       Success: false,
-//       ErrorCode: 'MISSING_API_KEY',
-//       Message: 'API key required in X-Tilda-Api-Key header'
-//     });
-//   }
-
-//   if (apiKey !== TILDA_API_KEY) {
-//     console.warn('❌ Неверный API ключ');
-//     return res.status(403).json({
-//       Success: false,
-//       ErrorCode: 'INVALID_API_KEY', 
-//       Message: 'Invalid API key'
-//     });
-//   }
-
-//   console.log('✅ API ключ проверен успешно');
-//   next();
-// };
-
-// ========== FALLBACK HANDLERS ==========
-
-// const fallbackTildaHandler = async (req, res) => {
-//   console.log('🎯 Fallback Tilda handler');
-  
-//   if (req.body.test === 'test') {
-//     return res.json({
-//       Success: true,
-//       Message: 'Test connection successful',
-//       Test: 'OK',
-//       Timestamp: new Date().toISOString()
-//     });
-//   }
-  
-//   // Предполагаем, что paymentURL приходит в теле запроса
-//   const paymentURL = req.body.paymentURL || req.body.PaymentURL;
-  
-//   res.json({
-//     Success: true,
-//     Message: 'Tilda webhook received (fallback)',
-//     Status: 'redirect' 
-//   });
-// };
-
-// const fallbackTildaHandler = async (req, res) => {
-//   console.log('🎯 Fallback Tilda handler');
-  
-//   // Обработка тестового запроса
-//   if (req.body.test === 'test') {
-//     return res.json({
-//       Success: true,
-//       Message: 'Test connection successful',
-//       Test: 'OK',
-//       Timestamp: new Date().toISOString()
-//     });
-//   }
-  
-//   // Получаем paymentURL из запроса или используем значение по умолчанию
-//   const paymentURL = req.body.paymentURL || req.body.PaymentURL;
-  
-//   // Возвращаем JSON с URL для редиректа (если Tilda сама выполняет редирект)
-//   return res.json({
-//     Success: true,
-//     Message: 'Tilda webhook received (fallback)',
-//     PaymentURL: paymentURL,
-//     Status: 'redirect',
-//   });
-// };
-
-// const fallbackTinkoffHandler = (req, res) => {
-//   console.log('📨 Tinkoff callback (fallback):', req.body);
-//   res.json({ Success: true });
-// };
-
-// const fallbackEmailHandler = (req, res) => {
-//   res.json({ 
-//     Success: true, 
-//     Message: 'Email service (fallback)',
-//     Timestamp: new Date().toISOString()
-//   });
-// };
-
-// ========== ROUTES ==========
 
 // Health check (публичный)
 app.get('/health', async (req, res) => {
@@ -236,7 +78,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
+
 //   if (typeof TildaController.handleTildaWebhook === 'function') {
 //     return TildaController.handleTildaWebhook(req, res);
 //   } else {
@@ -339,6 +181,18 @@ app.post('/auth-validate', (req, res) => authController.validate(req, res));
 app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 // app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
+
+app.get('/auth', (req, res) => {
+  res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/paymentfee', (req, res) => {
+  res.sendFile(path.join(__dirname, 'paymentfee.html'));
+});
 
 app.get('/dashboard', SlotController.getDashboard);
 app.post('/purchase-slots', SlotController.purchaseSlots);
