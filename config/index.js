@@ -39,7 +39,7 @@ const CONFIG = {
   // Application settings
   APP: {
     PORT: process.env.PORT || 3000,
-    BASE_URL: process.env.BASE_URL,
+    BASE_URL: process.env.BASE_URL || 'https://npkvdv.ru/',
     SUCCESS_URL: process.env.SUCCESS_URL,
     FAIL_URL: process.env.FAIL_URL
   },
