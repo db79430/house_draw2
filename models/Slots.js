@@ -28,7 +28,7 @@ class Slot {
     }
   }
 
-  static async findByUserId(userId) {
+  static async findByUserIdSlots(userId) {
     try {
       const query = `
         SELECT * FROM slots 
