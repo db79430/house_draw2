@@ -68,27 +68,6 @@
             border-radius: 12px;
         }
         
-        .manual-input {
-            padding: 12px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            width: 100%;
-            margin-bottom: 15px;
-            font-size: 16px;
-            text-align: center;
-        }
-        
-        .manual-btn {
-            padding: 12px 30px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-        }
-        
         .section {
             display: none;
         }
@@ -106,6 +85,20 @@
             font-weight: bold;
             display: inline-block;
             margin-bottom: 15px;
+        }
+
+        .error-section {
+            text-align: center;
+            padding: 50px 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -166,20 +159,14 @@
                 </div>
             </div>
 
-            <!-- Блок ручного ввода -->
-            <div id="manual-input-section" class="section">
-                <div style="text-align: center; padding: 50px 20px;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
-                    <h3 style="color: #333; margin-bottom: 15px;">Введите номер члена клуба</h3>
-                    <p id="manual-message" style="color: #666; margin-bottom: 25px;">Если вы зарегистрировались, но потеряли номер, введите его здесь</p>
-                    
-                    <div style="max-width: 300px; margin: 0 auto;">
-                        <input type="text" id="manual-member-input" placeholder="Например: MPABC123DEF" class="manual-input">
-                        <button onclick="loadWithManualNumber()" class="manual-btn">
-                            🔄 Загрузить данные
-                        </button>
-                    </div>
-                </div>
+            <!-- Блок ошибки -->
+            <div id="error-section" class="section error-section">
+                <div class="error-icon">❌</div>
+                <h3 style="color: #333; margin-bottom: 15px;">Ошибка загрузки данных</h3>
+                <p id="error-message" style="color: #666; margin-bottom: 25px;">Пожалуйста, попробуйте обновить страницу</p>
+                <button onclick="window.location.reload()" style="background: #667eea; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">
+                    🔄 Обновить страницу
+                </button>
             </div>
 
         </div>
@@ -188,33 +175,22 @@
     <script>
         const API_BASE = 'https://npkvdv.ru';
 
-        // Ищем данные пользователя при загрузке страницы
-        async function findMyUser() {
-            console.log('🔍 Searching for user data...');
-            
-            // 1. Пробуем найти в URL parameters (при редиректе от Tilda)
+        // Автоматическая загрузка при открытии страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('payment-btn').addEventListener('click', createPayment);
+            loadUserDataFromURL();
+        });
+
+        // Загрузка данных пользователя из URL
+        async function loadUserDataFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            const urlMemberNumber = urlParams.get('memberNumber');
+            const memberNumber = urlParams.get('memberNumber');
             
-            if (urlMemberNumber) {
-                console.log('✅ Found memberNumber in URL:', urlMemberNumber);
-                // Сохраняем в sessionStorage
-                sessionStorage.setItem('currentMemberNumber', urlMemberNumber);
-                await loadUserData(urlMemberNumber);
-                return;
+            if (memberNumber) {
+                await loadUserData(memberNumber);
+            } else {
+                showError('Номер члена клуба не найден в URL');
             }
-            
-            // 2. Пробуем найти в sessionStorage
-            const sessionMemberNumber = sessionStorage.getItem('currentMemberNumber');
-            if (sessionMemberNumber) {
-                console.log('✅ Found in sessionStorage:', sessionMemberNumber);
-                await loadUserData(sessionMemberNumber);
-                return;
-            }
-            
-            // 3. Если не нашли - показываем ручной ввод
-            console.log('❌ No memberNumber found, showing manual input');
-            showManualInput('Введите номер члена клуба, который вы получили при регистрации');
         }
 
         // Загрузка данных пользователя
@@ -222,12 +198,10 @@
             try {
                 showLoading();
                 
-                console.log('📡 Loading user data for:', memberNumber);
                 const response = await fetch(`${API_BASE}/get-member/${memberNumber}`);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('✅ User data received:', data);
                     
                     if (data.success) {
                         displayUserData(data);
@@ -235,11 +209,10 @@
                         throw new Error(data.error || 'Пользователь не найден');
                     }
                 } else {
-                    throw new Error('Ошибка загрузки: ' + response.status);
+                    throw new Error('Ошибка загрузки данных');
                 }
             } catch (error) {
-                console.log('❌ Error loading user:', error);
-                showManualInput('Ошибка загрузки: ' + error.message + '. Проверьте номер и попробуйте снова.');
+                showError('Не удалось загрузить данные: ' + error.message);
             }
         }
 
@@ -287,17 +260,6 @@
             }
         }
 
-        // Ручной ввод номера
-        function loadWithManualNumber() {
-            const manualNumber = document.getElementById('manual-member-input').value.trim();
-            if (manualNumber) {
-                console.log('⌨️ Manual input:', manualNumber);
-                loadUserData(manualNumber);
-            } else {
-                alert('Пожалуйста, введите номер члена клуба');
-            }
-        }
-
         // Управление отображением
         function showLoading() {
             hideAllSections();
@@ -309,13 +271,10 @@
             document.getElementById('user-section').classList.add('active');
         }
 
-        function showManualInput(message) {
+        function showError(message) {
             hideAllSections();
-            document.getElementById('manual-input-section').classList.add('active');
-            
-            if (message) {
-                document.getElementById('manual-message').textContent = message;
-            }
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-section').classList.add('active');
         }
 
         function hideAllSections() {
@@ -324,24 +283,6 @@
                 section.classList.remove('active');
             });
         }
-
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Payment page loaded');
-            
-            document.getElementById('payment-btn').addEventListener('click', createPayment);
-            
-            // Обработчик Enter в поле ввода
-            document.getElementById('manual-member-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') loadWithManualNumber();
-            });
-            
-            // Ищем данные пользователя
-            findMyUser();
-        });
-
-        // Делаем функцию глобальной для обработчика onclick
-        window.loadWithManualNumber = loadWithManualNumber;
     </script>
 </body>
 </html>
