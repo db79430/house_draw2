@@ -101,7 +101,7 @@ app.get('/tilda-webhook', (req, res) => {
   });
 });
 
-app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => { tildaController.handleTildaWebhook(req, res)});
+app.post('/tilda-webhook', (req, res) => tildaController.handleTildaWebhook(req, res));
 
 // Tilda routes
 app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => tildaController.validateForm(req, res));

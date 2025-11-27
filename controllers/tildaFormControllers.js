@@ -1414,7 +1414,7 @@ class TildaController {
           ErrorCode: 'ALREADY_PAID', 
           Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
           MemberNumber: existingUserCheck.user.membership_number,
-          RedirectUrl: `http://npk-vdv.ru/paymentfee?memberNumber=${existingUserCheck.user.membership_number}`
+          RedirectUrl: `http://npkvdv.ru/paymentfee?memberNumber=${existingUserCheck.user.membership_number}`
         });
       }
   
