@@ -96,29 +96,34 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-app.post('/test-webhook', (req, res) => {
-  console.log('✅ Тестовый вебхук получен:', req.body);
-  res.json({ status: 'success', received: req.body });
-});
 
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 
 const emailController = new EmailController();
 const authController = new AuthController();
 
-// app.get('/tilda-webhook', (req, res) => {
-//   console.log('🔔 GET /tilda-webhook - Tilda test request');
+app.get('/tilda-webhook', (req, res) => {
+  console.log('🔔 GET /tilda-webhook - Tilda connectivity check');
+  console.log('📋 Query parameters:', req.query);
+  console.log('🌐 Headers:', req.headers);
   
-//   res.json({
-//     Success: true,
-//     Message: 'GET webhook test successful',
-//     Method: 'GET',
-//     Test: 'OK',
-//     Timestamp: new Date().toISOString()
-//   });
-// });
+  // Tilda ожидает JSON ответ с определенной структурой
+  res.json({
+    Success: true,
+    Message: 'Webhook is available',
+    Method: 'GET',
+    Test: 'OK',
+    Timestamp: new Date().toISOString()
+  });
+});
 
 app.post('/tilda-webhook', (req, res) => tildaController.handleTildaWebhook(req, res));
+
+app.post('/test-webhook', (req, res) => {
+  console.log('✅ Тестовый вебхук получен:', req.body);
+  res.json({ status: 'success', received: req.body });
+});
+
 
 // Tilda routes
 app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => tildaController.validateForm(req, res));
