@@ -1280,112 +1280,12 @@ import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 
 class TildaController {
-  /**
-   * Основной метод для обработки вебхука от Tilda
-   * Только создает пользователя и номер члена клуба, БЕЗ платежа
-   */
-  // async handleTildaWebhook(req, res) {
-  //   console.log('🔍 Получен вебхук от Tilda...');
-    
-  //   try {
-  //     console.log('📥 Raw данные от Tilda:', req.body);
-  //     if (!this.verifyTildaSignature(req)) {
-  //       console.warn('❌ Неверная подпись запроса от Tilda');
-  //       return res.status(401).json({
-  //         Success: false,
-  //         Message: 'Invalid signature'
-  //       });
-  //     }
-
-  //     // Нормализуем данные из Tilda
-  //     const { formData, tildaData } = this.normalizeTildaData(req.body);
-      
-  //     console.log('🔄 Нормализованные данные:', { formData, tildaData });
-
-  //     // Валидация формы
-  //     const validationErrors = TildaFormService.validateFormData(formData);
-  //     if (validationErrors.length > 0) {
-  //       return res.json({
-  //         Success: false,
-  //         ErrorCode: 'VALIDATION_ERROR',
-  //         Message: validationErrors.join(', '),
-  //         Details: validationErrors
-  //       });
-  //     }
-
-  //     // Проверка существующего пользователя
-  //     const existingUserCheck = await this.checkExistingUserAndPayments(formData);
-      
-  //     // Если пользователь уже оплатил - ошибка
-  //     if (existingUserCheck.hasActivePayment) {
-  //       console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
-        
-  //       return res.json({
-  //         Success: false,
-  //         ErrorCode: 'ALREADY_PAID', 
-  //         Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
-  //         MemberNumber: existingUserCheck.user.membership_number,
-  //         RedirectUrl: `http://npk-vdv.ru/paymentfee?memberNumber=${existingUserCheck.user.membership_number}`
-  //       });
-  //     }
-
-  //     let userResult;
-  //     let memberNumber;
-
-  //     // Если пользователь существует но не оплатил - используем его
-  //     if (existingUserCheck.user) {
-  //       console.log('🔄 Пользователь существует, но не оплатил');
-  //       userResult = { user: existingUserCheck.user };
-  //       memberNumber = existingUserCheck.user.membership_number;
-        
-  //       // Если номера нет - генерируем
-  //       if (!memberNumber) {
-  //         memberNumber = await User.generateUniqueMemberNumber();
-  //         await User.updateMemberNumber(existingUserCheck.user.id, memberNumber);
-  //       }
-  //     } else {
-  //       // СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ
-  //       userResult = await TildaFormService.createUserFromForm(formData, tildaData);
-        
-  //       // ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА
-  //       memberNumber = await User.generateUniqueMemberNumber();
-  //       await User.updateMemberNumber(userResult.user.id, memberNumber);
-
-  //       console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
-  //     }
-
-  //     // ПЕРЕНАПРАВЛЯЕМ НА СТРАНИЦУ С ДАННЫМИ (БЕЗ ПЛАТЕЖА)
-  //     return res.json({
-  //       Success: true,
-  //       RedirectUrl: `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`,
-  //       Status: 'redirect',
-  //       MemberNumber: memberNumber,
-  //       Message: 'Регистрация успешна. Переход к оплате.'
-  //     });
-
-  //   } catch (error) {
-  //     console.error('❌ Ошибка обработки вебхука:', error);
-  //     return res.json({
-  //       Success: false,
-  //       ErrorCode: 'PROCESSING_ERROR',
-  //       Message: error.message
-  //     });
-  //   }
-  // }
-
   async handleTildaWebhook(req, res) {
     console.log('🔍 Получен вебхук от Tilda...');
     
     try {
       console.log('📥 Raw данные от Tilda:', req.body);
-      if (!this.verifyTildaSignature(req)) {
-        console.warn('❌ Неверная подпись запроса от Tilda');
-        return res.status(401).json({
-          Success: false,
-          Message: 'Invalid signature'
-        });
-      }
-  
+      
       // Нормализуем данные из Tilda
       const { formData, tildaData } = this.normalizeTildaData(req.body);
       
@@ -1395,10 +1295,9 @@ class TildaController {
       const validationErrors = TildaFormService.validateFormData(formData);
       if (validationErrors.length > 0) {
         return res.json({
-          Success: false,
-          ErrorCode: 'VALIDATION_ERROR',
-          Message: validationErrors.join(', '),
-          Details: validationErrors
+          "formid": req.body.formid || "tilda-form",
+          "type": "error", 
+          "Errors": validationErrors
         });
       }
   
@@ -1410,11 +1309,10 @@ class TildaController {
         console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
         
         return res.json({
-          Success: false,
-          ErrorCode: 'ALREADY_PAID', 
-          Message: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
-          MemberNumber: existingUserCheck.user.membership_number,
-          RedirectUrl: `http://npkvdv.ru/paymentfee?memberNumber=${existingUserCheck.user.membership_number}`
+          "formid": req.body.formid || "tilda-form",
+          "type": "error",
+          "ErrorCode": "ALREADY_PAID", 
+          "Message": "Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа."
         });
       }
   
@@ -1443,21 +1341,18 @@ class TildaController {
         console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
       }
   
-      // 🔥 ВАЖНО: Правильный RedirectUrl с параметром memberNumber
-      const redirectUrl = `http://npk-vdv.ru/paymentfee?memberNumber=${memberNumber}`;
-      
-      console.log('🎯 Перенаправляем на:', redirectUrl);
-
-      const tildaResponse = {
+      // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
+      const response = {
         "formid": req.body.formid || "tilda-form",
-        "type": "success", 
-        "RedirectUrl": redirectUrl, // 🔥 именно такое название поля
-        "Message": "Регистрация успешна. Переход к оплате."
+        "type": "success",
+        "paymenturl": `http://npkvdv.ru/paymentfee?memberNumber=${memberNumber}`,
+        "paymentid": memberNumber,
+        "message": "Регистрация успешна. Переход к оплате."
       };
       
-      console.log('🔴 CLEAN RESPONSE TO TILDA:', tildaResponse);
+      console.log('🎯 Ответ для Tilda:', response);
   
-      return res.json(tildaResponse);
+      return res.json(response);
   
     } catch (error) {
       console.error('❌ Ошибка обработки вебхука:', error);
@@ -1468,7 +1363,6 @@ class TildaController {
       });
     }
   }
-
   /**
    * Создание платежа при нажатии кнопки оплаты
    */
