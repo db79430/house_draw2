@@ -101,27 +101,7 @@ app.get('/tilda-webhook', (req, res) => {
   });
 });
 
-app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
-  console.log('✅ Tilda webhook received');
-  
-  // Всегда отвечаем успешно на тестовые запросы
-  if (req.body.test === 'test') {
-    return res.json({
-      Success: true,
-      Message: 'Test connection successful',
-      Test: 'OK',
-      Timestamp: new Date().toISOString()
-    });
-  }
-  
-  // Для реальных данных тоже отвечаем успешно
-  return res.json({
-    Success: true,
-    Message: 'Webhook received successfully',
-    Data: req.body,
-    Timestamp: new Date().toISOString()
-  });
-});
+app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => { tildaController.handleTildaWebhook(req, res)});
 
 // Tilda routes
 app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => tildaController.validateForm(req, res));
