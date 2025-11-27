@@ -95,7 +95,20 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
+app.get('/paymentfee', (req, res) => {
+  console.log('🎯 ==== PAYMENTFEE REQUEST ====');
+  console.log('Query params:', req.query);
+  console.log('🎯 ==== END PAYMENTFEE ====');
 
+  // Если есть memberNumber в параметрах - отдаем страницу оплаты
+  if (req.query.memberNumber) {
+    console.log('✅ Member number from Tilda:', req.query.memberNumber);
+    return res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
+  }
+
+  // Если нет memberNumber - пробуем найти в сессии или показываем ручной ввод
+  res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
+});
 
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 

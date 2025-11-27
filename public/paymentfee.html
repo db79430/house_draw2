@@ -96,6 +96,17 @@
         .active {
             display: block;
         }
+
+        .success-badge {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -114,7 +125,8 @@
             <!-- Блок данных пользователя -->
             <div id="user-section" class="section">
                 <div class="member-header">
-                    <h2 style="margin: 0 0 15px 0;">✅ Регистрация успешна!</h2>
+                    <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
+                    <h2 style="margin: 0 0 15px 0;">Добро пожаловать в клуб!</h2>
                     <div style="font-size: 18px; margin-bottom: 10px;">Ваш номер члена клуба:</div>
                     <div id="member-number" style="font-size: 28px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px;">-</div>
                 </div>
@@ -159,10 +171,10 @@
                 <div style="text-align: center; padding: 50px 20px;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
                     <h3 style="color: #333; margin-bottom: 15px;">Введите номер члена клуба</h3>
-                    <p id="manual-message" style="color: #666; margin-bottom: 25px;">Если вы только что зарегистрировались, введите номер который вам присвоили</p>
+                    <p id="manual-message" style="color: #666; margin-bottom: 25px;">Если вы зарегистрировались, но потеряли номер, введите его здесь</p>
                     
                     <div style="max-width: 300px; margin: 0 auto;">
-                        <input type="text" id="manual-member-input" placeholder="Например: MPWHG" class="manual-input">
+                        <input type="text" id="manual-member-input" placeholder="Например: MPABC123DEF" class="manual-input">
                         <button onclick="loadWithManualNumber()" class="manual-btn">
                             🔄 Загрузить данные
                         </button>
@@ -176,11 +188,23 @@
     <script>
         const API_BASE = 'https://npkvdv.ru';
 
-        // Ищем данные пользователя
+        // Ищем данные пользователя при загрузке страницы
         async function findMyUser() {
             console.log('🔍 Searching for user data...');
             
-            // 1. Пробуем найти в sessionStorage
+            // 1. Пробуем найти в URL parameters (при редиректе от Tilda)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlMemberNumber = urlParams.get('memberNumber');
+            
+            if (urlMemberNumber) {
+                console.log('✅ Found memberNumber in URL:', urlMemberNumber);
+                // Сохраняем в sessionStorage
+                sessionStorage.setItem('currentMemberNumber', urlMemberNumber);
+                await loadUserData(urlMemberNumber);
+                return;
+            }
+            
+            // 2. Пробуем найти в sessionStorage
             const sessionMemberNumber = sessionStorage.getItem('currentMemberNumber');
             if (sessionMemberNumber) {
                 console.log('✅ Found in sessionStorage:', sessionMemberNumber);
@@ -188,18 +212,9 @@
                 return;
             }
             
-            // 2. Пробуем найти в URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlMemberNumber = urlParams.get('memberNumber');
-            if (urlMemberNumber) {
-                console.log('✅ Found in URL:', urlMemberNumber);
-                await loadUserData(urlMemberNumber);
-                return;
-            }
-            
             // 3. Если не нашли - показываем ручной ввод
             console.log('❌ No memberNumber found, showing manual input');
-            showManualInput();
+            showManualInput('Введите номер члена клуба, который вы получили при регистрации');
         }
 
         // Загрузка данных пользователя
@@ -216,27 +231,25 @@
                     
                     if (data.success) {
                         displayUserData(data);
-                        // Сохраняем для будущего использования
-                        sessionStorage.setItem('currentMemberNumber', memberNumber);
                     } else {
-                        throw new Error(data.error || 'User not found');
+                        throw new Error(data.error || 'Пользователь не найден');
                     }
                 } else {
-                    throw new Error('HTTP error: ' + response.status);
+                    throw new Error('Ошибка загрузки: ' + response.status);
                 }
             } catch (error) {
                 console.log('❌ Error loading user:', error);
-                showManualInput('Ошибка загрузки: ' + error.message);
+                showManualInput('Ошибка загрузки: ' + error.message + '. Проверьте номер и попробуйте снова.');
             }
         }
 
-        // Отображение данных
+        // Отображение данных пользователя
         function displayUserData(data) {
             document.getElementById('member-number').textContent = data.memberNumber || 'Не указан';
-            document.getElementById('user-fullname').textContent = data.formData?.FullName || 'Не указано';
-            document.getElementById('user-email').textContent = data.formData?.Email || 'Не указано';
-            document.getElementById('user-phone').textContent = data.formData?.Phone || 'Не указано';
-            document.getElementById('user-city').textContent = data.formData?.City || 'Не указано';
+            document.getElementById('user-fullname').textContent = data.formData?.name || data.formData?.FullName || 'Не указано';
+            document.getElementById('user-email').textContent = data.formData?.email || data.formData?.Email || 'Не указано';
+            document.getElementById('user-phone').textContent = data.formData?.phone || data.formData?.Phone || 'Не указано';
+            document.getElementById('user-city').textContent = data.formData?.city || data.formData?.City || 'Не указано';
             
             showUserSection();
         }
