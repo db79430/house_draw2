@@ -89,6 +89,18 @@ const tinkoffController = new TinkoffController();
 const emailController = new EmailController();
 const authController = new AuthController();
 
+app.get('/tilda-webhook', (req, res) => {
+  console.log('🔔 GET /tilda-webhook - Tilda test request');
+  
+  res.json({
+    Success: true,
+    Message: 'GET webhook test successful',
+    Method: 'GET',
+    Test: 'OK',
+    Timestamp: new Date().toISOString()
+  });
+});
+
 app.post('/tilda-webhook', tildaAuthMiddleware, (req, res) => {
   console.log('✅ Tilda webhook received');
   
