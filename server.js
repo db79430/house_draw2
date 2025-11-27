@@ -96,6 +96,11 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+app.post('/test-webhook', (req, res) => {
+  console.log('✅ Тестовый вебхук получен:', req.body);
+  res.json({ status: 'success', received: req.body });
+});
+
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 
 const emailController = new EmailController();
