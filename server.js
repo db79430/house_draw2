@@ -137,42 +137,36 @@ app.post('/test-webhook', (req, res) => {
   res.json({ status: 'success', received: req.body });
 });
 
-app.get('/get-member-number', async (req, res) => {
+app.get('/api/get-member-number', async (req, res) => {
   try {
-    // Получаем данные из query параметров (email, phone, etc)
-    const { email, phone, name } = req.query;
-    
-    console.log('🔍 Поиск номера члена клуба для:', { email, phone, name });
-    
-    // Ищем пользователя в базе по email или телефону
+    const { email, phone } = req.query;
     const user = await User.findUserByEmailOrPhone(email, phone);
     
     if (user) {
-      console.log('✅ Найден пользователь:', user.memberNumber);
+      // Пробуем разные варианты названия поля
+      const memberNumber = user.membership_number
+      
+      console.log('✅ Найден пользователь:', { 
+        email: user.email, 
+        memberNumber: memberNumber,
+        availableFields: Object.keys(user) 
+      });
+      
       res.json({
         success: true,
-        memberNumber: user.memberNumber,
+        memberNumber: memberNumber,
         userData: {
-          name: user.name,
+          name: user.name || user.fullname,
           email: user.email,
           phone: user.phone,
           city: user.city
         }
       });
     } else {
-      console.log('❌ Пользователь не найден');
-      res.json({
-        success: false,
-        error: 'Пользователь не найден'
-      });
+      res.json({ success: false, error: 'Пользователь не найден' });
     }
-    
   } catch (error) {
-    console.error('❌ Ошибка поиска:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Ошибка сервера'
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
