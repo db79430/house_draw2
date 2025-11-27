@@ -98,6 +98,18 @@ class User {
     }
   }
 
+  static async findUserByEmailOrPhone(email, phone) {
+    // Пример для PostgreSQL
+    const user = await db.oneOrNone(
+      `SELECT * FROM users 
+       WHERE email = $1 OR phone = $2 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
+      [email, phone]
+    );
+    return user;
+  }
+
   static async findOne(credentials) {
     try {
       const { email, phone } = credentials;
