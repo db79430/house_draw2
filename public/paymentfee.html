@@ -216,47 +216,24 @@
     <div class="container">
         <div id="payment-page" class="form-wrapper">
             
-            <!-- Блок загрузки -->
             <div id="loading-section" class="section active">
                 <div style="text-align: center; padding: 60px 20px;">
                     <div class="loading-spinner"></div>
+                    <h2 style="color: #2d5016; margin-bottom: 15px;">Загружаем ваши данные</h2>
+                    <p style="color: #4a7c2a;">Подготовка к оплате...</p>
                 </div>
             </div>
 
-            <!-- Блок поиска -->
-            <div id="search-section" class="section search-section">
-                <div class="house-icon">🏡</div>
-                <h3 style="color: #2d5016; margin-bottom: 15px;">Для получения логина и пароля</h3>
-                <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при регистрации</p>
-                
-                <div style="max-width: 300px; margin: 0 auto;">
-                    <input type="text" id="search-input" placeholder="Email или телефон" class="search-input">
-                    <button onclick="findMemberNumber()" class="search-btn">
-                        🌿 Найти номер
-                    </button>
-                </div>
-                
-                <div class="info-box" style="margin-top: 25px;">
-                    <p style="margin: 0; color: #2d5016; font-size: 14px;">
-                        <span class="leaf-icon">🌱</span>
-                       Ваш номер члена клуба - это ключ к участию в нашем сообществе.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Блок данных пользователя -->
             <div id="user-section" class="section">
                 <div class="member-header">
-                    <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА ЗАВЕРШЕНА</div>
-                    <h2 style="margin: 0 0 15px 0; font-size: 24px;">Добро пожаловать в наше сообщество!</h2>
-                    <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Ваш номер члена клуба:</div>
-                    <div id="member-number" style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">-</div>
+                    <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
+                    <h2 style="margin: 0 0 15px 0;">Добро пожаловать в клуб!</h2>
+                    <div style="font-size: 16px; margin-bottom: 10px;">Ваш номер члена клуба:</div>
+                    <div id="member-number" style="font-size: 28px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px;">-</div>
                 </div>
                 
-                <div style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
-                    <h3 style="color: #2d5016; margin-bottom: 25px; border-bottom: 2px solid #4CAF50; padding-bottom: 12px; display: flex; align-items: center;">
-                        <span style="margin-right: 10px;">📋</span>Ваши данные
-                    </h3>
+                <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 0 20px;">
+                    <h3 style="color: #333; margin-bottom: 20px;">📋 Ваши данные</h3>
                     
                     <div class="data-row">
                         <div class="data-label">👤 ФИО:</div>
@@ -272,18 +249,12 @@
                         <div class="data-label">📞 Телефон:</div>
                         <div id="user-phone" class="data-value">-</div>
                     </div>
-                    
-                    <div class="data-row">
-                        <div class="data-label">🏙️ Город:</div>
-                        <div id="user-city" class="data-value">-</div>
-                    </div>
                 </div>
 
-                <!-- Блок оплаты -->
                 <div style="margin: 30px 20px; text-align: center;">
-                    <div style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
-                        <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
-                            🏗️ Для получения доступа к личному кабинету "Оплатите вступительный взнос"
+                    <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #666; font-size: 16px;">
+                            После оплаты вам на email придут данные для входа в личный кабинет
                         </p>
                     </div>
                     <button id="payment-btn">
@@ -298,80 +269,46 @@
     <script>
         const API_BASE = 'https://npkvdv.ru';
 
-        // Автоматическая загрузка при открытии страницы
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('payment-btn').addEventListener('click', createPayment);
-            
-            // Обработчик Enter в поле поиска
-            document.getElementById('search-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') findMemberNumber();
-            });
-            
-            // Показываем поиск сразу
-            setTimeout(() => {
-                showSearchSection();
-            }, 1000);
+            loadUserData();
         });
 
-        // Поиск номера члена клуба
-        async function findMemberNumber() {
-            const searchValue = document.getElementById('search-input').value.trim();
+        async function loadUserData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberNumber = urlParams.get('memberNumber');
             
-            if (!searchValue) {
-                alert('Пожалуйста, введите email или телефон');
-                return;
-            }
-            
-            try {
-                showLoading();
-                
-                // Определяем, что ввел пользователь - email или телефон
-                const isEmail = searchValue.includes('@');
-                const params = isEmail ? `email=${encodeURIComponent(searchValue)}` : `phone=${encodeURIComponent(searchValue)}`;
-                
-                const response = await fetch(`${API_BASE}/api/get-member-number?${params}`);
-                
-                if (response.ok) {
+            if (memberNumber) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/get-member/${memberNumber}`);
                     const data = await response.json();
                     
                     if (data.success) {
-                        displayUserData(data);
+                        document.getElementById('member-number').textContent = data.memberNumber;
+                        document.getElementById('user-fullname').textContent = data.userData.name;
+                        document.getElementById('user-email').textContent = data.userData.email;
+                        document.getElementById('user-phone').textContent = data.userData.phone;
+                        showUserSection();
                     } else {
-                        throw new Error(data.error || 'Номер не найден');
+                        alert('Ошибка: ' + data.error);
                     }
-                } else {
-                    throw new Error('Ошибка сервера');
+                } catch (error) {
+                    alert('Ошибка загрузки данных');
                 }
-            } catch (error) {
-                showSearchSection('Ошибка: ' + error.message + '. Проверьте данные и попробуйте снова.');
             }
         }
 
-        // Отображение данных пользователя
-        function displayUserData(data) {
-            document.getElementById('member-number').textContent = data.memberNumber;
-            document.getElementById('user-fullname').textContent = data.userData?.name || 'Не указано';
-            document.getElementById('user-email').textContent = data.userData?.email || 'Не указано';
-            document.getElementById('user-phone').textContent = data.userData?.phone || 'Не указано';
-            document.getElementById('user-city').textContent = data.userData?.city || 'Не указано';
-            
-            showUserSection();
-        }
-
-        // Создание платежа
         async function createPayment() {
             const memberNumber = document.getElementById('member-number').textContent;
             
             try {
                 const paymentBtn = document.getElementById('payment-btn');
                 paymentBtn.disabled = true;
-                paymentBtn.textContent = 'Создание платежа...';
+                paymentBtn.textContent = 'Перенаправление к оплате...';
                 
                 const response = await fetch(`${API_BASE}/create-payment`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memberNumber })
                 });
 
@@ -391,34 +328,10 @@
             }
         }
 
-        // Управление отображением
-        function showLoading() {
-            hideAllSections();
-            document.getElementById('loading-section').classList.add('active');
-        }
-
-        function showSearchSection(message) {
-            hideAllSections();
-            if (message) {
-                document.querySelector('#search-section p').textContent = message;
-            }
-            document.getElementById('search-section').classList.add('active');
-        }
-
         function showUserSection() {
-            hideAllSections();
+            document.getElementById('loading-section').classList.remove('active');
             document.getElementById('user-section').classList.add('active');
         }
-
-        function hideAllSections() {
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(section => {
-                section.classList.remove('active');
-            });
-        }
-
-        // Делаем функцию глобальной
-        window.findMemberNumber = findMemberNumber;
     </script>
 </body>
 </html>
