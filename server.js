@@ -64,7 +64,7 @@ app.get('/dashboard', (req, res) => {
 
 
 // API роуты - ПОСЛЕ HTML
-app.get('/health', async (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     await db.one('SELECT 1 as test');
     
