@@ -43,6 +43,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use((req, res, next) => {
+  console.log('🎯 ==== INCOMING REQUEST ====');
+  console.log('Time:', new Date().toISOString());
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('IP:', req.ip);
+  console.log('🎯 ==== END REQUEST ====');
+  next();
+});
+
 app.get('/', (req, res) => {
   console.log('📄 Serving index.html');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
