@@ -137,7 +137,7 @@ app.post('/test-webhook', (req, res) => {
   res.json({ status: 'success', received: req.body });
 });
 
-app.get('/api/get-member-number', async (req, res) => {
+app.get('/get-member-number', async (req, res) => {
   try {
     const { email, phone } = req.query;
     const user = await User.findUserByEmailOrPhone(email, phone);
