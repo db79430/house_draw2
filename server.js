@@ -201,6 +201,11 @@ app.get('/check-payment-status/:memberNumber', (req, res) => tildaController.che
 // Fallback route 
 app.post('/tilda-fallback', tildaAuthMiddleware);
 
+app.get('/auth', (req, res) => {
+  res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
+
 // Auth routes 
 app.post('/auth-login', (req, res) => authController.login(req, res));
 app.post('/auth-validate', (req, res) => authController.validate(req, res));
@@ -208,9 +213,6 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 // app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
-app.get('/auth', (req, res) => {
-  res.sendFile(path.join(__dirname, 'auth.html'));
-});
 
 // В вашем app.js добавьте обработку параметра
 app.get('/api/user/dashboard', async (req, res) => {
