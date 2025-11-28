@@ -28,7 +28,7 @@ class User {
 
     const query = `
       INSERT INTO users (
-        fullname, phone, email, login, password_hash, yeardate, city, 
+        fullname, phone, email, login, password, yeardate, city, 
         conditions, checkbox, documents, payment_status, slot_number,
         payment_id, purchased_numbers, membership_status,
         tilda_transaction_id, tilda_form_id, tilda_project_id, tilda_page_id
@@ -245,10 +245,17 @@ class User {
 
   static async updatePassword(userId, newPassword) {
     try {
-      // Убедитесь, что используете то же поле, что и в create
-      const query = 'UPDATE users SET password_hash = $1 WHERE id = $2';
-      await db.none(query, [newPassword, userId]);
-      console.log('✅ Password updated for user:', userId);
+      // ВРЕМЕННО: Сохраняем пароль как есть (без хэширования)
+      const query = `
+        UPDATE users 
+        SET password = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, email
+      `;
+      
+      const result = await db.one(query, [newPassword, userId]);
+      console.log('✅ Password updated for user:', result.email);
+      return result;
     } catch (error) {
       console.error('❌ Error updating password:', error);
       throw error;
@@ -288,29 +295,28 @@ class User {
   
       const cleanLogin = login.trim().toLowerCase();
       
-      // Пробуем оба варианта - password и password_hash
-      const query = `
-        SELECT 
-          id, email, login, 
-          COALESCE(password, password_hash) as password,  // ← используем COALESCE
-          membership_status, fullname, phone, created_at
-        FROM users 
-        WHERE LOWER(email) = $1 OR LOWER(login) = $1
-        LIMIT 1
-      `;
-      
-      const user = await db.oneOrNone(query, [cleanLogin]);
+      // Ищем по email
+      const emailQuery = 'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1';
+      let user = await db.oneOrNone(emailQuery, [cleanLogin]);
       
       if (user) {
-        console.log('✅ User found:', {
-          email: user.email,
-          login: user.login,
-          passwordExists: !!user.password,
-          passwordLength: user.password?.length,
-          membership_status: user.membership_status
-        });
+        console.log('✅ User found by email:', user.email);
         return user;
       }
+  
+      // Если не нашли по email, ищем по login
+      const loginQuery = 'SELECT * FROM users WHERE LOWER(login) = $1 LIMIT 1';
+      user = await db.oneOrNone(loginQuery, [cleanLogin]);
+    
+    if (user) {
+      console.log('✅ User found by email:', {
+        email: user.email,
+        password: user.password,
+        passwordLength: user.password?.length,
+        membership_status: user.membership_status
+      });
+      return user;
+    }
   
       console.log('❌ User not found by email or login:', cleanLogin);
       return null;
