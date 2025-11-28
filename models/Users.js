@@ -286,20 +286,35 @@ class User {
 
   static async findByLoginOrEmail(login) {
     try {
-      // Простой запрос без Op
-      let user = await this.findOne({
-        where: { email: login },
-        attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
-      });
+      console.log('🔍 Searching user by login/email:', login);
       
-      if (!user) {
-        user = await this.findOne({
-          where: { login: login },
-          attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
-        });
+      if (!login || login.trim() === '') {
+        console.log('❌ Login parameter is empty');
+        return null;
       }
+  
+      const cleanLogin = login.trim().toLowerCase();
       
-      return user;
+      // Ищем по email
+      const emailQuery = 'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1';
+      let user = await db.oneOrNone(emailQuery, [cleanLogin]);
+      
+      if (user) {
+        console.log('✅ User found by email:', user.email);
+        return user;
+      }
+  
+      // Если не нашли по email, ищем по login
+      const loginQuery = 'SELECT * FROM users WHERE LOWER(login) = $1 LIMIT 1';
+      user = await db.oneOrNone(loginQuery, [cleanLogin]);
+      
+      if (user) {
+        console.log('✅ User found by login:', user.login);
+        return user;
+      }
+  
+      console.log('❌ User not found by email or login:', cleanLogin);
+      return null;
       
     } catch (error) {
       console.error('❌ Error in findByLoginOrEmail:', error);
