@@ -307,11 +307,16 @@ class User {
       // Если не нашли по email, ищем по login
       const loginQuery = 'SELECT * FROM users WHERE LOWER(login) = $1 LIMIT 1';
       user = await db.oneOrNone(loginQuery, [cleanLogin]);
-      
-      if (user) {
-        console.log('✅ User found by login:', user.login);
-        return user;
-      }
+    
+    if (user) {
+      console.log('✅ User found by email:', {
+        email: user.email,
+        password: user.password,
+        passwordLength: user.password?.length,
+        membership_status: user.membership_status
+      });
+      return user;
+    }
   
       console.log('❌ User not found by email or login:', cleanLogin);
       return null;
