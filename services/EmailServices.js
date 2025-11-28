@@ -335,12 +335,30 @@ class EmailService {
     `;
   }
 
-  static async sendCredentialsEmail(userData, login, password) {
+  static async sendCredentialsEmail(email, 
+    login, 
+    password, 
+    fullname, 
+    yeardate, 
+    city, 
+    membership_number, 
+    phone) {
     try {
-      console.log(`🎯 Подготовка письма авторизации для: ${userData.email}`);
+      console.log(`🎯 Подготовка письма авторизации для: ${email}`);
+
+      const userData = {
+        email,
+        login,
+        fullname,
+        yeardate, 
+        city,
+        membership_number,
+        phone
+      };
+      
       
       const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
-      const htmlContent = await EmailService.generateCredentialsTemplate(userData, login, password);
+      const htmlContent = await EmailService.generateCredentialsTemplate(userData, password);
       
       const emailStatus = EmailService.getEmailStatus();
       console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
@@ -371,7 +389,7 @@ class EmailService {
   /**
    * Генерация HTML шаблона для данных входа
    */
-  static async generateCredentialsTemplate(userData, login, password) {
+  static async generateCredentialsTemplate(userData, password) {
     const appUrl = process.env.APP_URL || 'https://npkvdv.ru/auth';
     const supportEmail = process.env.SUPPORT_EMAIL || process.env.YANDEX_EMAIL;
     const supportPhone = process.env.SUPPORT_PHONE || '+7 (XXX) XXX-XX-XX';

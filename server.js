@@ -284,6 +284,8 @@ async function startServer() {
       console.log(`📍 Port: ${CONFIG.APP.PORT}`);
       console.log(`🔐 Tilda API Key: 770a56bbd1fdada08l`);
       console.log('✅ Контроллеры инициализированы');
+      console.log('   YANDEX_EMAIL exists:', process.env.YANDEX_EMAIL);
+      console.log('   YANDEX_EMAIL exists:', process.env.YANDEX_APP_PASSWORD);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

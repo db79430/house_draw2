@@ -22,6 +22,8 @@ class TinkoffController {
           return res.status(200).send('OK');
         }
 
+        
+
         // Получаем пользователя из данных платежа
         const user = {
           id: payment.user_id,
@@ -66,17 +68,14 @@ class TinkoffController {
           console.log('🔐 Используется существующий пароль для пользователя:', user.email);
         }
 
+        const fullUser = await User.findById(payment.user_id);
+            if (!fullUser) {
+                console.error('❌ User not found with id:', payment.user_id);
+                    return;
+            }
+
         // Отправляем email с данными для входа
-        const emailResult = await EmailService.sendCredentialsEmail(
-          user.email,
-          user.login || user.email,
-          password,
-          user.fullname || 'Пользователь',
-          user.yeardate,
-          user.city,
-          user.membership_number,
-          user.phone,
-        );
+        const emailResult = await EmailService.sendCredentialsEmail(fullUser, password);
 
         if (emailResult.success) {
           console.log('✅ Email отправлен пользователю:', user.email);
