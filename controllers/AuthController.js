@@ -23,13 +23,11 @@ class AuthController {
       const result = await this.authService.loginUser(login, password);
   
       // 🔥 ФОРМИРУЕМ URL С ПАРАМЕТРАМИ
-      let redirectUrl = '/dashboard';
-      const membershipNumber = result.user?.membership_number || 
-                             result.user?.memberNumber || 
-                             result.user?.member_number;
+      let redirectUrl = 'https://npkvdv.ru/dashboard';
+      const membershipNumber = result.user?.memberNumber
       
       if (membershipNumber) {
-        redirectUrl = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+        redirectUrl = `https://npkvdv.ru/dashboard?member=${encodeURIComponent(membershipNumber)}`;
       }
   
       res.json({
