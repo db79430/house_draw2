@@ -1,6 +1,7 @@
 import db from '../database/index.js';
 import Helpers from '../utils/Helpers.js';
-import { Sequelize, DataTypes, Model, Op } from 'sequelize';
+import sequelize from 'sequelize';
+const { Op } = sequelize;
 
 class User {
   static async create(userData) {
