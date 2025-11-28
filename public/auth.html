@@ -138,6 +138,41 @@
         .info-text a:hover {
             text-decoration: underline;
         }
+
+        /* 🔥 Стили для toast уведомлений */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            background: #10b981;
+            border-left: 4px solid #059669;
+        }
+
+        .toast.error {
+            background: #ef4444;
+            border-left: 4px solid #dc2626;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -185,6 +220,47 @@
 
     <script>
         const API_BASE = 'https://npkvdv.ru';
+
+        // 🔥 ДОБАВЛЕНА ФУНКЦИЯ showMessage
+        function showMessage(type, message) {
+            // Скрываем существующие сообщения в форме
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            if (type === 'error') {
+                const errorEl = document.getElementById('errorMessage');
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            } else if (type === 'success') {
+                const successEl = document.getElementById('successMessage');
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+            }
+            
+            // Также показываем toast уведомление
+            showToast(type, message);
+        }
+
+        // 🔥 ДОПОЛНИТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ TOAST УВЕДОМЛЕНИЙ
+        function showToast(type, message) {
+            // Создаем toast элемент
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            // Добавляем на страницу
+            document.body.appendChild(toast);
+            
+            // Автоматически удаляем через 4 секунды
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 4000);
+        }
     
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -217,39 +293,41 @@
                 
                 const result = await response.json();
 
-if (result.success) {
-    showMessage('success', 'Успешный вход! Перенаправление...');
-    
-    // Сохраняем данные пользователя
-    if (result.user) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-    }
-    if (result.token) {
-        localStorage.setItem('token', result.token);
-    }
-    
-    // 🔥 ИСПОЛЬЗУЕМ redirectTo ИЗ ОТВЕТА СЕРВЕРА
-    setTimeout(() => {
-        window.location.href = result.redirectTo || 'https://npkvdv.ru/dashboard';
-    }, 1500);
-    
-} else {
-    showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
-    
-    // 🔥 МОЖЕМ ИСПОЛЬЗОВАТЬ РЕДИРЕКТ ПРИ ОШИБКЕ (если есть в ответе)
-    if (result.redirectTo) {
-        setTimeout(() => {
-            window.location.href = result.redirectTo;
-        }, 2000);
-    }
-}
+                if (result.success) {
+                    showMessage('success', 'Успешный вход! Перенаправление...');
+                    
+                    // Сохраняем данные пользователя
+                    if (result.user) {
+                        localStorage.setItem('user', JSON.stringify(result.user));
+                    }
+                    if (result.token) {
+                        localStorage.setItem('token', result.token);
+                    }
+                    
+                    // 🔥 ИСПОЛЬЗУЕМ redirectTo ИЗ ОТВЕТА СЕРВЕРА
+                    setTimeout(() => {
+    console.log('🚀 Performing redirect to:', redirectUrl);
+    window.location.replace(redirectUrl); // 🔥 Заменяет текущую страницу в истории
+}, 1500);
+                    
+                } else {
+                    showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
+                }
                 
             } catch (error) {
                 console.error('Login error:', error);
+                showMessage('error', 'Ошибка сети. Проверьте подключение к интернету');
             } finally {
                 // Восстанавливаем кнопку
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти в кабинет';
+            }
+        });
+
+        // 🔥 ОБРАБОТКА КЛАВИШИ ENTER
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
     </script>
