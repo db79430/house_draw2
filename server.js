@@ -3,6 +3,9 @@ import CONFIG from './config/index.js'
 import runMigrations from './database/migrate.js';
 import path from 'path';
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Импортируем классы контроллеров
 import TinkoffController from './controllers/TinkoffController.js';
 import EmailController from './controllers/EmailController.js';
@@ -262,7 +265,13 @@ app.get('/api/user/dashboard', async (req, res) => {
 app.post('/purchase-slots', SlotController.purchaseSlots);
 app.get('/purchase-history', SlotController.getPurchaseHistory);
 
-
+console.log('🔧 Environment Check:');
+console.log('   Current directory:', process.cwd());
+console.log('   NODE_ENV:', process.env.NODE_ENV);
+console.log('   YANDEX_EMAIL exists:', !!process.env.YANDEX_EMAIL);
+console.log('   All env variables:', Object.keys(process.env).filter(key => 
+  key.includes('YANDEX') || key.includes('EMAIL') || key.includes('APP')
+))
 
 
 // Start server

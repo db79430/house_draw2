@@ -1,9 +1,5 @@
 import dotenv from 'dotenv';
-
-// Загружаем .env только в development
-if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
-}
 
 const CONFIG = {
   DATABASE: {
