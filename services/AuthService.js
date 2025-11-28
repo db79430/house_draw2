@@ -1,6 +1,8 @@
 // services/AuthService.js
 import UserRepository from '../repositories/UserRepository.js';
 import User from '../models/Users.js';
+import bcrypt from 'bcrypt';
+
 
 class AuthService {
   async loginUser(login, password) {
@@ -21,7 +23,7 @@ class AuthService {
       }
 
       // Простая проверка пароля
-      const isPasswordValid = password === user.password;
+      const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
         console.log('❌ Invalid password for user:', login);
