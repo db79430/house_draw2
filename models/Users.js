@@ -1,7 +1,6 @@
 import db from '../database/index.js';
 import Helpers from '../utils/Helpers.js';
-import sequelize from 'sequelize';
-const { Op } = sequelize;
+
 
 class User {
   static async create(userData) {
@@ -286,24 +285,26 @@ class User {
   }
 
   static async findByLoginOrEmail(login) {
-    const user = await this.findOne({
-      where: {
-        [Op.or]: [
-          { email: login },
-          { login: login }
-        ]
-      },
-      attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
-    });
-    
-    console.log('🔍 Raw user data with password:', {
-      id: user?.id,
-      email: user?.email,
-      password: user?.password,
-      passwordType: typeof user?.password
-    });
-    
-    return user;
+    try {
+      // Простой запрос без Op
+      let user = await this.findOne({
+        where: { email: login },
+        attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
+      });
+      
+      if (!user) {
+        user = await this.findOne({
+          where: { login: login },
+          attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
+        });
+      }
+      
+      return user;
+      
+    } catch (error) {
+      console.error('❌ Error in findByLoginOrEmail:', error);
+      throw error;
+    }
   }
 
   static async updateLastLogin(userId) {
