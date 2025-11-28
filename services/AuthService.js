@@ -72,6 +72,47 @@ class AuthService {
     }
   }
 
+  async login(req, res) {
+    try {
+      console.log('🎯 POST /auth-login вызван!');
+      
+      const { login, password } = req.body;
+      
+      if (!login || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Заполните все поля'
+        });
+      }
+  
+      const result = await this.loginUser(login, password);
+  
+      // 🔥 СЕРВЕРНЫЙ РЕДИРЕКТ (если фронтенд на том же домене)
+      // Устанавливаем куки или сессию
+      res.cookie('token', result.token, { 
+        httpOnly: true, 
+        maxAge: 24 * 60 * 60 * 1000 // 1 день
+      });
+      
+      // Формируем URL для редиректа
+      let redirectUrl = '/dashboard';
+      const membershipNumber = result.user?.membership_number;
+      
+      if (membershipNumber) {
+        redirectUrl = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+      }
+  
+      // 🔥 СЕРВЕРНЫЙ РЕДИРЕКТ
+      return res.redirect(302, redirectUrl);
+  
+    } catch (error) {
+      console.error('❌ Ошибка входа:', error.message);
+      
+      // При ошибке редирект на страницу логина с сообщением
+      return res.redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    }
+  }
+
   // Функция для генерации простого токена
   generateSimpleToken(userId) {
     return `simple-token-${userId}-${Date.now()}`;

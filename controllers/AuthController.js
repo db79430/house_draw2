@@ -15,23 +15,37 @@ class AuthController {
       if (!login || !password) {
         return res.status(400).json({
           success: false,
-          message: 'Заполните все поля'
+          message: 'Заполните все поля',
+          redirectTo: '/login' // остаемся на странице логина
         });
       }
-
+  
       const result = await this.authService.loginUser(login, password);
-
+  
+      // 🔥 ФОРМИРУЕМ URL С ПАРАМЕТРАМИ
+      let redirectUrl = '/dashboard';
+      const membershipNumber = result.user?.membership_number || 
+                             result.user?.memberNumber || 
+                             result.user?.member_number;
+      
+      if (membershipNumber) {
+        redirectUrl = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+      }
+  
       res.json({
         success: true,
         message: 'Вход выполнен успешно',
+        redirectTo: redirectUrl, // URL с параметрами
         ...result
       });
-
+  
     } catch (error) {
       console.error('❌ Ошибка входа:', error.message);
+      
       res.status(401).json({
         success: false,
-        message: error.message
+        message: error.message,
+        redirectTo: '/auth' // при ошибке возвращаем на логин
       });
     }
   }

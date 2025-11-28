@@ -204,7 +204,7 @@
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Вход...';
                 
-                const response = await fetch(`${API_BASE}/auth-login`, {
+                const response = await fetch(`${API_BASE}/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -216,33 +216,33 @@
                 });
                 
                 const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('success', 'Успешный вход! Перенаправление...');
-                    
-                    // Сохраняем данные пользователя
-                    if (result.user) {
-                        localStorage.setItem('user', JSON.stringify(result.user));
-                    }
-                    if (result.token) {
-                        localStorage.setItem('token', result.token);
-                    }
-                    
-                    // Перенаправляем на дашборд с параметром члена клуба
-                    setTimeout(() => {
-                        const membershipNumber = result.user?.membership_number || 
-                                               result.user?.memberNumber || 
-                                               result.user?.member_number;
-                        if (membershipNumber) {
-                            window.location.href = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
-                        } else {
-                            window.location.href = '/dashboard';
-                        }
-                    }, 1500);
-                    
-                } else {
-                    showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
-                }
+
+if (result.success) {
+    showMessage('success', 'Успешный вход! Перенаправление...');
+    
+    // Сохраняем данные пользователя
+    if (result.user) {
+        localStorage.setItem('user', JSON.stringify(result.user));
+    }
+    if (result.token) {
+        localStorage.setItem('token', result.token);
+    }
+    
+    // 🔥 ИСПОЛЬЗУЕМ redirectTo ИЗ ОТВЕТА СЕРВЕРА
+    setTimeout(() => {
+        window.location.href = result.redirectTo || '/dashboard';
+    }, 1500);
+    
+} else {
+    showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
+    
+    // 🔥 МОЖЕМ ИСПОЛЬЗОВАТЬ РЕДИРЕКТ ПРИ ОШИБКЕ (если есть в ответе)
+    if (result.redirectTo) {
+        setTimeout(() => {
+            window.location.href = result.redirectTo;
+        }, 2000);
+    }
+}
                 
             } catch (error) {
                 console.error('Login error:', error);
