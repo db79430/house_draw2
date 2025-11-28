@@ -134,7 +134,6 @@ class AuthService {
           fullname: user.fullname,
           status: user.membership_status,
           created_at: user.created_at,
-          last_login: user.last_login
         }
       };
 
