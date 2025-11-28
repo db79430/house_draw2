@@ -19,18 +19,39 @@ class EmailService {
     const emailStatus = EmailService.getEmailStatus();
     
     if (emailStatus.enabled) {
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.yandex.ru',
-        port: 465,
-        secure: true,
-        auth: {
-          user: process.env.YANDEX_EMAIL,
-          pass: process.env.YANDEX_APP_PASSWORD
-        }
-      });
-      console.log('✅ Email transporter initialized');
+      try {
+        this.transporter = nodemailer.createTransport({
+          host: 'smtp.yandex.ru',
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.YANDEX_EMAIL,
+            pass: process.env.YANDEX_APP_PASSWORD
+          }
+        });
+        
+        // Проверяем соединение
+        this.transporter.verify((error, success) => {
+          if (error) {
+            console.error('❌ SMTP connection failed:', error);
+            this.transporter = null;
+          } else {
+            console.log('✅ Email transporter initialized and verified');
+          }
+        });
+        
+      } catch (error) {
+        console.error('❌ Error initializing email transporter:', error);
+        this.transporter = null;
+      }
     } else {
       console.log('📧 Email service disabled - simulation mode');
+      
+      if (!emailStatus.configured) {
+        console.log('   ❌ Reason: YANDEX_EMAIL or YANDEX_APP_PASSWORD not set');
+      } else if (emailStatus.hasDefaultValues) {
+        console.log('   ❌ Reason: Using default values from .env example');
+      }
     }
   }
 
@@ -98,11 +119,22 @@ class EmailService {
    * Получение статуса email сервиса
    */
   static getEmailStatus() {
-    const isConfigured = process.env.YANDEX_EMAIL && process.env.YANDEX_APP_PASSWORD;
+    const yandexEmail = process.env.YANDEX_EMAIL;
+    const yandexPassword = process.env.YANDEX_APP_PASSWORD;
+    
+    const isConfigured = yandexEmail && yandexPassword;
+    const isDefaultValues = yandexEmail === 'd0mdarom@yandex.ru' || 
+                           yandexPassword === 'juzdmjbesuiwkmon';
+    
+    console.log('🔧 Email Configuration Check:');
+    console.log('   YANDEX_EMAIL:', yandexEmail ? '✅ Set' : '❌ Not set');
+    console.log('   YANDEX_APP_PASSWORD:', yandexPassword ? '✅ Set' : '❌ Not set');
+    console.log('   Using default values:', isDefaultValues ? '❌ Yes' : '✅ No');
     
     return {
-      enabled: isConfigured && process.env.YANDEX_APP_PASSWORD !== 'rbxsyplviacnbqjg',
-      configured: isConfigured
+      enabled: isConfigured && !isDefaultValues,
+      configured: isConfigured,
+      hasDefaultValues: isDefaultValues
     };
   }
   
@@ -302,7 +334,7 @@ class EmailService {
 
   static async sendCredentialsEmail(userData, login, password) {
     try {
-      console.log(`🎯 Подготовка приветственного письма для: ${userData.email}`);
+      console.log(`🎯 Подготовка письма авторизации для: ${userData.email}`);
       
       const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
       const htmlContent = await EmailService.generateCredentialsTemplate(userData, login, password);
