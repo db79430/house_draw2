@@ -300,23 +300,32 @@ class User {
       let user = await db.oneOrNone(emailQuery, [cleanLogin]);
       
       if (user) {
-        console.log('✅ User found by email:', user.email);
+        console.log('✅ User found by email:', {
+          email: user.email,
+          password: user.password ? `"${user.password}"` : 'NULL/EMPTY',
+          passwordLength: user.password?.length,
+          passwordExists: !!user.password,
+          membership_status: user.membership_status,
+          id: user.id
+        });
         return user;
       }
   
       // Если не нашли по email, ищем по login
       const loginQuery = 'SELECT * FROM users WHERE LOWER(login) = $1 LIMIT 1';
       user = await db.oneOrNone(loginQuery, [cleanLogin]);
-    
-    if (user) {
-      console.log('✅ User found by email:', {
-        email: user.email,
-        password: user.password,
-        passwordLength: user.password?.length,
-        membership_status: user.membership_status
-      });
-      return user;
-    }
+      
+      if (user) {
+        console.log('✅ User found by login:', {
+          login: user.login,
+          password: user.password ? `"${user.password}"` : 'NULL/EMPTY',
+          passwordLength: user.password?.length,
+          passwordExists: !!user.password,
+          membership_status: user.membership_status,
+          id: user.id
+        });
+        return user;
+      }
   
       console.log('❌ User not found by email or login:', cleanLogin);
       return null;
