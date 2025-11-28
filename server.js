@@ -70,10 +70,19 @@ app.get('/auth', (req, res) => {
 });
 
 app.get('/dashboard', (req, res) => {
-  console.log('📄 Serving dashboard.html');
-  res.sendFile(path.join(__dirname, 'public','dashboard.html'));
+  const memberNumber = req.query.member;
+  
+  console.log('📄 Serving dashboard.html', { 
+      memberNumber: memberNumber,
+      queryParams: req.query 
+  });
+  
+  if (memberNumber) {
+      console.log('🎯 Dashboard request with member number:', memberNumber);
+  }
+  
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
-
 
 // API роуты - ПОСЛЕ HTML
 app.get('/api/health', async (req, res) => {
@@ -112,7 +121,7 @@ app.get('/paymentfee', (req, res) => {
 
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 
-const emailController = new EmailController();
+// const emailController = new EmailController();
 const authController = new AuthController();
 
 app.get('/tilda-webhook', (req, res) => {
@@ -184,7 +193,7 @@ app.get('/get-member/:memberNumber', (req, res) => tildaController.getMemberData
 app.get('/check-payment-status/:memberNumber', (req, res) => tildaController.checkPaymentStatus(req, res));
 
 // Email routes
-app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
+// app.post('/test-email', tildaAuthMiddleware, (req, res) => emailController.testEmail(req, res));
 
 // Fallback route 
 app.post('/tilda-fallback', tildaAuthMiddleware);
@@ -198,6 +207,55 @@ app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 app.get('/auth', (req, res) => {
   res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
+// В вашем app.js добавьте обработку параметра
+app.get('/api/user/dashboard', async (req, res) => {
+  try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      const memberNumber = req.query.member;
+      
+      console.log('📊 Dashboard API request:', { 
+          hasToken: !!token,
+          memberNumber: memberNumber 
+      });
+
+      // Ваша логика загрузки данных дашборда
+      // Используйте memberNumber для поиска пользователя
+      
+      const dashboardData = {
+          user: {
+              id: 1,
+              fullname: "Иван Иванов",
+              membership_number: memberNumber || "M8YOC",
+              membership_status: "active",
+              created_at: "2024-01-15"
+          },
+          statistics: {
+              totalSlots: 5,
+              activeSlots: 3
+          },
+          slots: [
+              { id: 1, slot_number: "A001", purchase_date: "2024-01-15", status: "active" },
+              { id: 2, slot_number: "A002", purchase_date: "2024-01-15", status: "active" }
+          ],
+          paymentHistory: [
+              { id: 1, created_at: "2024-01-15", description: "Покупка 2 слотов", amount: 2000, status: "completed" }
+          ]
+      };
+
+      res.json({
+          success: true,
+          data: dashboardData
+      });
+      
+  } catch (error) {
+      console.error('❌ Dashboard API error:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Ошибка загрузки дашборда'
+      });
+  }
 });
 
 // app.get('/dashboard', SlotController.getDashboard);

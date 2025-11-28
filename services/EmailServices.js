@@ -140,6 +140,128 @@ class EmailService {
     }
   }
 
+
+  static async sendWelcomeEmail(userData, memberNumber) {
+    try {
+      console.log(`🎯 Подготовка приветственного письма для: ${userData.email}`);
+      
+      const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
+      const htmlContent = await this.generateWelcomeTemplate(userData, memberNumber);
+      
+      const emailStatus = getEmailStatus();
+      console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
+      
+      const result = await sendEmail(userData.email, subject, htmlContent);
+      
+      if (result.success) {
+        if (result.simulated) {
+          console.log('✅ Приветственное письмо было бы отправлено (simulation mode)');
+          console.log(`   Номер члена клуба: ${memberNumber}`);
+          console.log(`   Получатель: ${userData.email}`);
+        } else {
+          console.log('✅ Приветственное письмо отправлено успешно через Resend');
+        }
+        return { success: true, result };
+      } else {
+        console.error('❌ Не удалось отправить приветственное письмо');
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('❌ Ошибка в sendWelcomeEmail:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Генерация HTML шаблона приветственного письма
+   */
+  static async generateWelcomeTemplate(userData, memberNumber) {
+    const appUrl = process.env.APP_URL || 'https://npkvdv.ru';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@your-club.com';
+    const supportPhone = process.env.SUPPORT_PHONE || '+7 (999) 999-99-99';
+
+    try {
+      // Пробуем прочитать шаблон из файла
+      const templatePath = path.join(process.cwd(), 'email-templates', 'welcome-email.html');
+      let htmlContent = await fs.readFile(templatePath, 'utf8');
+
+      // Заменяем плейсхолдеры
+      htmlContent = htmlContent
+        .replace(/{{fullname}}/g, userData.name || 'Уважаемый участник')
+        .replace(/{{membership_number}}/g, memberNumber)
+        .replace(/{{appUrl}}/g, appUrl)
+        .replace(/{{supportEmail}}/g, supportEmail)
+        .replace(/{{supportPhone}}/g, supportPhone)
+        .replace(/{{currentYear}}/g, new Date().getFullYear());
+
+      return htmlContent;
+      
+    } catch (error) {
+      console.log('⚠️ Welcome template file not found, using fallback template');
+      return this.getFallbackWelcomeTemplate(userData, memberNumber, appUrl, supportEmail, supportPhone);
+    }
+  }
+
+  /**
+   * Fallback шаблон приветственного письма
+   */
+  static getFallbackWelcomeTemplate(userData, memberNumber, appUrl, supportEmail, supportPhone) {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 40px; text-align: center; }
+        .content { padding: 40px; }
+        .member-card { background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 5px solid #4CAF50; text-align: center; }
+        .footer { background: #2d5016; color: white; padding: 30px; text-align: center; }
+        .button { background: #4CAF50; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0 0 15px 0;">Добро пожаловать в наш клуб! 🎉</h1>
+            <p style="margin: 0; opacity: 0.9;">Регистрация успешно завершена</p>
+        </div>
+        
+        <div class="content">
+            <h2 style="color: #2d5016;">Уважаемый(ая) ${userData.name || 'участник'}!</h2>
+            
+            <p>Благодарим вас за регистрацию в нашем клубе. Ваша заявка успешно принята, и мы рады приветствовать вас в нашем сообществе.</p>
+            
+            <div class="member-card">
+                <h3 style="color: #2d5016; margin-top: 0;">🎫 Ваш номер члена клуба</h3>
+                <div style="font-size: 32px; font-weight: bold; color: #2E7D32; margin: 15px 0;">${memberNumber}</div>
+                <p style="color: #666; margin: 0;">Сохраните этот номер для дальнейшего взаимодействия с клубом</p>
+            </div>
+            
+            <p><strong>Что дальше?</strong></p>
+            <ul>
+                <li>Перейдите на страницу оплаты для завершения регистрации</li>
+                <li>После оплаты вы получите данные для входа в личный кабинет</li>
+                <li>В личном кабинете вы сможете управлять своим профилем</li>
+            </ul>
+            
+            <p style="text-align: center;">
+                <a href="${appUrl}/paymentfee?memberNumber=${memberNumber}" class="button">💳 Перейти к оплате</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p style="margin: 0 0 10px 0;">С уважением, Команда Клуба</p>
+            <p style="margin: 5px 0; opacity: 0.8;">Телефон: ${supportPhone} | Email: ${supportEmail}</p>
+            <p style="margin: 15px 0 0 0; opacity: 0.6;">© ${new Date().getFullYear()} Наш Клуб. Все права защищены.</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+  }
+
   /**
    * Генерация HTML шаблона для данных входа
    */

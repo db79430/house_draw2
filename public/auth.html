@@ -13,21 +13,22 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .login-container {
-            background: rgba(255, 255, 255, 0.95);
+            background: white;
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(46, 125, 50, 0.1);
             width: 100%;
             max-width: 400px;
-            backdrop-filter: blur(10px);
+            border: 1px solid #e0f0e0;
         }
 
         .logo {
@@ -42,7 +43,7 @@
         }
 
         .logo p {
-            color: #4a7c3a;
+            color: #4a7c2a;
             font-size: 14px;
         }
 
@@ -64,18 +65,20 @@
             border-radius: 10px;
             font-size: 16px;
             transition: all 0.3s ease;
+            background: #f8f9fa;
         }
 
         input:focus {
             outline: none;
-            border-color: #4a7c3a;
-            box-shadow: 0 0 0 3px rgba(74, 124, 58, 0.1);
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+            background: white;
         }
 
         .btn {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #4a7c3a, #2d5016);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -83,11 +86,19 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin-top: 10px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(74, 124, 58, 0.3);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn:disabled {
+            background: #cccccc;
+            transform: none;
+            box-shadow: none;
+            cursor: not-allowed;
         }
 
         .error-message {
@@ -98,6 +109,7 @@
             margin-bottom: 20px;
             text-align: center;
             display: none;
+            border-left: 4px solid #c62828;
         }
 
         .success-message {
@@ -108,13 +120,30 @@
             margin-bottom: 20px;
             text-align: center;
             display: none;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .info-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .info-text a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .info-text a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1>🌿</h1>
+            <h1>🌿 Клуб НПК ВДВ</h1>
             <p>Личный кабинет участника</p>
         </div>
 
@@ -123,12 +152,12 @@
 
         <form id="loginForm">
             <div class="form-group">
-                <label for="membershipNumber">Номер члена клуба:</label>
+                <label for="login">Логин:</label>
                 <input 
                     type="text" 
-                    id="membershipNumber" 
-                    name="membershipNumber" 
-                    placeholder="Введите ваш номер члена клуба" 
+                    id="login" 
+                    name="login" 
+                    placeholder="Введите ваш логин" 
                     required
                 >
             </div>
@@ -144,25 +173,44 @@
                 >
             </div>
 
-            <button type="submit" class="btn">Войти в кабинет</button>
+            <button type="submit" class="btn" id="loginBtn">
+                Войти в кабинет
+            </button>
         </form>
+
+        <div class="info-text">
+            <p>Данные для входа были отправлены на ваш email после оплаты взноса</p>
+        </div>
     </div>
 
     <script>
+        const API_BASE = 'https://npkvdv.ru';
+    
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const membershipNumber = document.getElementById('email').value;
+            const login = document.getElementById('login').value.trim();
             const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Валидация
+            if (!login || !password) {
+                showMessage('error', 'Пожалуйста, заполните все поля');
+                return;
+            }
             
             try {
-                const response = await fetch('/auth-login', {
+                // Показываем состояние загрузки
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Вход...';
+                
+                const response = await fetch(`${API_BASE}/auth-login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        login: email,
+                        login: login,
                         password: password
                     })
                 });
@@ -170,35 +218,43 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    localStorage.setItem('token', result.token);
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    showMessage('success', 'Успешный вход!');
+                    showMessage('success', 'Успешный вход! Перенаправление...');
                     
+                    // Сохраняем данные пользователя
+                    if (result.user) {
+                        localStorage.setItem('user', JSON.stringify(result.user));
+                    }
+                    if (result.token) {
+                        localStorage.setItem('token', result.token);
+                    }
+                    
+                    // Перенаправляем на дашборд с параметром члена клуба
                     setTimeout(() => {
-                        window.location.href = '/dashboard.html';
-                    }, 1000);
+                        const membershipNumber = result.user?.membership_number || 
+                                               result.user?.memberNumber || 
+                                               result.user?.member_number;
+                        if (membershipNumber) {
+                            window.location.href = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+                        } else {
+                            window.location.href = '/dashboard';
+                        }
+                    }, 1500);
+                    
                 } else {
-                    showMessage('error', result.message || 'Ошибка входа');
+                    showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
                 }
+                
             } catch (error) {
+                console.error('Login error:', error);
                 showMessage('error', 'Ошибка соединения с сервером');
+            } finally {
+                // Восстанавливаем кнопку
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Войти в кабинет';
             }
         });
-
-        function showMessage(type, message) {
-            const errorDiv = document.getElementById('errorMessage');
-            const successDiv = document.getElementById('successMessage');
-            
-            if (type === 'error') {
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
-                successDiv.style.display = 'none';
-            } else {
-                successDiv.textContent = message;
-                successDiv.style.display = 'block';
-                errorDiv.style.display = 'none';
-            }
-        }
+    
+        // ... остальные функции без изменений
     </script>
 </body>
 </html>

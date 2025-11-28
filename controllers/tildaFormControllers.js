@@ -1339,6 +1339,7 @@ class TildaController {
         await User.updateMemberNumber(userResult.user.id, memberNumber);
   
         console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
+        await this.sendWelcomeEmail(userResult.user, memberNumber);
       }
   
       // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
@@ -1363,6 +1364,43 @@ class TildaController {
       });
     }
   }
+
+  async sendWelcomeEmail(user, memberNumber) {
+    try {
+      console.log(`📧 Отправка приветственного письма для: ${user.email}`);
+      
+      const userData = {
+        name: user.name || user.fullname,
+        email: user.email,
+        phone: user.phone,
+        city: user.city,
+        memberNumber: memberNumber
+      };
+
+      // Отправляем приветственное письмо с номером члена клуба
+      const emailResult = await EmailServices.sendWelcomeEmail(userData, memberNumber);
+      
+      if (emailResult.success) {
+        console.log('✅ Приветственное письмо отправлено успешно');
+        console.log(`   Номер члена клуба: ${memberNumber}`);
+        console.log(`   Email: ${user.email}`);
+        
+        // Логируем в базу отправку письма
+        await this.logEmailSent(user.id, 'welcome', memberNumber);
+      } else {
+        console.warn('⚠️ Не удалось отправить приветственное письмо:', emailResult.error);
+      }
+      
+      return emailResult;
+      
+    } catch (error) {
+      console.error('❌ Ошибка отправки приветственного письма:', error);
+      // Не прерываем основной поток из-за ошибки email
+      return { success: false, error: error.message };
+    }
+  }
+
+
   /**
    * Создание платежа при нажатии кнопки оплаты
    */
@@ -1694,7 +1732,7 @@ class TildaController {
       orderId,
       amount,
       tinkoffPaymentId: tinkoffResponse.PaymentId,
-      paymentUrl: tinkoffResponse.PaymentURL
+      paymentUrl: tinkoffResponse.PaymentURL,
     };
   }
 
