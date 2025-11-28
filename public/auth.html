@@ -246,15 +246,12 @@ if (result.success) {
                 
             } catch (error) {
                 console.error('Login error:', error);
-                showMessage('error', 'Ошибка соединения с сервером');
             } finally {
                 // Восстанавливаем кнопку
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти в кабинет';
             }
         });
-    
-        // ... остальные функции без изменений
     </script>
 </body>
 </html>
