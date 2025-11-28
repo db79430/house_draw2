@@ -284,29 +284,24 @@ class User {
   }
 
   static async findByLoginOrEmail(login) {
-    try {
-      const query = `
-        SELECT * FROM users 
-        WHERE login = $1 OR email = $1
-      `;
-      
-      const user = await db.oneOrNone(query, [login]);
-      
-      if (user) {
-        console.log('✅ User found by login/email:', { 
-          login: login, 
-          found: user.email,
-          status: user.membership_status 
-        });
-      } else {
-        console.log('❌ User not found with login/email:', login);
-      }
-      
-      return user;
-    } catch (error) {
-      console.error('❌ Error finding user by login/email:', error);
-      throw error;
-    }
+    const user = await this.findOne({
+      where: {
+        [Op.or]: [
+          { email: login },
+          { login: login }
+        ]
+      },
+      attributes: ['id', 'email', 'login', 'password', 'membership_status', 'fullname']
+    });
+    
+    console.log('🔍 Raw user data with password:', {
+      id: user?.id,
+      email: user?.email,
+      password: user?.password,
+      passwordType: typeof user?.password
+    });
+    
+    return user;
   }
 
   static async updateLastLogin(userId) {
