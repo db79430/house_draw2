@@ -126,18 +126,16 @@ class EmailService {
     const yandexPassword = process.env.YANDEX_APP_PASSWORD;
     
     const isConfigured = yandexEmail && yandexPassword;
-    const isDefaultValues = yandexEmail === 'd0mdarom@yandex.ru' || 
-                           yandexPassword === 'juzdmjbesuiwkmon';
     
     console.log('🔧 Email Configuration Check:');
     console.log('   YANDEX_EMAIL:', yandexEmail ? '✅ Set' : '❌ Not set');
     console.log('   YANDEX_APP_PASSWORD:', yandexPassword ? '✅ Set' : '❌ Not set');
-    console.log('   Using default values:', isDefaultValues ? '❌ Yes' : '✅ No');
+    console.log('   Using default values:', !isConfigured ? '✅ Yes' : '❌ No');
     
     return {
-      enabled: isConfigured && !isDefaultValues,
+      enabled: isConfigured, // Включаем если оба значения заданы
       configured: isConfigured,
-      hasDefaultValues: isDefaultValues
+      hasDefaultValues: !isConfigured
     };
   }
   
@@ -227,7 +225,7 @@ class EmailService {
       if (result.success) {
         if (result.simulated) {
           console.log('✅ Приветственное письмо было бы отправлено (simulation mode)');
-          console.log(`   Номер члена клуба: ${memberNumber}`);
+          console.log(`   Номер члена клуба: ${userData.memberNumber}`);
           console.log(`   Получатель: ${userData.email}`);
         } else {
           console.log('✅ Приветственное письмо отправлено успешно');
