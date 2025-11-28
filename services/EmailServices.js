@@ -344,7 +344,7 @@ class EmailService {
     membership_number, 
     phone) {
     try {
-      console.log(`🎯 Подготовка письма авторизации для: ${email}`);
+      
 
       const userData = {
         email,
@@ -355,6 +355,8 @@ class EmailService {
         membership_number,
         phone
       };
+
+      console.log(`🎯 Подготовка письма авторизации для: ${userData.email}`);
       
       
       const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
@@ -380,7 +382,7 @@ class EmailService {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('❌ Ошибка в sendWelcomeEmail:', error);
+      console.error('❌ Ошибка в sendWelcomeEmailCr:', error);
       return { success: false, error: error.message };
     }
   }
@@ -404,10 +406,10 @@ class EmailService {
       // Заменяем плейсхолдеры
       htmlContent = htmlContent
         .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
-        .replace(/{{login}}/g, login)
+        .replace(/{{login}}/g, userData.login)
         .replace(/{{city}}/g, userData.city || 'Не указан')
         .replace(/{{phone}}/g, userData.phone || 'Не указан')
-        .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
+        .replace(/{{yeardate}}/g, userData.yeardate)
         .replace(/{{email}}/g, userData.email || 'Не указан')
         .replace(/{{password}}/g, password)
         .replace(/{{appUrl}}/g, appUrl)
