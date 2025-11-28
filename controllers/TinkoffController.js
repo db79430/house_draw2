@@ -58,7 +58,7 @@ class TinkoffController {
         console.log('✅ Payment processed, sending email to:', user.email);
 
         // 🔧 ПРОВЕРЯЕМ, ЕСТЬ ЛИ УЖЕ ПАРОЛЬ У ПОЛЬЗОВАТЕЛЯ
-        let password = user.password_hash;
+        let password = user.password;
         if (!password) {
           // Генерируем пароль только если его нет
           password = Helpers.generatePassword();
