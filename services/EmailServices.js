@@ -335,29 +335,9 @@ class EmailService {
     `;
   }
 
-  static async sendCredentialsEmail(email, 
-    login, 
-    password, 
-    fullname, 
-    yeardate, 
-    city, 
-    membership_number, 
-    phone) {
+  static async sendCredentialsEmail(userData, password) {
     try {
-      
-
-      const userData = {
-        email,
-        login,
-        fullname,
-        yeardate, 
-        city,
-        membership_number,
-        phone
-      };
-
       console.log(`🎯 Подготовка письма авторизации для: ${userData.email}`);
-      
       
       const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
       const htmlContent = await EmailService.generateCredentialsTemplate(userData, password);
@@ -371,7 +351,7 @@ class EmailService {
       if (result.success) {
         if (result.simulated) {
           console.log('✅ Приветственное письмо было бы отправлено (simulation mode)');
-          console.log(`   Номер члена клуба: ${userData.memberNumber}`);
+          console.log(`   Номер члена клуба: ${userData.membership_number}`); // исправлено с memberNumber
           console.log(`   Получатель: ${userData.email}`);
         } else {
           console.log('✅ Приветственное письмо отправлено успешно');
@@ -382,7 +362,7 @@ class EmailService {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('❌ Ошибка в sendWelcomeEmailCr:', error);
+      console.error('❌ Ошибка в sendCredentialsEmail:', error); // исправлено название ошибки
       return { success: false, error: error.message };
     }
   }
