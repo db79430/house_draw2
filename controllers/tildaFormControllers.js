@@ -94,7 +94,7 @@ class TildaController {
     }
   }
 
-  async sendWelcomeEmailNumber(user, memberNumber) {
+async sendWelcomeEmailNumber(user, memberNumber) {
     try {
       console.log(`📧 Отправка приветственного письма для: ${user.email}`);
       
@@ -106,8 +106,6 @@ class TildaController {
         memberNumber: memberNumber
       };
 
-      // Отправляем приветственное письмо с номером члена клуба
-      // const emailService = new EmailService();
       const emailResult = await EmailService.sendWelcomeEmail(userData, memberNumber);
       
       if (emailResult.success) {
@@ -115,8 +113,12 @@ class TildaController {
         console.log(`   Номер члена клуба: ${memberNumber}`);
         console.log(`   Email: ${user.email}`);
         
-        // Логируем в базу отправку письма
-        await this.logEmailSent(user.id, 'welcome', memberNumber);
+        // 🔥 ИСПРАВЛЕНИЕ: Добавляем проверку на существование метода
+        if (typeof this.logEmailSent === 'function') {
+          await this.logEmailSent(user.id, 'welcome', memberNumber);
+        } else {
+          console.log('⚠️ Метод logEmailSent не найден, пропускаем логирование');
+        }
       } else {
         console.warn('⚠️ Не удалось отправить приветственное письмо:', emailResult.error);
       }
@@ -125,8 +127,31 @@ class TildaController {
       
     } catch (error) {
       console.error('❌ Ошибка отправки приветственного письма:', error);
-      // Не прерываем основной поток из-за ошибки email
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Логирование отправки email в базу
+   */
+  async logEmailSent(userId, emailType, memberNumber) {
+    try {
+      // Проверяем, что есть подключение к базе
+      if (!db) {
+        console.log('⚠️ База данных не доступна для логирования email');
+        return;
+      }
+
+      await db.none(
+        `INSERT INTO email_logs (user_id, email_type, member_number, sent_at) 
+         VALUES ($1, $2, $3, $4)`,
+        [userId, emailType, memberNumber, new Date()]
+      );
+      
+      console.log('📝 Email логирование успешно');
+    } catch (error) {
+      console.error('❌ Ошибка логирования email:', error);
+      // Не прерываем основной поток из-за ошибки логирования
     }
   }
 

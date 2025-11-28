@@ -39,13 +39,13 @@ class TinkoffController {
         });
 
         // 🔧 ПРОВЕРЯЕМ, НЕ БЫЛ ЛИ УЖЕ ОТПРАВЛЕН EMAIL
-        if (user.membership_status === 'active') {
-          console.log('⚠️ Пользователь уже активен, email не отправляем:', user.email);
+        // if (user.membership_status === 'active') {
+        //   console.log('⚠️ Пользователь уже активен, email не отправляем:', user.email);
           
           // Просто обновляем статус платежа
-          await Payment.updateStatus(OrderId, 'completed');
-          return res.status(200).send('OK');
-        }
+        //   await Payment.updateStatus(OrderId, 'completed');
+        //   return res.status(200).send('OK');
+        // }
 
         // Обновляем статус пользователя на активный
         await User.updateMembershipStatus(user.id, 'active');
