@@ -50,7 +50,7 @@ class AuthService {
       const token = this.generateSimpleToken(user.id);
   
       // Обновляем последний вход
-      await User.updateLastLogin(user.id);
+      // await User.updateLastLogin(user.id);
   
       console.log('✅ Successful login for user:', user.email);
   
