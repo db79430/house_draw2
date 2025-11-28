@@ -67,8 +67,7 @@ class TinkoffController {
         }
 
         // Отправляем email с данными для входа
-        const emailService = new EmailService();
-        const emailResult = await emailService.sendCredentialsEmail(
+        const emailResult = await EmailService.sendCredentialsEmail(
           user.email,
           user.login || user.email,
           password,
@@ -76,7 +75,7 @@ class TinkoffController {
           user.yeardate,
           user.city,
           user.membership_number,
-          user.phone
+          user.phone,
         );
 
         if (emailResult.success) {
