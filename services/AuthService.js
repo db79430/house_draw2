@@ -15,8 +15,8 @@ class AuthService {
       }
 
       // Проверка статуса пользователя
-      if (user.status !== 'active') {
-        console.log('❌ User not active:', user.status);
+      if (user.membership_status  !== 'active') {
+        console.log('❌ User not active:', user.membership_status );
         throw new Error('Аккаунт не активирован. Дождитесь данных для входа после оплаты.');
       }
 
@@ -44,7 +44,7 @@ class AuthService {
           email: user.email,
           login: user.login,
           fullname: user.fullname,
-          status: user.status
+          status: user.membership_status
         }
       };
 
@@ -80,7 +80,7 @@ class AuthService {
           email: user.email,
           login: user.login,
           fullname: user.fullname,
-          status: user.status
+          status: user.membership_status
         }
       };
 
@@ -114,7 +114,7 @@ class AuthService {
           email: user.email,
           login: user.login,
           fullname: user.fullname,
-          status: user.status,
+          status: user.membership_status,
           created_at: user.created_at,
           last_login: user.last_login
         }
@@ -139,8 +139,8 @@ class AuthService {
 
       return {
         exists: true,
-        status: user.status,
-        message: user.status === 'active' 
+        status: user.membership_status,
+        message: user.membership_status === 'active' 
           ? 'Аккаунт активен' 
           : 'Аккаунт ожидает активации'
       };
