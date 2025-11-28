@@ -16,7 +16,7 @@ class AuthController {
         return res.status(400).json({
           success: false,
           message: 'Заполните все поля',
-          redirectTo: '/login' // остаемся на странице логина
+          redirectTo: '/auth'
         });
       }
   
