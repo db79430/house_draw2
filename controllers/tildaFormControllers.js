@@ -69,7 +69,7 @@ class TildaController {
         await User.updateMemberNumber(userResult.user.id, memberNumber);
   
         console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
-        userForEmail = await User.findById(userResult.id);
+        userForEmail = await User.findById(userResult.user.id);
         
         if (!userForEmail) {
           throw new Error('Не удалось найти созданного пользователя');
