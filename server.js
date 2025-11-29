@@ -22,6 +22,7 @@ import AuthController from './controllers/AuthController.js';
 import User from './models/Users.js';
 import SlotController from './controllers/SlotController.js';
 import { fileURLToPath } from 'url';
+import authenticateToken from './middlewares/auth.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename)
@@ -292,7 +293,7 @@ app.get('/dashboard', async (req, res) => {
   }
 });
 
-app.post('/purchase', (req, res) => 
+app.post('/purchase', authenticateToken, (req, res) => 
   slotController.purchaseSlots(req, res)
 );
 
