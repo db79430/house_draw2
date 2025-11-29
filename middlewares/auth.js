@@ -4,7 +4,7 @@ import AuthService from '../services/AuthService.js';
 // Создайте экземпляр сервиса
 const authService = new AuthService();
 
-export const authenticateToken = async (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -48,3 +48,5 @@ export const authenticateToken = async (req, res, next) => {
     });
   }
 };
+
+export default authenticateToken;
