@@ -303,12 +303,27 @@
                     if (result.token) {
                         localStorage.setItem('token', result.token);
                     }
+
+                    let finalRedirectUrl;
+
+                    if (result.redirectTo && typeof result.redirectTo === 'string') {
+                        finalRedirectUrl = result.redirectTo;
+                    } 
+
+                    else if (result.user && result.user.membership_number) {
+                        finalRedirectUrl = `https://npkvdv.ru/dashboard?member=${encodeURIComponent(result.user.membership_number)}`;
+                    }
+                    else {
+                        finalRedirectUrl = 'https://npkvdv.ru/dashboard';
+                    }
+    
+                    console.log('🎯 Final redirect URL:', finalRedirectUrl);
                     
                     // 🔥 ИСПОЛЬЗУЕМ redirectTo ИЗ ОТВЕТА СЕРВЕРА
                     setTimeout(() => {
-    console.log('🚀 Performing redirect to:', redirectUrl);
-    window.location.replace(redirectUrl); // 🔥 Заменяет текущую страницу в истории
-}, 1500);
+                        console.log('🚀 Performing redirect to:', redirectUrl);
+                        window.location.replace(finalRedirectUrl); // 🔥 Заменяет текущую страницу в истории
+                    }, 1500);
                     
                 } else {
                     showMessage('error', result.message || 'Ошибка входа. Проверьте логин и пароль');
