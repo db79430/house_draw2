@@ -71,7 +71,7 @@ class TildaController {
         userForEmail = await User.findById(userResult.user.id);
         
         // Отправляем приветственное письмо с номером
-        await this.sendWelcomeEmail(userForEmail, memberNumber);
+        await this.sendWelcomeEmailNumber(userForEmail, memberNumber);
       }
   
       // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
