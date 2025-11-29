@@ -68,7 +68,10 @@ class TildaController {
         await User.updateMemberNumber(userResult.user.id, memberNumber);
   
         console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
-        await this.sendWelcomeEmailNumber(userResult.user, memberNumber);
+        userForEmail = await User.findById(userResult.user.id);
+        
+        // Отправляем приветственное письмо с номером
+        await this.sendWelcomeEmail(userForEmail, memberNumber);
       }
   
       // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
@@ -114,11 +117,11 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         console.log(`   Email: ${user.email}`);
         
         // 🔥 ИСПРАВЛЕНИЕ: Добавляем проверку на существование метода
-        if (typeof this.logEmailSent === 'function') {
-          await this.logEmailSent(user.id, 'welcome', memberNumber);
-        } else {
-          console.log('⚠️ Метод logEmailSent не найден, пропускаем логирование');
-        }
+        // if (typeof this.logEmailSent === 'function') {
+        //   await this.logEmailSent(user.id, 'welcome', memberNumber);
+        // } else {
+        //   console.log('⚠️ Метод logEmailSent не найден, пропускаем логирование');
+        // }
       } else {
         console.warn('⚠️ Не удалось отправить приветственное письмо:', emailResult.error);
       }
@@ -134,26 +137,26 @@ async sendWelcomeEmailNumber(user, memberNumber) {
   /**
    * Логирование отправки email в базу
    */
-  async logEmailSent(userId, emailType, memberNumber) {
-    try {
-      // Проверяем, что есть подключение к базе
-      if (!db) {
-        console.log('⚠️ База данных не доступна для логирования email');
-        return;
-      }
+  // async logEmailSent(userId, emailType, memberNumber) {
+  //   try {
+  //     // Проверяем, что есть подключение к базе
+  //     if (!db) {
+  //       console.log('⚠️ База данных не доступна для логирования email');
+  //       return;
+  //     }
 
-      await db.none(
-        `INSERT INTO email_logs (user_id, email_type, member_number, sent_at) 
-         VALUES ($1, $2, $3, $4)`,
-        [userId, emailType, memberNumber, new Date()]
-      );
+  //     await db.none(
+  //       `INSERT INTO email_logs (user_id, email_type, member_number, sent_at) 
+  //        VALUES ($1, $2, $3, $4)`,
+  //       [userId, emailType, memberNumber, new Date()]
+  //     );
       
-      console.log('📝 Email логирование успешно');
-    } catch (error) {
-      console.error('❌ Ошибка логирования email:', error);
-      // Не прерываем основной поток из-за ошибки логирования
-    }
-  }
+  //     console.log('📝 Email логирование успешно');
+  //   } catch (error) {
+  //     console.error('❌ Ошибка логирования email:', error);
+  //     // Не прерываем основной поток из-за ошибки логирования
+  //   }
+  // }
 
 
   /**
