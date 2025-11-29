@@ -51,24 +51,26 @@ class Slot {
 
   static async createMultipleSlots(userId, count) {
     try {
-      const slots = [];
-      
-      for (let i = 0; i < count; i++) {
-        const slotNumber = await this.generateSlotNumber();
-        const slot = await this.create({
-          userId,
-          slotNumber,
-          purchaseDate: new Date()
-        });
-        slots.push(slot);
-      }
-      
-      console.log(`✅ Created ${slots.length} slots for user: ${userId}`);
-      return slots;
-      
+        const slots = [];
+        const createdSlots = [];
+        
+        for (let i = 0; i < count; i++) {
+            const slotNumber = await this.generateSlotNumber();
+            const slot = await this.create({
+                userId,
+                slotNumber,
+                purchaseDate: new Date(),
+                status: 'active' // 🔥 ИСПРАВЛЕНО: добавляем статус
+            });
+            createdSlots.push(slot);
+        }
+        
+        console.log(`✅ Created ${createdSlots.length} slots for user: ${userId}`);
+        return createdSlots;
+        
     } catch (error) {
-      console.error('❌ Error creating multiple slots:', error);
-      throw error;
+        console.error('❌ Error creating multiple slots:', error);
+        throw error;
     }
   }
 

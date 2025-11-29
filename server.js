@@ -126,6 +126,7 @@ const tildaController = new TildaController();
 const tinkoffController = new TinkoffController(); 
 // const emailController = new EmailController();
 const authController = new AuthController();
+const slotController = new SlotController();
 
 app.get('/tilda-webhook', (req, res) => {
   console.log('🔔 GET /tilda-webhook - Tilda connectivity check');
@@ -214,58 +215,101 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 
-// В вашем app.js добавьте обработку параметра
-app.get('/api/user/dashboard', async (req, res) => {
+app.get('/dashboard', async (req, res) => {
   try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      const memberNumber = req.query.member;
-      
-      console.log('📊 Dashboard API request:', { 
-          hasToken: !!token,
-          memberNumber: memberNumber 
-      });
+    const userId = req.user.id;
+    const memberNumber = req.query.member;
+    
+    console.log('📊 Dashboard API request:', { 
+      userId: userId,
+      memberNumber: memberNumber 
+    });
 
-      // Ваша логика загрузки данных дашборда
-      // Используйте memberNumber для поиска пользователя
-      
-      const dashboardData = {
-          user: {
-              id: 1,
-              fullname: "Иван Иванов",
-              membership_number: memberNumber || "M8YOC",
-              membership_status: "active",
-              created_at: "2024-01-15"
-          },
-          statistics: {
-              totalSlots: 5,
-              activeSlots: 3
-          },
-          slots: [
-              { id: 1, slot_number: "A001", purchase_date: "2024-01-15", status: "active" },
-              { id: 2, slot_number: "A002", purchase_date: "2024-01-15", status: "active" }
-          ],
-          paymentHistory: [
-              { id: 1, created_at: "2024-01-15", description: "Покупка 2 слотов", amount: 2000, status: "completed" }
-          ]
-      };
-
-      res.json({
-          success: true,
-          data: dashboardData
+    // Находим пользователя
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
       });
-      
+    }
+
+    // Если передан memberNumber, проверяем соответствие
+    if (memberNumber && user.membership_number !== memberNumber) {
+      console.log('⚠️ Member number mismatch:', {
+        stored: user.membership_number,
+        provided: memberNumber
+      });
+      // Можно обновить номер члена клуба если нужно
+      // await User.updateMembershipNumber(userId, memberNumber);
+    }
+
+    // Получаем слоты пользователя
+    const userSlots = await Slot.findByUserIdSlots(userId);
+    
+    // Получаем историю платежей
+    const paymentHistory = await Payment.getPaymentHistory(userId, 10);
+
+    // Получаем статистику
+    const statistics = {
+      totalSlots: userSlots.length,
+      activeSlots: userSlots.filter(slot => slot.status === 'active').length,
+      availableSlots: await Slot.getAvailableSlotsCount()
+    };
+
+    const dashboardData = {
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        email: user.email,
+        phone: user.phone,
+        membership_number: user.membership_number,
+        membership_status: user.membership_status,
+        created_at: user.created_at
+      },
+      statistics: statistics,
+      slots: userSlots,
+      paymentHistory: paymentHistory
+    };
+
+    console.log('✅ Dashboard data loaded:', {
+      userId: userId,
+      slotsCount: userSlots.length,
+      paymentsCount: paymentHistory.length
+    });
+
+    res.json({
+      success: true,
+      data: dashboardData
+    });
+    
   } catch (error) {
-      console.error('❌ Dashboard API error:', error);
-      res.status(500).json({
-          success: false,
-          message: 'Ошибка загрузки дашборда'
-      });
+    console.error('❌ Dashboard API error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка загрузки дашборда'
+    });
   }
 });
 
-// app.get('/dashboard', SlotController.getDashboard);
-app.post('/purchase-slots', SlotController.purchaseSlots);
-app.get('/purchase-history', SlotController.getPurchaseHistory);
+app.post('/purchase', (req, res) => 
+  slotController.purchaseSlots(req, res)
+);
+
+// Получение слотов пользователя
+app.get('/my-slots', (req, res) => 
+  slotController.getUserSlots(req, res)
+);
+
+// Получение статистики
+app.get('/statistics', (req, res) => 
+  slotController.getStatistics(req, res)
+);
+
+// Уведомления от Tinkoff (не требует авторизации)
+app.post('/payment-notification', (req, res) => 
+  slotController.handlePaymentNotification(req, res)
+);
 
 console.log('🔧 Environment Check:');
 console.log('   Current directory:', process.cwd());
