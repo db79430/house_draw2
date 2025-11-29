@@ -47,6 +47,7 @@ class TildaController {
   
       let userResult;
       let memberNumber;
+      let userForEmail;
   
       // Если пользователь существует но не оплатил - используем его
       if (existingUserCheck.user) {
@@ -68,8 +69,14 @@ class TildaController {
         await User.updateMemberNumber(userResult.user.id, memberNumber);
   
         console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
-        userForEmail = await User.findById(userResult.user.id);
+        userForEmail = await User.findById(userResult.id);
         
+        if (!userForEmail) {
+          throw new Error('Не удалось найти созданного пользователя');
+        }
+
+        // userForEmail.membership_number = memberNumber;
+
         // Отправляем приветственное письмо с номером
         await this.sendWelcomeEmailNumber(userForEmail, memberNumber);
       }
