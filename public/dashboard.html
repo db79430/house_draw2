@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет - НПК ВДВ</title>
     <style>
+        /* Стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -277,6 +278,16 @@
             margin: 20px 0;
             text-align: center;
         }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #4CAF50;
+        }
     </style>
 </head>
 <body>
@@ -284,7 +295,7 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <h1>🌿 Клуб Природы</h1>
+                    <h1>🌿 Клуб НКП ВДВ</h1>
                 </div>
                 <div class="user-info">
                     <span id="userName">Загрузка...</span>
@@ -301,6 +312,7 @@
             </div>
 
             <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
 
             <div id="dashboardContent" style="display: none;">
                 <!-- Приветственная секция -->
@@ -390,6 +402,7 @@
     </main>
 
     <script>
+        const API_BASE = ''; // Базовый URL API (пустой если тот же домен)
         let selectedSlotCount = 0;
         let userData = null;
     
@@ -424,60 +437,63 @@
         });
     
         async function loadDashboard() {
-            try {
-                // Добавляем параметр member в запрос если есть
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlMemberNumber = urlParams.get('member');
-                
-                let url = '/api/user/dashboard';
-                if (urlMemberNumber) {
-                    url += `?member=${encodeURIComponent(urlMemberNumber)}`;
-                }
+  try {
+    showLoading(true);
     
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
+    const token = localStorage.getItem('token');
+    console.log('🔐 Making dashboard request with token:', 
+      token ? `${token.substring(0, 15)}...` : 'NO TOKEN'
+    );
     
-                if (response.status === 401) {
-                    logout();
-                    return;
-                }
+    const response = await fetch(`/dashboard?member=${encodeURIComponent(userData.membership_number || '')}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('📊 Dashboard response status:', response.status);
     
-                const result = await response.json();
-    
-                if (result.success) {
-                    displayDashboard(result.data);
-                } else {
-                    showError(result.message || 'Ошибка загрузки данных');
-                }
-            } catch (error) {
-                showError('Ошибка соединения с сервером');
-            }
-        }
+    if (response.status === 401) {
+      console.log('❌ Unauthorized, logging out...');
+      logout();
+      return;
+    }
+
+    const result = await response.json();
+    console.log('📊 Dashboard response data:', result);
+
+    if (result.success) {
+      displayDashboard(result.data);
+    } else {
+      showError(result.message || 'Ошибка загрузки данных');
+    }
+  } catch (error) {
+    console.error('❌ Dashboard load error:', error);
+    showError('Ошибка соединения с сервером: ' + error.message);
+  } finally {
+    showLoading(false);
+  }
+}
     
         function displayDashboard(data) {
-            document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboardContent').style.display = 'block';
     
             // Заполняем данные пользователя
-            const membershipNumber = data.user.membership_number || 
-                                   data.user.memberNumber || 
-                                   data.user.member_number;
+            const membershipNumber = data.user?.membership_number || 'Не указан';
             
-            document.getElementById('userName').textContent = data.user.fullname || data.user.name;
-            document.getElementById('welcomeName').textContent = data.user.fullname || data.user.name;
-            document.getElementById('membershipNumber').textContent = membershipNumber || 'Не указан';
+            document.getElementById('userName').textContent = data.user?.fullname || 'Пользователь';
+            document.getElementById('welcomeName').textContent = data.user?.fullname || 'Пользователь';
+            document.getElementById('membershipNumber').textContent = membershipNumber;
             document.getElementById('membershipStatus').textContent = 
-                data.user.membership_status === 'active' ? 'Активен' : 
-                data.user.status === 'active' ? 'Активен' : 'Неактивен';
+                data.user?.membership_status === 'active' ? 'Активен' : 'Неактивен';
     
             // Статистика
             document.getElementById('totalSlots').textContent = data.statistics?.totalSlots || 0;
             document.getElementById('activeSlots').textContent = data.statistics?.activeSlots || 0;
             
-            const memberSince = data.user.created_at || data.user.joined_at;
+            const memberSince = data.user?.created_at;
             document.getElementById('memberSince').textContent = 
                 memberSince ? new Date(memberSince).toLocaleDateString('ru-RU') : '-';
     
@@ -519,106 +535,134 @@
                 <tr>
                     <td>${payment.created_at ? new Date(payment.created_at).toLocaleDateString('ru-RU') : '-'}</td>
                     <td>${payment.description || 'Покупка слотов'}</td>
-                    <td>${payment.amount ? payment.amount + ' ₽' : '0 ₽'}</td>
+                    <td>${payment.amount ? (payment.amount / 100).toLocaleString('ru-RU') + ' ₽' : '0 ₽'}</td>
                     <td class="status-${payment.status}">
-                        ${payment.status === 'completed' ? '✅ Завершено' : '⏳ В обработке'}
+                        ${payment.status === 'completed' ? '✅ Завершено' : 
+                          payment.status === 'pending' ? '⏳ В обработке' : 
+                          '❌ Ошибка'}
                     </td>
                 </tr>
             `).join('');
         }
 
         function setupEventListeners() {
-    // Выбор количества слотов
-    document.querySelectorAll('.slot-option').forEach(option => {
-        option.addEventListener('click', function() {
-            // Убираем выделение у всех опций
-            document.querySelectorAll('.slot-option').forEach(opt => {
-                opt.classList.remove('selected');
+            // Выбор количества слотов
+            document.querySelectorAll('.slot-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Убираем выделение у всех опций
+                    document.querySelectorAll('.slot-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Выделяем выбранную опцию
+                    this.classList.add('selected');
+                    
+                    // Сохраняем выбранное количество
+                    selectedSlotCount = parseInt(this.dataset.count);
+                    
+                    // Активируем кнопку покупки
+                    const purchaseBtn = document.getElementById('purchaseBtn');
+                    purchaseBtn.disabled = false;
+                    purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
+                });
             });
-            
-            // Выделяем выбранную опцию
-            this.classList.add('selected');
-            
-            // Сохраняем выбранное количество
-            selectedSlotCount = parseInt(this.dataset.count);
-            
-            // Активируем кнопку покупки
-            const purchaseBtn = document.getElementById('purchaseBtn');
-            purchaseBtn.disabled = false;
-            purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
-        });
-    });
 
-    // Кнопка покупки
-    document.getElementById('purchaseBtn').addEventListener('click', purchaseSlots);
-}
-
-// Функция покупки слотов
-async function purchaseSlots() {
-    if (selectedSlotCount === 0) {
-        showError('Выберите количество слотов');
-        return;
-    }
-
-    try {
-        const purchaseBtn = document.getElementById('purchaseBtn');
-        purchaseBtn.disabled = true;
-        purchaseBtn.textContent = 'Обработка...';
-
-        const response = await fetch('/api/slots/purchase', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                slotCount: selectedSlotCount
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showMessage('success', 'Перенаправление на страницу оплаты...');
-            
-            // Перенаправляем на страницу оплаты Tinkoff
-            setTimeout(() => {
-                window.location.href = result.paymentUrl;
-            }, 1500);
-            
-        } else {
-            showError(result.message || 'Ошибка при создании платежа');
-            purchaseBtn.disabled = false;
-            purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
+            // Кнопка покупки
+            document.getElementById('purchaseBtn').addEventListener('click', purchaseSlots);
         }
 
-    } catch (error) {
-        console.error('Purchase error:', error);
-        showError('Ошибка соединения с сервером');
-        
-        const purchaseBtn = document.getElementById('purchaseBtn');
-        purchaseBtn.disabled = false;
-        purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
-    }
-}
+        async function purchaseSlots() {
+            if (selectedSlotCount === 0) {
+                showError('Выберите количество слотов');
+                return;
+            }
 
-// Функция показа сообщений
-function showMessage(type, message) {
-    const messageEl = document.getElementById('errorMessage');
-    messageEl.textContent = message;
-    messageEl.style.display = 'block';
-    messageEl.style.background = type === 'success' ? '#e8f5e8' : '#ffebee';
-    messageEl.style.color = type === 'success' ? '#2e7d32' : '#c62828';
-    messageEl.style.borderLeftColor = type === 'success' ? '#4CAF50' : '#c62828';
-    
-    setTimeout(() => {
-        messageEl.style.display = 'none';
-    }, 5000);
-}
+            try {
+                const purchaseBtn = document.getElementById('purchaseBtn');
+                purchaseBtn.disabled = true;
+                purchaseBtn.textContent = 'Обработка...';
 
-function showError(message) {
-    showMessage('error', message);
-}
+                const response = await fetch(`${API_BASE}/purchase`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        slotCount: selectedSlotCount
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('Перенаправление на страницу оплаты...');
+                    
+                    // Перенаправляем на страницу оплаты Tinkoff
+                    setTimeout(() => {
+                        if (result.data && result.data.paymentUrl) {
+                            window.location.href = result.data.paymentUrl;
+                        } else {
+                            showError('Не удалось получить ссылку для оплаты');
+                            purchaseBtn.disabled = false;
+                            purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
+                        }
+                    }, 1500);
+                    
+                } else {
+                    showError(result.message || 'Ошибка при создании платежа');
+                    purchaseBtn.disabled = false;
+                    purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
+                }
+
+            } catch (error) {
+                console.error('❌ Purchase error:', error);
+                showError('Ошибка соединения с сервером');
+                
+                const purchaseBtn = document.getElementById('purchaseBtn');
+                purchaseBtn.disabled = false;
+                purchaseBtn.textContent = `Купить ${selectedSlotCount} слотов`;
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            if (!show) {
+                document.getElementById('dashboardContent').style.display = 'block';
+            }
+        }
+
+        function showMessage(type, message) {
+            const errorEl = document.getElementById('errorMessage');
+            const successEl = document.getElementById('successMessage');
+            
+            // Скрываем все сообщения
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            
+            // Показываем нужное сообщение
+            if (type === 'error') {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            } else if (type === 'success') {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+            }
+            
+            // Автоскрытие через 5 секунд
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+                successEl.style.display = 'none';
+            }, 5000);
+        }
+
+        function showError(message) {
+            showMessage('error', message);
+        }
+
+        function showSuccess(message) {
+            showMessage('success', message);
+        }
     
         // Функция выхода с сохранением параметра
         function logout() {
