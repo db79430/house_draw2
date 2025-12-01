@@ -1,7 +1,7 @@
 // services/SlotService.js
 import Slot from '../models/Slots.js';
 import Payment from '../models/Payment.js';
-import TinkoffService from './TinkoffService.js';
+import TinkoffService from '../services/TinkoffService.js';
 
 class SlotService {
   /**

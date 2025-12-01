@@ -67,7 +67,6 @@ const pgpInstance = pgp();
 let dbConfig;
 
 if (CONFIG.DATABASE.URL) {
-  // Используем DATABASE_URL если доступен (Railway, Heroku, etc.)
   dbConfig = CONFIG.DATABASE.URL;
 } else {
   // Используем отдельные параметры
