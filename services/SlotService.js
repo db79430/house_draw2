@@ -93,14 +93,7 @@ async purchaseSlots(userId, slotCount) {
   
       // Обновляем платеж с PaymentId от Tinkoff
       if (tinkoffResult.PaymentId) {
-        await Payment.update(payment.id, {
-          external_id: tinkoffResult.PaymentId,
-          metadata: {
-            ...payment.metadata,
-            tinkoff_payment_id: tinkoffResult.PaymentId,
-            tinkoff_status: tinkoffResult.Status
-          }
-        });
+        await Payment.updateStatus(paymentData.OrderId, 'completed');
       }
   
       return {
