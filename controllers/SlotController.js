@@ -217,7 +217,7 @@ class SlotController {
             }
           }
 
-          console.log(`📊 Creating ${slotCount} slots for user ${payment.user_id}`);
+          console.log(`📊 Creating ${slotCount} slots for user ${payment.userId}`);
 
         } catch (parseError) {
           console.error('❌ Error parsing slot count:', parseError);
@@ -225,12 +225,12 @@ class SlotController {
         }
 
         // Создаем слоты если есть user_id
-        if (payment.user_id) {
+        if (payment.userId) {
           try {
             // Используем SlotService для создания слотов
             // const slotService = new SlotService();
             const result = await Slot.createMultipleSlotsInRange(
-              payment.user_id,
+              payment.userId,
               slotCount,
               payment.id
             );
@@ -240,7 +240,7 @@ class SlotController {
               console.log(`✅ Successfully created ${createdSlots.length} slots`);
 
               // Обновляем статус пользователя
-              await User.updateMembershipStatus(payment.user_id, 'active');
+              await User.updateMembershipStatus(payment.userId, 'active');
               console.log('✅ User membership status updated to "active"');
 
             } else {
@@ -272,7 +272,7 @@ class SlotController {
       if (Success && Status === 'CONFIRMED' && createdSlots.length > 0) {
         // Получаем обновленный платеж
         const updatedPayment = await Payment.findByOrderId(OrderId);
-        await this.notifyUserAboutPurchase(payment.user_id, createdSlots, updatedPayment);
+        await this.notifyUserAboutPurchase(payment.userId, createdSlots, updatedPayment);
       }
 
     } catch (error) {
