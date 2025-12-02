@@ -4,40 +4,43 @@ import Payment from '../models/Payment.js';
 import TinkoffService from '../services/TinkoffService.js';
 import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
+import TokenGenerator from '../utils/tokenGenerator.js';
 
 class SlotService {
   /**
    * Покупка слотов
    */
-  async purchaseSlots(userId, slotCount) { 
+  // services/SlotService.js - исправленный метод purchaseSlots
+
+async purchaseSlots(userId, slotCount) {
     try {
       console.log('🎯 Starting slot purchase:', { userId, slotCount });
-
+  
       // Валидация
       if (!userId || !slotCount || slotCount <= 0) {
         throw new Error('Некорректные данные для покупки слотов');
       }
-
+  
       // Находим пользователя по ID
       const user = await User.findById(userId);
       
       if (!user) {
         throw new Error('Пользователь не найден');
       }
-
+  
       console.log('👤 Found user:', {
         id: user.id,
         memberNumber: user.memberNumber,
         email: user.email,
         phone: user.phone
       });
-
+  
       // Расчет суммы
       const amount = this.calculateAmount(slotCount);
       console.log('💰 Calculated amount:', amount);
-
-      // Создаем заказ в Tinkoff
-      const orderId = `slot_${userId}_${Date.now()}`;
+  
+      // Создаем уникальный orderId для Tinkoff
+      const orderId = TokenGenerator.generateOrderId();
       
       const paymentData = {
         TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
@@ -52,17 +55,17 @@ class SlotService {
           SlotCount: slotCount
         },
       };
-
+  
       console.log('📋 Payment data prepared:', {
         OrderId: paymentData.OrderId,
         Amount: paymentData.Amount,
         Description: paymentData.Description
       });
-
-      // Создаем платеж в базе
+  
+      // Создаем платеж в базе ПЕРЕД запросом к Tinkoff
       const payment = await Payment.create({
         user_id: userId,
-        order_id: orderId,
+        order_id: orderId, // ВАЖНО: передаем order_id
         amount: amount,
         description: paymentData.Description,
         status: 'pending',
@@ -72,28 +75,34 @@ class SlotService {
         }
       });
       
-      console.log('✅ Payment record created:', payment.id);
-
+      console.log('✅ Payment record created:', {
+        id: payment.id,
+        order_id: payment.order_id,
+        user_id: payment.user_id
+      });
+  
       // Инициируем платеж в Tinkoff
       const tinkoffService = new TinkoffService();
       const tinkoffResult = await tinkoffService.initPayment(paymentData);
-
+  
       console.log('✅ Tinkoff payment initiated:', {
         PaymentId: tinkoffResult.PaymentId,
         PaymentURL: tinkoffResult.PaymentURL,
+        Success: tinkoffResult.Success
       });
-
+  
       // Обновляем платеж с PaymentId от Tinkoff
       if (tinkoffResult.PaymentId) {
         await Payment.update(payment.id, {
           external_id: tinkoffResult.PaymentId,
           metadata: {
             ...payment.metadata,
-            tinkoff_payment_id: tinkoffResult.PaymentId
+            tinkoff_payment_id: tinkoffResult.PaymentId,
+            tinkoff_status: tinkoffResult.Status
           }
         });
       }
-
+  
       return {
         success: true,
         paymentId: payment.id,
@@ -102,7 +111,7 @@ class SlotService {
         amount: amount,
         tinkoffPaymentId: tinkoffResult.PaymentId
       };
-
+  
     } catch (error) {
       console.error('❌ Error in purchaseSlots:', error);
       throw error;
