@@ -41,7 +41,8 @@ class SlotService {
       console.log('✅ Payment record created:', payment.id);
 
       // Инициируем платеж в Tinkoff
-      const tinkoffResult = await TinkoffService.initPayment({
+      const tinkoffService = new TinkoffService();
+      const tinkoffResult = await tinkoffService.initPayment({
         OrderId: orderId,
         Amount: amount,
         Description: `Покупка ${slotCount} слотов для пользователя ${userData.fullname}`,
