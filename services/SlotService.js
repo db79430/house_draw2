@@ -3,6 +3,7 @@ import Slot from '../models/Slots.js';
 import Payment from '../models/Payment.js';
 import TinkoffService from '../services/TinkoffService.js';
 import CONFIG from '../config/index.js';
+import User from '../models/Users.js';
 
 class SlotService {
   /**
@@ -21,6 +22,8 @@ class SlotService {
       const amount = this.calculateAmount(slotCount);
       console.log('💰 Calculated amount:', amount);
 
+      const userFind = await User.findById(userResult.user.id);
+
       // Создаем заказ в Tinkoff
       const orderId = `slot_${userId}_${Date.now()}`;
       
@@ -28,7 +31,7 @@ class SlotService {
         TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
         Amount: amount,
         OrderId: orderId,
-        Description: `Покупка слота. Член клуба: ${memberNumber}`,
+        Description: `Покупка слота. Член клуба: ${userFind.lmemberNumber}`,
         NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
         DATA: {
           Email: user.email,
