@@ -34,9 +34,9 @@ class SlotService {
         Description: `Покупка слота. Член клуба: ${userFind.lmemberNumber}`,
         NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
         DATA: {
-          Email: user.email,
-          Phone: user.phone,
-          MemberNumber: memberNumber
+          Email: userFind.email,
+          Phone: userFind.phone,
+          MemberNumber: userFind.memberNumber
         }
       };
 
