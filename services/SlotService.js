@@ -2,6 +2,7 @@
 import Slot from '../models/Slots.js';
 import Payment from '../models/Payment.js';
 import TinkoffService from '../services/TinkoffService.js';
+import CONFIG from '../config/index.js';
 
 class SlotService {
   /**
