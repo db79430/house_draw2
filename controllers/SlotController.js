@@ -155,7 +155,8 @@ class SlotController {
       
       // ВАЖНО: ВАМ НУЖНО БУДЕТ ДОБАВИТЬ ПРОВЕРКУ ПОДПИСИ
       // Но пока работаем без нее для тестирования
-      const isValid = await TinkoffService.verifyNotification(notificationData);
+      const tinkoffServiceSlot = new TinkoffService();
+      const isValid = await tinkoffServiceSlot.verifyNotificationSimple(notificationData);
       if (!isValid) {
         console.error('❌ Invalid Tinkoff notification');
         return res.status(400).send('Invalid notification');
