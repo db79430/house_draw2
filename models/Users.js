@@ -200,6 +200,7 @@ class User {
           email,
           phone,
           login,
+          membership_number,
           membership_status,
           created_at
         FROM users 

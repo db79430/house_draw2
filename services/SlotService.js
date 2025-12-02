@@ -30,7 +30,7 @@ async purchaseSlots(userId, slotCount) {
   
       console.log('👤 Found user:', {
         id: user.id,
-        memberNumber: user.memberNumber,
+        memberNumber: user.membership_number,
         email: user.email,
         phone: user.phone
       });
@@ -64,8 +64,8 @@ async purchaseSlots(userId, slotCount) {
   
       // Создаем платеж в базе ПЕРЕД запросом к Tinkoff
       const payment = await Payment.create({
-        user_id: userId,
-        order_id: orderId, // ВАЖНО: передаем order_id
+        user_id: user.id,
+        orderId: orderId,
         amount: amount,
         description: paymentData.Description,
         status: 'pending',

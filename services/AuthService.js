@@ -99,7 +99,9 @@ class AuthService {
           id: user.id,
           email: user.email,
           login: user.login,
+          memberNumber: user.membership_number,
           fullname: user.fullname,
+
           status: user.membership_status
         }
       };
