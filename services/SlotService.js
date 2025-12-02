@@ -47,7 +47,7 @@ async purchaseSlots(userId, slotCount) {
         Amount: amount,
         OrderId: orderId,
         Description: `Покупка ${slotCount} слота (ов). Член клуба: ${user.memberNumber || 'Не указан'}`,
-        NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+        NotificationURL: `${CONFIG.APP.BASE_URL}/payment-notification`,
         DATA: {
           Email: user.email || '',
           Phone: user.phone || '',
