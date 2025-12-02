@@ -11,34 +11,28 @@ class SlotController {
   /**
    * Покупка слотов
    */
-  async purchaseSlots(req, res) {
+  async purchase(req, res) {
     try {
-      console.log('🎯 POST /api/slots/purchase called');
-      
       const { slotCount } = req.body;
       const userId = req.user.id;
-      const userData = req.user;
-
-      if (!slotCount) {
+      
+      if (!slotCount || slotCount <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Укажите количество слотов для покупки'
+          message: 'Укажите количество слотов'
         });
       }
 
-      const result = await this.slotService.purchaseSlots(userId, slotCount, userData);
+      const slotService = new SlotService();
+      const result = await slotService.purchaseSlots(userId, slotCount);
 
       res.json({
         success: true,
-        message: 'Платеж инициирован',
-        paymentUrl: result.paymentUrl,
-        orderId: result.orderId,
-        amount: result.amount
+        data: result
       });
 
     } catch (error) {
-      console.error('❌ Error in purchaseSlots controller:', error);
-      
+      console.error('❌ Controller error:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Ошибка при создании платежа'
@@ -161,7 +155,7 @@ class SlotController {
       
       // ВАЖНО: ВАМ НУЖНО БУДЕТ ДОБАВИТЬ ПРОВЕРКУ ПОДПИСИ
       // Но пока работаем без нее для тестирования
-      const isValid = await TinkoffService.verifyNotificationSimple(notificationData);
+      const isValid = await TinkoffService.verifyNotification(notificationData);
       if (!isValid) {
         console.error('❌ Invalid Tinkoff notification');
         return res.status(400).send('Invalid notification');

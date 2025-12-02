@@ -294,7 +294,7 @@ app.get('/dashboard', async (req, res) => {
 });
 
 app.post('/purchase', authenticateToken, (req, res) => 
-  slotController.purchaseSlots(req, res)
+  slotController.purchase(req, res)
 );
 
 // Получение слотов пользователя

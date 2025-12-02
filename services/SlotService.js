@@ -9,7 +9,7 @@ class SlotService {
   /**
    * Покупка слотов
    */
-  async purchaseSlots(userId, slotCount, userData) {
+  async purchaseSlots(userId, slotCount) { 
     try {
       console.log('🎯 Starting slot purchase:', { userId, slotCount });
 
@@ -18,11 +18,23 @@ class SlotService {
         throw new Error('Некорректные данные для покупки слотов');
       }
 
+      // Находим пользователя по ID
+      const user = await User.findById(userId);
+      
+      if (!user) {
+        throw new Error('Пользователь не найден');
+      }
+
+      console.log('👤 Found user:', {
+        id: user.id,
+        memberNumber: user.memberNumber,
+        email: user.email,
+        phone: user.phone
+      });
+
       // Расчет суммы
       const amount = this.calculateAmount(slotCount);
       console.log('💰 Calculated amount:', amount);
-
-      const userFind = await User.findById(userResult.user.id);
 
       // Создаем заказ в Tinkoff
       const orderId = `slot_${userId}_${Date.now()}`;
@@ -31,31 +43,64 @@ class SlotService {
         TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
         Amount: amount,
         OrderId: orderId,
-        Description: `Покупка слота. Член клуба: ${userFind.lmemberNumber}`,
+        Description: `Покупка ${slotCount} слотов. Член клуба: ${user.memberNumber || 'Не указан'}`,
         NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
         DATA: {
-          Email: userFind.email,
-          Phone: userFind.phone,
-          MemberNumber: userFind.memberNumber
-        }
+          Email: user.email || '',
+          Phone: user.phone || '',
+          MemberNumber: user.memberNumber || '',
+          SlotCount: slotCount
+        },
       };
 
+      console.log('📋 Payment data prepared:', {
+        OrderId: paymentData.OrderId,
+        Amount: paymentData.Amount,
+        Description: paymentData.Description
+      });
+
       // Создаем платеж в базе
-      const payment = await Payment.create(paymentData);
+      const payment = await Payment.create({
+        user_id: userId,
+        order_id: orderId,
+        amount: amount,
+        description: paymentData.Description,
+        status: 'pending',
+        metadata: {
+          slot_count: slotCount,
+          member_number: user.memberNumber
+        }
+      });
+      
       console.log('✅ Payment record created:', payment.id);
 
       // Инициируем платеж в Tinkoff
       const tinkoffService = new TinkoffService();
-      const tinkoffResult = await tinkoffService.initPayment({paymentData});
+      const tinkoffResult = await tinkoffService.initPayment(paymentData);
 
-      console.log('✅ Tinkoff payment initiated:', tinkoffResult);
+      console.log('✅ Tinkoff payment initiated:', {
+        PaymentId: tinkoffResult.PaymentId,
+        PaymentURL: tinkoffResult.PaymentURL,
+      });
+
+      // Обновляем платеж с PaymentId от Tinkoff
+      if (tinkoffResult.PaymentId) {
+        await Payment.update(payment.id, {
+          external_id: tinkoffResult.PaymentId,
+          metadata: {
+            ...payment.metadata,
+            tinkoff_payment_id: tinkoffResult.PaymentId
+          }
+        });
+      }
 
       return {
         success: true,
         paymentId: payment.id,
         paymentUrl: tinkoffResult.PaymentURL,
         orderId: orderId,
-        amount: amount
+        amount: amount,
+        tinkoffPaymentId: tinkoffResult.PaymentId
       };
 
     } catch (error) {
