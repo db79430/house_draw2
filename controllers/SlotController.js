@@ -4,6 +4,7 @@ import Payment from '../models/Payment.js';
 import TinkoffService from '../services/TinkoffService.js';
 import EmailService from '../services/EmailServices.js';
 import User from '../models/Users.js';
+import Slot from '../models/Slots.js';
 
 class SlotController {
   constructor() {
@@ -178,7 +179,7 @@ class SlotController {
 
       console.log('✅ Found payment:', {
         id: payment.id,
-        user_id: payment.userId,
+        user_id: payment.user_id,
         order_id: payment.order_id,
         status: payment.status,
         amount: payment.amount
@@ -229,8 +230,8 @@ class SlotController {
           try {
             // Используем SlotService для создания слотов
             // const slotService = new SlotService();
-            const result = await Slot.createMultipleSlotsInRange(
-              payment.userId,
+            const result = await Slot.createMultipleSlots(
+              payment.user_id,
               slotCount,
               payment.id
             );
@@ -272,7 +273,7 @@ class SlotController {
       if (Success && Status === 'CONFIRMED' && createdSlots.length > 0) {
         // Получаем обновленный платеж
         const updatedPayment = await Payment.findByOrderId(OrderId);
-        await this.notifyUserAboutPurchase(payment.userId, createdSlots, updatedPayment);
+        await this.notifyUserAboutPurchase(payment.user_id, createdSlots, updatedPayment);
       }
 
     } catch (error) {
