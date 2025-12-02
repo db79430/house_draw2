@@ -1,3 +1,4 @@
+// models/Payment.js
 import db from '../database/index.js';
 
 class Payment {
@@ -57,8 +58,16 @@ class Payment {
     }
   }
 
+  /**
+   * Обновить статус платежа по order_id (строковому)
+   */
   static async updateStatus(orderId, status, notificationData = null) {
     try {
+      console.log('🔄 Updating payment status by order_id:', { orderId, status });
+      
+      // Убедимся что orderId - строка
+      const orderIdStr = String(orderId);
+      
       const query = `
         UPDATE payments 
         SET status = $1, notification_data = $2, updated_at = CURRENT_TIMESTAMP
@@ -66,11 +75,61 @@ class Payment {
         RETURNING *
       `;
       
-      const result = await db.one(query, [status, notificationData, orderId]);
-      console.log('✅ Payment status updated:', orderId, '->', status);
+      const result = await db.one(query, [status, notificationData, orderIdStr]);
+      console.log('✅ Payment status updated:', orderIdStr, '->', status);
       return result;
     } catch (error) {
-      console.error('❌ Error updating payment status:', error);
+      console.error('❌ Error updating payment status by order_id:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Обновить статус платежа по ID (числовому)
+   */
+  static async updateStatusById(id, status, notificationData = null) {
+    try {
+      console.log('🔄 Updating payment status by id:', { id, status });
+      
+      // Убедимся что id - число
+      const idNum = parseInt(id);
+      if (isNaN(idNum)) {
+        throw new Error(`Invalid payment id: ${id}`);
+      }
+      
+      const query = `
+        UPDATE payments 
+        SET status = $1, notification_data = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+        RETURNING *
+      `;
+      
+      const result = await db.one(query, [status, notificationData, idNum]);
+      console.log('✅ Payment status updated by id:', idNum, '->', status);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating payment status by id:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Универсальный метод обновления статуса
+   */
+  static async updatePaymentStatus(identifier, status, notificationData = null) {
+    try {
+      // Определяем тип идентификатора
+      const isNumeric = /^\d+$/.test(String(identifier));
+      
+      if (isNumeric) {
+        // Если идентификатор выглядит как число, используем id
+        return await this.updateStatusById(identifier, status, notificationData);
+      } else {
+        // Иначе используем order_id
+        return await this.updateStatus(identifier, status, notificationData);
+      }
+    } catch (error) {
+      console.error('❌ Error in updatePaymentStatus:', error);
       throw error;
     }
   }
@@ -98,7 +157,7 @@ class Payment {
       const query = `
         SELECT * FROM payments 
         WHERE user_id = $1 
-        AND status IN ('CONFIRMED', 'success', 'paid')
+        AND status IN ('CONFIRMED', 'success', 'paid', 'completed')
         ORDER BY created_at DESC
       `;
       

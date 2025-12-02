@@ -20,7 +20,7 @@ class EmailService {
    */
   initTransporter() {
     const emailStatus = EmailService.getEmailStatus();
-    
+
     if (emailStatus.enabled) {
       try {
         this.transporter = nodemailer.createTransport({
@@ -32,7 +32,7 @@ class EmailService {
             pass: process.env.YANDEX_APP_PASSWORD
           }
         });
-        
+
         // Проверяем соединение
         this.transporter.verify((error, success) => {
           if (error) {
@@ -42,14 +42,14 @@ class EmailService {
             console.log('✅ Email transporter initialized and verified');
           }
         });
-        
+
       } catch (error) {
         console.error('❌ Error initializing email transporter:', error);
         this.transporter = null;
       }
     } else {
       console.log('📧 Email service disabled - simulation mode');
-      
+
       if (!emailStatus.configured) {
         console.log('   ❌ Reason: YANDEX_EMAIL or YANDEX_APP_PASSWORD not set');
       } else if (emailStatus.hasDefaultValues) {
@@ -64,7 +64,7 @@ class EmailService {
   static async sendEmail(to, subject, htmlContent, textContent = null) {
     try {
       const emailStatus = EmailService.getEmailStatus();
-      
+
       if (!emailStatus.enabled) {
         console.log('📧 Email service disabled - simulation mode');
         return {
@@ -94,7 +94,7 @@ class EmailService {
       };
 
       const result = await transporter.sendMail(mailOptions);
-      
+
       console.log('✅ Email sent successfully:', {
         to: to,
         messageId: result.messageId,
@@ -117,28 +117,28 @@ class EmailService {
       };
     }
   }
-  
+
   /**
    * Получение статуса email сервиса
    */
   static getEmailStatus() {
     const yandexEmail = process.env.YANDEX_EMAIL;
     const yandexPassword = process.env.YANDEX_APP_PASSWORD;
-    
+
     const isConfigured = yandexEmail && yandexPassword;
-    
+
     console.log('🔧 Email Configuration Check:');
     console.log('   YANDEX_EMAIL:', yandexEmail ? '✅ Set' : '❌ Not set');
     console.log('   YANDEX_APP_PASSWORD:', yandexPassword ? '✅ Set' : '❌ Not set');
     console.log('   Using default values:', !isConfigured ? '✅ Yes' : '❌ No');
-    
+
     return {
       enabled: isConfigured, // Включаем если оба значения заданы
       configured: isConfigured,
       hasDefaultValues: !isConfigured
     };
   }
-  
+
   /**
    * Конвертация HTML в простой текст
    */
@@ -162,7 +162,7 @@ class EmailService {
   // static async sendCredentialsEmail(email, login, password, userData, phone, city) {
   //   try {
   //     console.log(`\n🎯 Preparing to send credentials to: ${email}`);
-      
+
   //     const emailStatus = EmailService.getEmailStatus();
   //     console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
 
@@ -188,12 +188,12 @@ class EmailService {
   //       htmlContent, 
   //       this.generatePlainTextCredentials(userData, login, password)
   //     );
-      
+
   //     if (result.success && !result.simulated) {
   //       console.log('✅ Credentials email sent successfully');
   //       console.log(`   Message ID: ${result.messageId}`);
   //     }
-      
+
   //     return result;
 
   //   } catch (error) {
@@ -212,16 +212,16 @@ class EmailService {
   static async sendWelcomeEmail(userData, memberNumber) {
     try {
       console.log(`🎯 Подготовка приветственного письма для: ${userData.email}`);
-      
+
       const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
       const htmlContent = await EmailService.generateWelcomeTemplate(userData, memberNumber);
-      
+
       const emailStatus = EmailService.getEmailStatus();
       console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
-      
+
       // Используем статический метод sendEmail
       const result = await EmailService.sendEmail(userData.email, subject, htmlContent);
-      
+
       if (result.success) {
         if (result.simulated) {
           console.log('✅ Приветственное письмо было бы отправлено (simulation mode)');
@@ -266,7 +266,7 @@ class EmailService {
         .replace(/{{currentYear}}/g, new Date().getFullYear());
 
       return htmlContent;
-      
+
     } catch (error) {
       console.log('⚠️ Welcome template file not found, using fallback template');
       return EmailService.getFallbackWelcomeTemplate(userData, memberNumber, appUrl, supportEmail, supportPhone);
@@ -333,38 +333,204 @@ class EmailService {
     `;
   }
 
-  static async sendCredentialsEmail(userData, password) {
+  static async sendEmailNotification(user, slots, notificationData) {
     try {
-      console.log(`🎯 Подготовка письма авторизации для: ${userData.email}`);
-      
-      const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
-      const htmlContent = await EmailService.generateCredentialsTemplate(userData, password);
-      
-      const emailStatus = EmailService.getEmailStatus();
+      console.log(`🎯 Подготовка письма о покупке слотов для: ${user.email}`);
+
+      const subject = `🎰 Успешная покупка ${slots.length} слотов в Клубе НКП ВДВ`;
+      const htmlContent = await this.generatePurchaseTemplate(user, slots, notificationData);
+
+      const emailStatus = this.getEmailStatus();
       console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
-      
+
       // Используем статический метод sendEmail
-      const result = await EmailService.sendEmail(userData.email, subject, htmlContent);
-      
+      const result = await this.sendEmail(user.email, subject, htmlContent);
+
       if (result.success) {
         if (result.simulated) {
-          console.log('✅ Приветственное письмо было бы отправлено (simulation mode)');
-          console.log(`   Номер члена клуба: ${userData.membership_number}`); // исправлено с memberNumber
-          console.log(`   Получатель: ${userData.email}`);
+          console.log('✅ Письмо о покупке было бы отправлено (simulation mode)');
+          console.log(`   Количество слотов: ${slots.length}`);
+          console.log(`   Номера слотов: ${slots.map(s => s.slot_number).join(', ')}`);
+          console.log(`   Получатель: ${user.email}`);
         } else {
-          console.log('✅ Приветственное письмо отправлено успешно');
+          console.log('✅ Письмо о покупке отправлено успешно');
         }
         return { success: true, result };
       } else {
-        console.error('❌ Не удалось отправить приветственное письмо');
+        console.error('❌ Не удалось отправить письмо о покупке');
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('❌ Ошибка в sendCredentialsEmail:', error); // исправлено название ошибки
+      console.error('❌ Ошибка в sendEmailNotification:', error);
       return { success: false, error: error.message };
     }
   }
 
+  static async generatePurchaseTemplate(user, slots, notificationData = {}) {
+    // Формируем список слотов для email
+    const slotListHtml = slots.map(slot =>
+      `<li><strong>Слот #${slot.slot_number}</strong> (приобретен: ${new Date(slot.purchase_date).toLocaleDateString('ru-RU')})</li>`
+    ).join('');
+
+    const appUrl = process.env.APP_URL || 'https://ваш-сайт.ru';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@npk-vdv.ru';
+
+    return `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Успешная покупка слотов</title>
+    <style>
+        body { 
+            font-family: 'Arial', sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #4a7c3a, #2d5016); 
+            color: white; 
+            padding: 30px 20px; 
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        .content { 
+            background: white; 
+            padding: 40px 30px; 
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .success-badge { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 20px; 
+            display: inline-block;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .slot-card { 
+            background: #e8f5e8; 
+            border: 2px solid #4a7c3a; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin: 10px 0; 
+        }
+        .info-box { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 25px 0;
+            border-left: 4px solid #4a7c3a;
+        }
+        .footer { 
+            margin-top: 40px; 
+            padding-top: 20px; 
+            border-top: 1px solid #eee; 
+            color: #666; 
+            font-size: 12px;
+            text-align: center;
+        }
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, #4a7c3a, #2d5016);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        h1, h2, h3, h4 {
+            color: #2d5016;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0; font-size: 28px;">🎉 Покупка успешно завершена!</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">Клуб НКП ВДВ</p>
+        </div>
+        
+        <div class="content">
+            <p style="font-size: 16px;">Здравствуйте, <strong>${user.fullname || 'Уважаемый участник'}</strong>!</p>
+            
+            <div style="text-align: center;">
+                <div class="success-badge">✅ ${slots.length} слотов успешно приобретены</div>
+            </div>
+            
+            <h3>📋 Детали покупки:</h3>
+            <ul>
+                <li><strong>Номер члена клуба:</strong> ${user.membership_number || 'Не указан'}</li>
+                <li><strong>Количество слотов:</strong> ${slots.length}</li>
+                <li><strong>Дата покупки:</strong> ${new Date().toLocaleDateString('ru-RU')}</li>
+                <li><strong>Статус:</strong> <span style="color: #4CAF50; font-weight: bold;">✅ Активен</span></li>
+            </ul>
+            
+            ${slots.length > 0 ? `
+            <h3>🎰 Ваши слоты:</h3>
+            <ul>
+                ${slotListHtml}
+            </ul>
+            ` : ''}
+            
+            <div class="info-box">
+                <h4 style="margin-top: 0;">📌 Важная информация:</h4>
+                <p>Ваши слоты активны и готовы к участию в розыгрышах.</p>
+                <p>Следите за новостями и объявлениями о датах розыгрышей.</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${appUrl}/dashboard" class="btn-primary">Перейти в личный кабинет</a>
+            </div>
+            
+            <div class="footer">
+                <p>С уважением,<br>
+                <strong>Команда Клуба НКП ВДВ</strong></p>
+                <p>Если у вас возникли вопросы, пожалуйста, свяжитесь с поддержкой:<br>
+                <a href="mailto:${supportEmail}" style="color: #4a7c3a;">${supportEmail}</a></p>
+                <p style="font-size: 11px; color: #999; margin-top: 15px;">
+                    Это письмо было отправлено автоматически. Пожалуйста, не отвечайте на него.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+  }
+
+  static htmlToText(html) {
+    // Простая конвертация HTML в текст
+    return html
+      .replace(/<style[^>]*>.*?<\/style>/gs, '')
+      .replace(/<script[^>]*>.*?<\/script>/gs, '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
+  }
 
   /**
    * Генерация HTML шаблона для данных входа
@@ -378,7 +544,6 @@ class EmailService {
       const templatePath = path.join(__dirname, '../email-templates/credentials.html');
       let htmlContent = await fs.readFile(templatePath, 'utf8');
 
-      // 🔥 ДОБАВЛЯЕМ: Получаем содержимое блока statement
       const statementContent = await this.getStatementContent();
 
       // Заменяем плейсхолдеры
@@ -399,32 +564,32 @@ class EmailService {
         .replace('{{statement}}', statementContent);
 
       return htmlContent;
-      
+
     } catch (error) {
       console.log('⚠️ Template file not found, using fallback template');
       return this.getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone);
     }
-}
+  }
 
-/**
- * Генерация блока с заявлением
- */
-static async getStatementContent() {
+  /**
+   * Генерация блока с заявлением
+   */
+  static async getStatementContent() {
     try {
-        // Пробуем прочитать из отдельного файла
-        const statementPath = path.join(__dirname, '../email-templates/statement-section.html');
-        return await fs.readFile(statementPath, 'utf8');
+      // Пробуем прочитать из отдельного файла
+      const statementPath = path.join(__dirname, '../email-templates/statement-section.html');
+      return await fs.readFile(statementPath, 'utf8');
     } catch (error) {
-        console.log('⚠️ Statement file not found, using default statement');
-        // Возвращаем заявление по умолчанию
-        return this.getDefaultStatement();
+      console.log('⚠️ Statement file not found, using default statement');
+      // Возвращаем заявление по умолчанию
+      return this.getDefaultStatement();
     }
-}
+  }
 
-/**
- * Заявление по умолчанию
- */
-static getDefaultStatement() {
+  /**
+   * Заявление по умолчанию
+   */
+  static getDefaultStatement() {
     return `
 <div class="statement" style="background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #e9ecef; margin: 25px 0;">
     <div class="statement-title" style="text-align: center; font-weight: bold; font-size: 18px; color: #2d5016; margin-bottom: 20px; text-transform: uppercase;">
@@ -462,10 +627,10 @@ static getDefaultStatement() {
     </div>
 </div>
     `;
-}
+  }
 
-static getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
-  const statementContent = this.getDefaultStatement()
+  static getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
+    const statementContent = this.getDefaultStatement()
       .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
       .replace(/{{membership_number}}/g, userData.memberNumber || userData.membership_number || '')
       .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
@@ -473,7 +638,7 @@ static getFallbackCredentialsTemplate(userData, login, password, appUrl, support
       .replace(/{{phone}}/g, userData.phone || 'Не указан')
       .replace(/{{city}}/g, userData.city || 'Не указан');
 
-  return `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -507,7 +672,7 @@ static getFallbackCredentialsTemplate(userData, login, password, appUrl, support
               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваши данные:</h3>
               <p><strong>ФИО:</strong> ${userData.name || userData.fullname || 'Не указано'}</p>
               <p><strong>Телефон:</strong> ${userData.phone || 'Не указан'}</p>
-              <p><strong>Город:</strong> ${userData.city || 'Не указан'}</p>
+              <p><strong>Город:</strong> ${userData.city}</p>
               ${userData.memberNumber ? `<p><strong>Номер члена клуба:</strong> ${userData.memberNumber}</p>` : ''}
           </div>
           
@@ -544,7 +709,8 @@ static getFallbackCredentialsTemplate(userData, login, password, appUrl, support
 </body>
 </html>
   `;
-}
+  }
+
 
   /**
    * Проверка соединения с SMTP сервером
