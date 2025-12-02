@@ -46,7 +46,7 @@ async purchaseSlots(userId, slotCount) {
         TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
         Amount: amount,
         OrderId: orderId,
-        Description: `Покупка ${slotCount} слотов. Член клуба: ${user.memberNumber || 'Не указан'}`,
+        Description: `Покупка ${slotCount} слота (ов). Член клуба: ${user.memberNumber || 'Не указан'}`,
         NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
         DATA: {
           Email: user.email || '',
@@ -64,7 +64,7 @@ async purchaseSlots(userId, slotCount) {
   
       // Создаем платеж в базе ПЕРЕД запросом к Tinkoff
       const payment = await Payment.create({
-        user_id: user.id,
+        user_id: userId,
         orderId: orderId,
         amount: amount,
         description: paymentData.Description,
@@ -138,7 +138,7 @@ async purchaseSlots(userId, slotCount) {
       Taxation: 'osn',
       Items: [
         {
-          Name: `Покупка ${slotCount} слотов участия`,
+          Name: `Покупка ${slotCount} слота(ов) участия`,
           Price: amount,
           Quantity: 1,
           Amount: amount,
