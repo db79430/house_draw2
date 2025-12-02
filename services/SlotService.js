@@ -24,15 +24,15 @@ class SlotService {
       const orderId = `slot_${userId}_${Date.now()}`;
       
       const paymentData = {
-        userId,
-        amount,
-        orderId,
-        description: `Покупка ${slotCount} слотов`,
-        userData: {
-          fullname: userData.fullname,
-          email: userData.email,
-          login: userData.login,
-          membership_status: userData.membership_status
+        TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
+        Amount: amount,
+        OrderId: orderId,
+        Description: `Покупка слота. Член клуба: ${memberNumber}`,
+        NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+        DATA: {
+          Email: user.email,
+          Phone: user.phone,
+          MemberNumber: memberNumber
         }
       };
 
@@ -42,13 +42,7 @@ class SlotService {
 
       // Инициируем платеж в Tinkoff
       const tinkoffService = new TinkoffService();
-      const tinkoffResult = await tinkoffService.initPayment({
-        OrderId: orderId,
-        Amount: amount,
-        Description: `Покупка ${slotCount} слотов для пользователя ${userData.fullname}`,
-        CustomerKey: userId.toString(),
-        Receipt: this.generateReceipt(amount, slotCount, userData.email)
-      });
+      const tinkoffResult = await tinkoffService.initPayment({paymentData});
 
       console.log('✅ Tinkoff payment initiated:', tinkoffResult);
 
