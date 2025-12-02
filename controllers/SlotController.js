@@ -178,7 +178,7 @@ class SlotController {
 
       console.log('✅ Found payment:', {
         id: payment.id,
-        user_id: payment.user_id,
+        user_id: payment.userId,
         order_id: payment.order_id,
         status: payment.status,
         amount: payment.amount
