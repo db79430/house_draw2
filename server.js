@@ -70,6 +70,12 @@ app.get('/paymentfee', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
 });
 
+app.get('/auth', (req, res) => {
+  console.log('📄 Serving auth.html');
+  res.sendFile(path.join(__dirname, 'public', 'auth.html'));
+});
+
+
 
 // API роуты - ПОСЛЕ HTML
 app.get('/api/health', async (req, res) => {
@@ -312,10 +318,6 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
-app.get('/auth', (req, res) => {
-  console.log('📄 Serving auth.html');
-  res.sendFile(path.join(__dirname, 'public', 'auth.html'));
-});
 
 app.get('/dashboard', (req, res) => {
   const memberNumber = req.query.member;
