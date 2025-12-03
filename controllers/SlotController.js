@@ -160,169 +160,104 @@ class SlotController {
   async handlePaymentNotification(req, res) {
     try {
       console.log('💰 Tinkoff notification received:', JSON.stringify(req.body, null, 2));
-
+  
       const notificationData = req.body;
-      const { OrderId, Success, Status, PaymentId } = notificationData;
-
+      const { OrderId, Success, Status, PaymentId, Amount } = notificationData;
+  
       console.log('🔍 Processing notification:', {
         OrderId,
         Success,
         Status,
-        PaymentId
+        PaymentId,
+        Amount
       });
-
-      // Находим платеж в базе по OrderId
+  
+      // Находим платеж
       const payment = await Payment.findByOrderId(OrderId);
-
+      
       if (!payment) {
         console.error('❌ Payment not found for order:', OrderId);
         return res.status(404).send('Payment not found');
       }
-
-      // 🔴 ДЕБАГ: Посмотрим все поля платежа
-      console.log('🔍 Payment object (all fields):', {
-        id: payment.id,
-        // Проверим разные варианты имен полей
-        userId: payment.userId,
-        user_id: payment.user_id,
-        orderId: payment.orderId,
-        order_id: payment.order_id,
-        orderIdAlt: payment.orderid, // Возможно в нижнем регистре
-        status: payment.status,
-        amount: payment.amount,
-        description: payment.description,
-        tinkoff_response: payment.tinkoff_response
-      });
-
-      // Определяем правильные имена полей
-      const userId = payment.userId || payment.user_id;
-      const orderId = payment.orderId || payment.order_id || payment.orderid;
-
+  
+      // Определяем userId
+      const userId = payment.user_id;
+      
       console.log('✅ Found payment:', {
         id: payment.id,
-        userId,
-        orderId,
-        status: payment.status,
-        amount: payment.amount
+        user_id: userId,
+        order_id: payment.order_id,
+        amount: payment.amount,
+        status: payment.status
       });
-
-      // Если userId все еще undefined, используем дефолтного пользователя для тестов
-      if (!userId) {
-        console.warn('⚠️  Payment has no userId, trying to find or create test user...');
-
-        // Пробуем найти любого пользователя
-        const anyUser = await User.findAnyUser();
-        if (anyUser) {
-          const effectiveUserId = anyUser.id;
-          console.log(`✅ Using found user: ${effectiveUserId}`);
-
-          // Обновляем платеж с найденным userId
-          await Payment.updateUserId(payment.id, effectiveUserId);
-        } else {
-          console.error('❌ No users found in database, cannot process payment');
-          await Payment.updateStatus(orderId, 'completed', notificationData);
-          return res.send('OK');
-        }
-      }
-
+  
       let createdSlots = [];
-
+  
       if (Success && Status === 'CONFIRMED') {
         console.log('✅ Payment confirmed, processing...');
-
-        // Обновляем статус платежа по orderId
-        await Payment.updateStatus(orderId, 'completed', notificationData);
+        
+        // Обновляем статус платежа
+        await Payment.updateStatus(payment.order_id, 'completed', notificationData);
         console.log('✅ Payment status updated to "completed"');
-
-        // Извлекаем количество слотов
-        let slotCount = 1;
-
-        try {
-          // Пробуем получить из tinkoff_response
-          if (payment.tinkoff_response) {
-            const tinkoffData = typeof payment.tinkoff_response === 'string'
-              ? JSON.parse(payment.tinkoff_response)
-              : payment.tinkoff_response;
-
-            if (tinkoffData.DATA && tinkoffData.DATA.SlotCount) {
-              slotCount = parseInt(tinkoffData.DATA.SlotCount);
-            }
-          }
-
-          // Или из description
-          if (payment.description) {
-            const match = payment.description.match(/Покупка (\d+) слотов/);
-            if (match) {
-              slotCount = parseInt(match[1]);
-            }
-          }
-
-          // Или рассчитываем из суммы (1000 рублей = 1 слот)
-          if (!slotCount && payment.amount) {
-            slotCount = payment.amount / 100000; // 1000 рублей в копейках
-            console.log(`📊 Calculated slot count from amount ${payment.amount}: ${slotCount}`);
-          }
-
-          console.log(`📊 Creating ${slotCount} slots for user ${userId}`);
-
-        } catch (parseError) {
-          console.error('❌ Error parsing slot count:', parseError);
-          slotCount = 1;
-        }
-
+  
+        // РАССЧИТЫВАЕМ количество слотов из суммы платежа
+        let slotCount = 0;
+        
+        // Используем amount из уведомления или из платежа
+        const paymentAmount = Amount || payment.amount;
+        
+        // Формула: 1000 рублей = 1 слот
+        // Amount в копейках, поэтому 1000 руб = 100000 копеек
+        slotCount = paymentAmount / 100000;
+        
+        console.log(`📊 Payment amount: ${paymentAmount} kop = ${paymentAmount/100} руб`);
+        console.log(`📊 Creating ${slotCount} slots (${paymentAmount/100} руб / 1000 руб per slot)`);
+  
         // Создаем слоты если есть userId
         if (userId) {
           try {
-            // Используем Slot для создания слотов
-            const result = await Slot.createMultipleSlots(
-              userId,
-              slotCount
-            );
-
+            // Создаем слоты
+            const result = await Slot.createSlotsFromPaymentAmount(userId, paymentAmount, payment.id);
+            
             if (result.success) {
               createdSlots = result.slots;
               console.log(`✅ Successfully created ${createdSlots.length} slots`);
-
+              
               // Обновляем статус пользователя
               await User.updateMembershipStatus(userId, 'active');
               console.log('✅ User membership status updated to "active"');
-
+              
             } else {
               console.error('❌ Slot creation failed:', result.error);
             }
-
+            
           } catch (slotError) {
             console.error('❌ Error creating slots:', slotError);
           }
         } else {
-          console.error('❌ Cannot create slots: payment has no userId');
+          console.error('❌ Cannot create slots: payment has no user_id');
         }
-
+  
       } else if (Status === 'AUTHORIZED') {
-        // Платеж авторизован
-        await Payment.updateStatus(orderId, 'authorized', notificationData);
-        console.log('🔄 Payment authorized (pending confirmation):', Status);
-
+        await Payment.updateStatus(payment.order_id, 'authorized', notificationData);
+        console.log('🔄 Payment authorized:', Status);
+        
       } else {
-        // Платеж не прошел
-        await Payment.updateStatus(orderId, 'failed', notificationData);
+        await Payment.updateStatus(payment.order_id, 'failed', notificationData);
         console.log('❌ Payment failed:', Status);
       }
-
-      // Всегда отвечаем OK Tinkoff
+  
+      // Отвечаем OK Tinkoff
       res.send('OK');
-
+  
       // Отправляем уведомление
-      if (Success && Status === 'CONFIRMED' && createdSlots.length > 0) {
+      if (Success && Status === 'CONFIRMED' && createdSlots.length > 0 && userId) {
         const updatedPayment = await Payment.findByOrderId(OrderId);
         await this.notifyUserAboutPurchase(userId, createdSlots, updatedPayment);
       }
-
+  
     } catch (error) {
       console.error('❌ Error handling payment notification:', error);
-      console.error('❌ Error details:', error.message);
-
-      // Все равно отвечаем OK Tinkoff
       res.send('OK');
     }
   }

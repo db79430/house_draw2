@@ -52,7 +52,7 @@ class Payment {
         WHERE p.order_id = $1
       `;
       const result = await db.oneOrNone(query, [orderId]);
-      
+
       if (result) {
         console.log('✅ Payment found by orderId:', {
           id: result.id,
@@ -63,7 +63,7 @@ class Payment {
           status: result.status
         });
       }
-      
+
       return result;
     } catch (error) {
       console.error('❌ Error finding payment by orderId:', error);
@@ -77,17 +77,17 @@ class Payment {
   static async updateStatus(orderId, status, notificationData = null) {
     try {
       console.log('🔄 Updating payment status by order_id:', { orderId, status });
-      
+
       // Убедимся что orderId - строка
       const orderIdStr = String(orderId);
-      
+
       const query = `
         UPDATE payments 
         SET status = $1, notification_data = $2, updated_at = CURRENT_TIMESTAMP
         WHERE order_id = $3
         RETURNING *
       `;
-      
+
       const result = await db.one(query, [status, notificationData, orderIdStr]);
       console.log('✅ Payment status updated:', orderIdStr, '->', status);
       return result;
@@ -103,20 +103,20 @@ class Payment {
   static async updateStatusById(id, status, notificationData = null) {
     try {
       console.log('🔄 Updating payment status by id:', { id, status });
-      
+
       // Убедимся что id - число
       const idNum = parseInt(id);
       if (isNaN(idNum)) {
         throw new Error(`Invalid payment id: ${id}`);
       }
-      
+
       const query = `
         UPDATE payments 
         SET status = $1, notification_data = $2, updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
         RETURNING *
       `;
-      
+
       const result = await db.one(query, [status, notificationData, idNum]);
       console.log('✅ Payment status updated by id:', idNum, '->', status);
       return result;
@@ -127,25 +127,25 @@ class Payment {
   }
 
   // models/Payment.js
-static async updateUserId(paymentId, userId) {
-  try {
-    console.log('🔄 Updating payment userId:', { paymentId, userId });
-    
-    const query = `
+  static async updateUserId(paymentId, userId) {
+    try {
+      console.log('🔄 Updating payment userId:', { paymentId, userId });
+
+      const query = `
       UPDATE payments 
       SET user_id = $1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING *
     `;
-    
-    const result = await db.one(query, [userId, paymentId]);
-    console.log('✅ Payment userId updated:', { paymentId, userId });
-    return result;
-  } catch (error) {
-    console.error('❌ Error updating payment userId:', error);
-    throw error;
+
+      const result = await db.one(query, [userId, paymentId]);
+      console.log('✅ Payment userId updated:', { paymentId, userId });
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating payment userId:', error);
+      throw error;
+    }
   }
-}
 
   /**
    * Универсальный метод обновления статуса
@@ -154,7 +154,7 @@ static async updateUserId(paymentId, userId) {
     try {
       // Определяем тип идентификатора
       const isNumeric = /^\d+$/.test(String(identifier));
-      
+
       if (isNumeric) {
         // Если идентификатор выглядит как число, используем id
         return await this.updateStatusById(identifier, status, notificationData);
@@ -176,30 +176,46 @@ static async updateUserId(paymentId, userId) {
         ORDER BY created_at DESC 
         LIMIT $2
       `;
-      
+
       return await db.any(query, [userId, limit]);
     } catch (error) {
       console.error('❌ Error getting payment history:', error);
       throw error;
     }
   }
-  
+
+  static async getPaymentHistory(userId, limit = 10) {
+    try {
+      const query = `
+          SELECT * FROM payments 
+          WHERE user_id = $1 
+          ORDER BY created_at DESC 
+          LIMIT $2
+      `;
+
+      return await db.any(query, [userId, limit]);
+    } catch (error) {
+      console.error('❌ Error getting payment history:', error);
+      return [];
+    }
+  }
+
   static async findSuccessfulPaymentsByUserId(userId) {
     try {
       console.log('🔍 Поиск успешных платежей пользователя:', userId);
-      
+
       const query = `
         SELECT * FROM payments 
         WHERE user_id = $1 
         AND status IN ('CONFIRMED', 'success', 'paid', 'completed')
         ORDER BY created_at DESC
       `;
-      
+
       const payments = await db.any(query, [userId]);
       console.log(`✅ Найдено ${payments.length} успешных платежей для пользователя:`, userId);
-      
+
       return payments;
-      
+
     } catch (error) {
       console.error('❌ Ошибка поиска успешных платежей:', error);
       throw error;
@@ -217,7 +233,7 @@ static async updateUserId(paymentId, userId) {
         AND status = 'completed'
         AND amount = 1000
       `;
-      
+
       const result = await db.one(query, [userId]);
       return result.count > 0;
     } catch (error) {
@@ -229,28 +245,28 @@ static async updateUserId(paymentId, userId) {
   static async findLatestByUserId(userId) {
     try {
       console.log('🔍 Поиск последнего платежа пользователя:', userId);
-      
+
       const query = `
         SELECT * FROM payments 
         WHERE user_id = $1 
         ORDER BY created_at DESC 
         LIMIT 1
       `;
-      
+
       const payment = await db.oneOrNone(query, [userId]);
-      
+
       if (payment) {
-        console.log('✅ Последний платеж найден:', { 
-          userId, 
+        console.log('✅ Последний платеж найден:', {
+          userId,
           paymentId: payment.id,
-          status: payment.status 
+          status: payment.status
         });
       } else {
         console.log('ℹ️ Платежи не найдены для пользователя:', userId);
       }
-      
+
       return payment;
-      
+
     } catch (error) {
       console.error('❌ Ошибка поиска последнего платежа:', error);
       throw error;
@@ -259,7 +275,7 @@ static async updateUserId(paymentId, userId) {
 
   static async getDailyStats(date = null) {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    
+
     try {
       const query = `
         SELECT 
@@ -271,7 +287,7 @@ static async updateUserId(paymentId, userId) {
         FROM payments 
         WHERE DATE(created_at) = $1
       `;
-      
+
       return await db.one(query, [targetDate]);
     } catch (error) {
       console.error('❌ Error getting daily stats:', error);

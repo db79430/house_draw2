@@ -14,18 +14,18 @@ class Slot {
     } = slotData;
 
     const query = `
-      INSERT INTO slots (user_id, slot_number, purchase_date, status, metadata)
+      INSERT INTO slots (user_id, slot_number, purchase_date, status)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
 
-    const metadata = {
-      created_at: new Date().toISOString(),
-      original_number: this.extractSlotNumber(slotNumber),
-      is_range_slot: true
-    };
+    // const metadata = {
+    //   created_at: new Date().toISOString(),
+    //   original_number: this.extractSlotNumber(slotNumber),
+    //   is_range_slot: true
+    // };
 
-    const values = [userId, slotNumber, purchaseDate, status, JSON.stringify(metadata)];
+    const values = [userId, slotNumber, purchaseDate, status];
 
     try {
       const result = await db.one(query, values);
@@ -156,43 +156,54 @@ class Slot {
   /**
    * Создание нескольких слотов с номерами из диапазона 1-20000
    */
-  static async createMultipleSlotsInRange(userId, count) {
+  static async createMultipleSlotsInRange(userId, count, paymentId = null) {
     try {
-      console.log(`🎯 Creating ${count} slots for user ${userId} from range 1-${this.TOTAL_SLOTS}`);
-
-      // Генерируем номера слотов
-      const slotNumbers = await this.generateMultipleSlotNumbers(count);
-
-      // Создаем слоты
+      console.log(`🎯 Creating ${count} slots for user ${userId}`);
+      
+      if (!userId || count <= 0) {
+        throw new Error('Invalid parameters for slot creation');
+      }
+  
+      // Получаем занятые номера
+      const occupiedNumbers = await this.getOccupiedSlotNumbers();
+      
+      // Ищем свободные номера
+      const availableNumbers = [];
+      for (let i = 1; i <= this.TOTAL_SLOTS && availableNumbers.length < count; i++) {
+        if (!occupiedNumbers.has(i)) {
+          availableNumbers.push(i);
+        }
+      }
+      
+      if (availableNumbers.length < count) {
+        throw new Error(`Only ${availableNumbers.length} slots available. Requested: ${count}`);
+      }
+      
+      // Форматируем номера
+      const slotNumbers = availableNumbers.map(num => this.formatSlotNumber(num));
+      
+      console.log(`🔢 Generated ${slotNumbers.length} slot numbers:`, slotNumbers);
+  
+      // Создаем слоты БЕЗ metadata
       const createdSlots = [];
       const purchaseDate = new Date();
-
-      for (let i = 0; i < slotNumbers.length; i++) {
+      
+      for (let i = 0; i < count; i++) {
         const slotNumber = slotNumbers[i];
-        const originalNumber = this.extractSlotNumber(slotNumber);
-
+        
         const slot = await this.create({
-          userId,
-          slotNumber,
-          purchaseDate,
-          status: 'active',
-          // Дополнительные данные в metadata
-          metadata: {
-            slot_index: originalNumber,
-            purchase_batch_size: count,
-            purchase_order: i + 1,
-            range_min: 1,
-            range_max: this.TOTAL_SLOTS,
-            is_sequential: true
-          }
+          userId: userId,
+          slotNumber: slotNumber,
+          purchaseDate: purchaseDate,
+          status: 'active'
         });
-
+        
         createdSlots.push(slot);
         console.log(`✅ Created slot ${i + 1}/${count}: ${slotNumber}`);
       }
-
+      
       console.log(`🎉 Successfully created ${createdSlots.length} slots for user ${userId}`);
-
+      
       return {
         success: true,
         slots: createdSlots,
@@ -205,14 +216,13 @@ class Slot {
           purchaseDate: purchaseDate
         }
       };
-
+      
     } catch (error) {
       console.error('❌ Error creating multiple slots in range:', error);
-
+      
       return {
         success: false,
         error: error.message,
-        createdSlots: createdSlots || [],
         partial: createdSlots ? createdSlots.length : 0
       };
     }
@@ -230,45 +240,17 @@ class Slot {
    */
   static async findByUserIdSlots(userId) {
     try {
-      const query = `
-        SELECT 
-          *,
-          CASE 
-            WHEN slot_number ~ '^SLOT-\\d+$' 
-            THEN CAST(SUBSTRING(slot_number FROM '^SLOT-(\\d+)$') AS INTEGER)
-            ELSE NULL 
-          END as slot_number_numeric
-        FROM slots 
-        WHERE user_id = $1 
-        ORDER BY 
-          CASE 
-            WHEN slot_number ~ '^SLOT-\\d+$' 
-            THEN CAST(SUBSTRING(slot_number FROM '^SLOT-(\\d+)$') AS INTEGER)
-            ELSE 999999 
-          END ASC,
-          purchase_date DESC
-      `;
-
-      const slots = await db.any(query, [userId]);
-
-      console.log(`📋 Found ${slots.length} slots for user ${userId}`);
-
-      // Группируем по покупкам (если есть payment_id или дата)
-      const groupedSlots = this.groupSlotsByPurchase(slots);
-
-      return {
-        success: true,
-        total: slots.length,
-        slots: slots,
-        grouped: groupedSlots,
-        ranges: this.extractSlotRanges(slots)
-      };
-
+        const query = `
+            SELECT * FROM slots 
+            WHERE user_id = $1 
+            ORDER BY purchase_date DESC
+        `;
+        return await db.any(query, [userId]);
     } catch (error) {
-      console.error('❌ Error finding slots by user ID:', error);
-      throw error;
+        console.error('❌ Error finding slots by user ID:', error);
+        return []; // Возвращаем пустой массив при ошибке
     }
-  }
+}
 
   /**
    * Группировка слотов по покупкам
