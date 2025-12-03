@@ -297,7 +297,107 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-height: 140px;
         }
+
+        .slot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74, 124, 58, 0.2);
+        }
+
+        .slot-index {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(74, 124, 58, 0.2);
+            color: var(--dark-green);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid rgba(74, 124, 58, 0.3);
+        }
+
+        .slot-number {
+            font-weight: bold;
+            color: var(--dark-green);
+            font-size: 16px;
+            margin-top: 10px;
+            word-break: break-word;
+            max-width: 100%;
+            line-height: 1.3;
+        }
+
+        .slot-id {
+            color: #666;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        .slot-date {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .slot-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: auto;
+        }
+
+        .welcome-section p {
+            margin: 10px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .welcome-section p:before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--primary-green);
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+
+        #userEmail,
+        #userPhone {
+            color: var(--dark-green);
+            font-weight: 600;
+        }
+
+        .empty-state .purchase-btn {
+            background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .empty-state .purchase-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 124, 58, 0.3);
+        }
+
 
         .slot-card:hover {
             transform: translateY(-5px);
@@ -529,10 +629,9 @@
                 <div class="welcome-section">
                     <h2>Добро пожаловать, <span id="welcomeName"></span>!</h2>
                     <p>Номер вашего членства: <strong id="membershipNumber"></strong></p>
+                    <p>Email: <strong id="userEmail"></strong></p>
+                    <p>Телефон: <strong id="userPhone"></strong></p>
                     <p>Статус: <strong id="membershipStatus"></strong></p>
-                    <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                        <small>ID пользователя: <span id="userId"></span></small>
-                    </p>
                 </div>
 
                 <!-- Статистика -->
@@ -780,7 +879,8 @@
             const user = data.user || {};
             document.getElementById('userName').textContent = user.fullname || 'Пользователь';
             document.getElementById('welcomeName').textContent = user.fullname || 'Пользователь';
-            document.getElementById('userId').textContent = user.id || 'Нет';
+            document.getElementById('userEmail').textContent = user.email || 'Не указан';
+            document.getElementById('userPhone').textContent = formatPhone(user.phone) || 'Не указан';
             document.getElementById('membershipNumber').textContent = user.membership_number || 'Не указан';
             document.getElementById('membershipStatus').textContent = getStatusText(user.membership_status);
 
@@ -805,18 +905,38 @@
             setupEventListeners();
         }
 
+        function formatPhone(phone) {
+            if (!phone) return 'Не указан';
+
+            // Убираем все нецифровые символы
+            const cleaned = phone.toString().replace(/\D/g, '');
+
+            // Форматируем в российский формат
+            if (cleaned.length === 11 && cleaned.startsWith('7') || cleaned.startsWith('8')) {
+                return `+7 (${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7, 9)}-${cleaned.substring(9)}`;
+            } else if (cleaned.length === 10) {
+                return `+7 (${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6, 8)}-${cleaned.substring(8)}`;
+            }
+
+            // Если не подходит под стандартный формат, возвращаем как есть
+            return phone;
+        }
+
         // Отображение слотов
         function displaySlots(slots) {
             const container = document.getElementById('slotsContainer');
 
             if (!slots || slots.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🎰</div>
-                        <h3>У вас пока нет слотов</h3>
-                        <p>Приобретите слоты для участия в розыгрышах</p>
-                    </div>
-                `;
+            <div class="empty-state">
+                <div class="empty-state-icon">🎰</div>
+                <h3>У вас пока нет слотов</h3>
+                <p>Приобретите слоты для участия в розыгрышах</p>
+                <button class="purchase-btn" style="margin-top: 15px;" onclick="document.querySelector('.purchase-section').scrollIntoView()">
+                    Приобрести слоты
+                </button>
+            </div>
+        `;
                 return;
             }
 
@@ -829,21 +949,23 @@
                 new Date(b) - new Date(a)
             );
 
+            let totalSlotCounter = 1; // Счетчик всех слотов
+
             sortedDates.forEach(date => {
                 const dateSlots = groupedSlots[date];
 
                 html += `
-                    <div style="grid-column: 1 / -1; margin-bottom: 30px;">
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                            <h4 style="margin: 0; color: #4a7c3a;">
-                                📅 ${date}
-                                <span style="float: right; background: #4a7c3a; color: white; padding: 3px 10px; border-radius: 15px; font-size: 14px;">
-                                    ${dateSlots.length} слотов
-                                </span>
-                            </h4>
-                        </div>
-                        <div class="slots-grid">
-                `;
+            <div style="grid-column: 1 / -1; margin-bottom: 30px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #4a7c3a; display: flex; justify-content: space-between; align-items: center;">
+                        <span>📅 ${date}</span>
+                        <span style="background: #4a7c3a; color: white; padding: 3px 10px; border-radius: 15px; font-size: 14px;">
+                            ${dateSlots.length} слотов
+                        </span>
+                    </h4>
+                </div>
+                <div class="slots-grid">
+        `;
 
                 // Сортируем слоты по номеру
                 dateSlots.sort((a, b) => {
@@ -852,55 +974,42 @@
                     return numA - numB;
                 });
 
-                dateSlots.forEach(slot => {
+                dateSlots.forEach((slot, indexInGroup) => {
                     const statusClass = getStatusClass(slot.status);
                     const statusText = getStatusText(slot.status);
 
+                    // Форматируем номер слота
+                    let slotNumber = slot.slot_number || `Слот #${slot.id}`;
+
+                    // Если номер слота длинный, делаем его более читаемым
+                    if (slotNumber.length > 15) {
+                        slotNumber = slotNumber.substring(0, 12) + '...';
+                    }
+
+                    // Создаем красивый порядковый номер
+                    const slotIndex = totalSlotCounter++;
+
                     html += `
-                        <div class="slot-card">
-                            <div class="slot-number">${slot.slot_number || `Слот #${slot.id}`}</div>
-                            <div class="slot-date">
-                                ${slot.purchase_date ? formatDate(slot.purchase_date) : 'Дата не указана'}
-                            </div>
-                            <div class="slot-status ${statusClass}">${statusText}</div>
-                        </div>
-                    `;
+                <div class="slot-card">
+                    <div class="slot-index">${slotIndex}</div>
+                    <div class="slot-number" title="${slot.slot_number || ''}">
+                        ${slotNumber}
+                    </div>
+                    <div class="slot-id">
+                        <small>ID: ${slot.id}</small>
+                    </div>
+                    <div class="slot-date">
+                        ${slot.purchase_date ? formatDate(slot.purchase_date) : 'Дата не указана'}
+                    </div>
+                    <div class="slot-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
                 });
 
                 html += `</div></div>`;
             });
 
             container.innerHTML = html;
-        }
-
-        // Отображение истории платежей
-        function displayPaymentHistory(payments) {
-            const tbody = document.getElementById('historyBody');
-
-            if (!payments || payments.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px; color: #666;">
-                            Нет операций
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = payments.map(payment => `
-                <tr>
-                    <td>${payment.created_at ? formatDateTime(payment.created_at) : '-'}</td>
-                    <td>${payment.description || 'Покупка слотов'}</td>
-                    <td>${payment.amount ? formatPrice(payment.amount) : '0 ₽'}</td>
-                    <td>
-                        <span class="slot-status ${getStatusClass(payment.status)}">
-                            ${getPaymentStatusText(payment.status)}
-                        </span>
-                    </td>
-                    <td><small>${payment.order_id || '-'}</small></td>
-                </tr>
-            `).join('');
         }
 
         // Настройка обработчиков событий
