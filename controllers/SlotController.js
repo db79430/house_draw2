@@ -179,8 +179,8 @@ class SlotController {
 
       console.log('✅ Found payment:', {
         id: payment.id,
-        user_id: payment.user_id,
-        order_id: payment.order_id,
+        user_id: payment.userId,
+        order_id: payment.orderId,
         status: payment.status,
         amount: payment.amount
       });
@@ -241,7 +241,7 @@ class SlotController {
               console.log(`✅ Successfully created ${createdSlots.length} slots`);
 
               // Обновляем статус пользователя
-              await User.updateMembershipStatus(payment.userId, 'active');
+              await User.updateMembershipStatus(payment.user_id, 'active');
               console.log('✅ User membership status updated to "active"');
 
             } else {

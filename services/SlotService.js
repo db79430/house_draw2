@@ -64,8 +64,8 @@ async purchaseSlots(userId, slotCount) {
   
       // Создаем платеж в базе ПЕРЕД запросом к Tinkoff
       const payment = await Payment.create({
-        user_id: userId,
         orderId: orderId,
+        user_id: userId,
         amount: amount,
         description: paymentData.Description,
         status: 'pending',
