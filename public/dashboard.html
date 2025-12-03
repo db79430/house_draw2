@@ -1198,6 +1198,18 @@
             </td>
         </tr>
     `).join('');
+    }
+
+        function getPaymentStatusClass(status) {
+            const classMap = {
+                'completed': 'status-active',
+                'success': 'status-active',
+                'authorized': 'status-pending',
+                'pending': 'status-pending',
+                'pending_payment': 'status-pending',
+                'refunded': 'status-inactive'
+            };
+            return classMap[status] || 'status-inactive';
         }
 
         // Вспомогательные функции
