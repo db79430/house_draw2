@@ -51,7 +51,20 @@ class Payment {
         LEFT JOIN users u ON p.user_id = u.id 
         WHERE p.order_id = $1
       `;
-      return await db.oneOrNone(query, [orderId]);
+      const result = await db.oneOrNone(query, [orderId]);
+      
+      if (result) {
+        console.log('✅ Payment found by orderId:', {
+          id: result.id,
+          order_id: result.order_id,
+          user_id: result.user_id, // Из таблицы payments
+          userId: result.user_id,  // Алиас для удобства
+          amount: result.amount,
+          status: result.status
+        });
+      }
+      
+      return result;
     } catch (error) {
       console.error('❌ Error finding payment by orderId:', error);
       throw error;
@@ -112,6 +125,27 @@ class Payment {
       throw error;
     }
   }
+
+  // models/Payment.js
+static async updateUserId(paymentId, userId) {
+  try {
+    console.log('🔄 Updating payment userId:', { paymentId, userId });
+    
+    const query = `
+      UPDATE payments 
+      SET user_id = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING *
+    `;
+    
+    const result = await db.one(query, [userId, paymentId]);
+    console.log('✅ Payment userId updated:', { paymentId, userId });
+    return result;
+  } catch (error) {
+    console.error('❌ Error updating payment userId:', error);
+    throw error;
+  }
+}
 
   /**
    * Универсальный метод обновления статуса

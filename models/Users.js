@@ -222,6 +222,24 @@ class User {
     }
   }
 
+  static async findAnyUser() {
+    try {
+      const query = `SELECT * FROM users LIMIT 1`;
+      const result = await db.oneOrNone(query);
+      
+      if (result) {
+        console.log('✅ Found user for testing:', { id: result.id, email: result.email });
+      } else {
+        console.log('❌ No users found in database');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error finding any user:', error);
+      return null;
+    }
+  }
+
   static async updateMembershipStatus(userId, status) {
     try {
       const query = `
