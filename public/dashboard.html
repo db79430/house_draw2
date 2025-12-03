@@ -605,7 +605,7 @@
                 </div>
                 <div class="user-info">
                     <span id="userName">Загрузка...</span>
-                    <button class="debug-btn" onclick="toggleDebug()">🛠️ Отладка</button>
+                    <!-- <button class="debug-btn" onclick="toggleDebug()">🛠️ Отладка</button> -->
                     <button class="logout-btn" onclick="logout()">Выйти</button>
                 </div>
             </div>
@@ -1142,6 +1142,62 @@
 
                 resetPurchaseButton();
             }
+        }
+
+        function displayPaymentHistory(payments) {
+            const tbody = document.getElementById('historyBody');
+
+            if (!payments || payments.length === 0) {
+                tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px; color: #666;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <div style="font-size: 48px; opacity: 0.5;">📊</div>
+                        <h4>История операций пуста</h4>
+                        <p>Здесь будут отображаться ваши платежи</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+                return;
+            }
+
+            // Сортируем платежи по дате (новые сверху)
+            const sortedPayments = [...payments].sort((a, b) =>
+                new Date(b.created_at || 0) - new Date(a.created_at || 0)
+            );
+
+            tbody.innerHTML = sortedPayments.map((payment, index) => `
+        <tr>
+            <td>
+                <div style="font-weight: 500; color: #333;">
+                    ${payment.created_at ? formatDateTime(payment.created_at) : '-'}
+                </div>
+                <div style="font-size: 11px; color: #888; margin-top: 2px;">
+                    ${payment.created_at ? formatDate(payment.created_at) : ''}
+                </div>
+            </td>
+            <td>
+                <div style="font-weight: 500;">${payment.description || 'Покупка слотов'}</div>
+                ${payment.comment ? `<div style="font-size: 12px; color: #666; margin-top: 3px;">${payment.comment}</div>` : ''}
+            </td>
+            <td>
+                <div style="font-weight: bold; color: var(--dark-green);">
+                    ${payment.amount ? formatPrice(payment.amount) : '0 ₽'}
+                </div>
+            </td>
+            <td>
+                <span class="slot-status ${getPaymentStatusClass(payment.status)}">
+                    ${getPaymentStatusText(payment.status)}
+                </span>
+            </td>
+            <td>
+                <div style="font-family: monospace; font-size: 11px;">
+                    ${payment.order_id || payment.id || '-'}
+                </div>
+            </td>
+        </tr>
+    `).join('');
         }
 
         // Вспомогательные функции
