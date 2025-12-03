@@ -207,68 +207,38 @@ app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 app.get('/api/dashboard', async (req, res) => {
   try {
-    // Получаем userId из query параметра
-    const userId = req.query.userId;
+    // Получаем memberNumber из query параметра
+    const memberNumber = req.query.member;
 
-    if (!userId) {
+    if (!memberNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Требуется параметр userId'
+        message: 'Требуется параметр member'
       });
     }
 
-    const memberNumber = req.query.member;
-
     console.log('📊 Dashboard API request:', {
-      userId: userId,
       memberNumber: memberNumber,
       queryParams: req.query
     });
 
-    // Находим пользователя
-    const user = await User.findById(userId);
+    // Находим пользователя по memberNumber
+    const user = await User.findOne({
+      where: { membership_number: memberNumber }
+    });
+
     if (!user) {
-      // Попробуем найти по memberNumber если есть
-      if (memberNumber) {
-        console.log('🔍 Пользователь не найден по ID, ищем по memberNumber:', memberNumber);
-        const userByMember = await User.findOne({
-          where: { membership_number: memberNumber }
-        });
-
-        if (userByMember) {
-          console.log('✅ Пользователь найден по memberNumber:', {
-            id: userByMember.id,
-            memberNumber: userByMember.membership_number
-          });
-
-          // Сравниваем ID - если разные, возможно это другой пользователь
-          if (userByMember.id.toString() !== userId) {
-            console.log('⚠️ ID не совпадают:', {
-              providedId: userId,
-              foundId: userByMember.id
-            });
-          }
-
-          // Используем найденного пользователя
-          user = userByMember;
-        }
-      }
-
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден'
-        });
-      }
-    }
-
-    // Проверяем соответствие memberNumber если оба предоставлены
-    if (memberNumber && user.membership_number !== memberNumber) {
-      console.log('⚠️ Member number mismatch:', {
-        stored: user.membership_number,
-        provided: memberNumber
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
       });
     }
+
+    console.log('✅ Найден пользователь:', {
+      id: user.id,
+      memberNumber: user.membership_number,
+      email: user.email
+    });
 
     // Получаем слоты пользователя
     const userSlots = await Slot.findByUserIdSlots(user.id);
@@ -300,6 +270,7 @@ app.get('/api/dashboard', async (req, res) => {
 
     console.log('✅ Dashboard data loaded:', {
       userId: user.id,
+      memberNumber: user.membership_number,
       slotsCount: userSlots.length,
       paymentsCount: paymentHistory.length
     });

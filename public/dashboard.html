@@ -649,16 +649,17 @@
         // Обновите функцию checkAuth:
         function checkAuth() {
             const token = localStorage.getItem('token');
-            userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
-            // Пробуем получить memberNumber из URL
-            const memberNumberFromUrl = getMemberNumberFromUrl();
+            // Пробуем получить memberNumber из URL как резервный вариант
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberNumberFromUrl = urlParams.get('member');
 
-            if (!token || !userData.id) {
+            if (!token) {
                 console.log('❌ Не авторизован, перенаправление...');
                 const redirectUrl = memberNumberFromUrl
-                    ? `/auth.html?member=${encodeURIComponent(memberNumberFromUrl)}`
-                    : '/auth.html';
+                    ? `/auth?member=${encodeURIComponent(memberNumberFromUrl)}`
+                    : '/auth';
                 window.location.href = redirectUrl;
                 return;
             }
@@ -671,9 +672,8 @@
             }
 
             console.log('✅ Авторизован:', {
-                userId: userData.id,
-                email: userData.email,
-                memberNumber: userData.membership_number
+                memberNumber: userData.membership_number,
+                email: userData.email
             });
         }
 
@@ -685,27 +685,30 @@
                 const token = localStorage.getItem('token');
                 const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
-                // Пробуем получить memberNumber из URL как резервный вариант
-                const memberNumberFromUrl = getMemberNumberFromUrl();
-                const memberNumber = userData.membership_number || memberNumberFromUrl;
+                // Получаем memberNumber из разных источников
+                let memberNumber = userData.membership_number;
 
-                if (!userData || !userData.id) {
-                    showError('Данные пользователя не найдены. Пожалуйста, войдите снова.');
+                // Если нет в localStorage, пробуем получить из URL
+                if (!memberNumber) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    memberNumber = urlParams.get('member');
+                }
+
+                if (!memberNumber) {
+                    showError('Номер членства не найден. Пожалуйста, войдите снова.');
                     logout();
                     return;
                 }
 
-                console.log('👤 Текущий пользователь:', {
-                    id: userData.id,
-                    email: userData.email,
-                    membershipNumber: memberNumber,
-                    source: memberNumber === memberNumberFromUrl ? 'URL' : 'localStorage'
+                console.log('👤 Загрузка дашборда для:', {
+                    memberNumber: memberNumber,
+                    email: userData.email
                 });
 
-                // Формируем URL - используем memberNumber если есть
-                const url = `/api/dashboard?userId=${userData.id}&member=${encodeURIComponent(userData.membership_number || '')}&_=${Date.now()}`;
+                // 🔥 ТЕПЕРЬ ПЕРЕДАЕМ ТОЛЬКО member
+                const url = `/api/dashboard?member=${encodeURIComponent(memberNumber)}&_=${Date.now()}`;
 
-                console.log('🔗 Запрос к:', url);
+                console.log('🔗 API Запрос к:', url);
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -732,52 +735,38 @@
                 // Проверяем, не HTML ли это
                 if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
                     console.error('❌ Сервер вернул HTML вместо JSON');
-                    console.error('🔍 HTML:', responseText.substring(0, 300));
-
-                    throw new Error('Сервер вернул страницу ошибки. Проверьте доступность endpoint /dashboard');
+                    throw new Error('Сервер вернул страницу ошибки. Проверьте доступность endpoint /api/dashboard');
                 }
 
                 // Парсим JSON
-                try {
-                    const result = JSON.parse(responseText);
-                    console.log('✅ JSON успешно распарсен:', {
-                        success: result.success,
-                        hasData: !!result.data
-                    });
+                const result = JSON.parse(responseText);
 
-                    if (result.success) {
-                        displayDashboard(result.data);
-                        showSuccess('Данные успешно загружены');
-                    } else {
-                        showError(result.message || 'Ошибка загрузки данных');
+                if (result.success) {
+                    displayDashboard(result.data);
+
+                    // 🔥 ОБНОВЛЯЕМ localStorage с актуальными данными пользователя
+                    if (result.data.user) {
+                        localStorage.setItem('user', JSON.stringify({
+                            ...userData,
+                            ...result.data.user,
+                            membership_number: result.data.user.membership_number
+                        }));
+                        console.log('💾 Обновлены данные пользователя в localStorage');
                     }
-                } catch (parseError) {
-                    console.error('❌ Ошибка парсинга JSON:', parseError);
-                    console.error('📄 Текст который не распарсился:', responseText.substring(0, 200));
-                    throw new Error('Сервер вернул некорректный JSON');
+
+                    showSuccess('Данные успешно загружены');
+                } else {
+                    showError(result.message || 'Ошибка загрузки данных');
                 }
 
             } catch (error) {
                 console.error('❌ Ошибка загрузки дашборда:', error);
+                showError(error.message || 'Ошибка загрузки данных');
 
-                let errorMessage = 'Ошибка загрузки данных';
-
-                if (error.message.includes('HTML вместо JSON')) {
-                    errorMessage = `
-                Сервер возвращает HTML вместо JSON.
-                Возможные причины:
-                1. Endpoint /dashboard не настроен на сервере
-                2. Сервер недоступен
-                3. Ошибка 404/500
-            `;
-                } else if (error.message.includes('некорректный JSON')) {
-                    errorMessage = 'Сервер вернул некорректные данные';
-                } else {
-                    errorMessage = error.message;
+                // Если ошибка 404 (пользователь не найден), предлагаем войти снова
+                if (error.message.includes('не найден') || error.message.includes('404')) {
+                    setTimeout(() => logout(), 3000);
                 }
-
-                showError(errorMessage);
-
             } finally {
                 showLoading(false);
             }
@@ -1161,16 +1150,20 @@
 
         // Выход
         function logout() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const memberNumber = urlParams.get('member');
+            // Сохраняем memberNumber перед выходом
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const memberNumber = userData.membership_number;
 
+            // Очищаем localStorage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
 
-            const redirectUrl = memberNumber ?
-                `/auth.html?member=${encodeURIComponent(memberNumber)}` :
-                '/auth.html';
+            // Перенаправляем на страницу входа с memberNumber
+            const redirectUrl = memberNumber
+                ? `/auth?member=${encodeURIComponent(memberNumber)}`
+                : '/auth';
 
+            console.log('🚪 Выход, перенаправление:', redirectUrl);
             window.location.href = redirectUrl;
         }
 

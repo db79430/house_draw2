@@ -319,16 +319,11 @@
                     }
                     // Приоритет 2: Формируем URL для ДАШБОРДА (HTML страницы)
                     else if (result.user && result.user.membership_number) {
-                        // 🔥 ПРАВИЛЬНО: используем /dashboard (HTML страница)
-                        finalRedirectUrl = `/dashboard?member=${encodeURIComponent(result.user.membership_number)}&userId=${result.user.id}`;
+                        // 🔥 ИСПРАВЛЕНО: используем ТОЛЬКО member (без userId)
+                        finalRedirectUrl = `/dashboard?member=${encodeURIComponent(result.user.membership_number)}`;
                         console.log('🎯 Формируем URL для дашборда:', finalRedirectUrl);
                     }
                     // Приоритет 3: Просто дашборд
-                    else if (result.user && result.user.id) {
-                        finalRedirectUrl = `/dashboard?userId=${result.user.id}`;
-                        console.log('🎯 Дашборд с userId:', finalRedirectUrl);
-                    }
-                    // Приоритет 4: Базовый дашборд
                     else {
                         finalRedirectUrl = '/dashboard';
                         console.log('🎯 Базовый редирект на дашборд');
@@ -354,6 +349,7 @@
                 loginBtn.textContent = 'Войти в кабинет';
             }
         });
+
 
         // 🔥 ОБРАБОТКА КЛАВИШИ ENTER
         document.getElementById('password').addEventListener('keypress', function (e) {
