@@ -218,7 +218,7 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 
-app.get('/dashboard', async (req, res) => {
+app.get('/api/dashboard', async (req, res) => {
   try {
     // Получаем userId из query параметра
     const userId = req.query.userId;

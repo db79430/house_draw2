@@ -676,7 +676,7 @@
                 });
 
                 // Формируем URL с query параметрами
-                const url = `/dashboard?userId=${userData.id}&member=${encodeURIComponent(userData.membership_number || '')}&_=${Date.now()}`;
+                const url = `/api/dashboard?userId=${userData.id}&member=${encodeURIComponent(userData.membership_number || '')}&_=${Date.now()}`;
 
                 console.log('🔗 Запрос к:', url);
 
@@ -687,7 +687,8 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    cache: 'no-store' // Отключаем кеш
+                    credentials: 'include', 
+                    cache: 'no-store'
                 });
 
                 console.log('📊 Ответ сервера:', {
