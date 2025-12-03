@@ -17,7 +17,13 @@ class SlotController {
   async purchase(req, res) {
     try {
       const { slotCount } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id;
+
+      console.log('🛒 Purchase request:', {
+        userId,
+        slotCount,
+        userFromReq: req.user
+      });
 
       if (!slotCount || slotCount <= 0) {
         return res.status(400).json({
