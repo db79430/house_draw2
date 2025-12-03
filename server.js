@@ -218,7 +218,7 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 
-app.get('/dashboard', async (req, res) => {
+app.get('/dashboard', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const memberNumber = req.query.member;
