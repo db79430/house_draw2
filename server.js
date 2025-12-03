@@ -101,12 +101,22 @@ app.get('/api/dashboard', async (req, res) => {
       queryParams: req.query
     });
 
-    // Находим пользователя по memberNumber
-    const user = await User.findOne({
-      where: { membership_number: memberNumber }
-    });
+    // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЙ МЕТОД
+    let user;
+
+    // Пробуем найти пользователя разными способами
+    if (User.findByMembershipNumber) {
+      // Используем специальный метод если есть
+      user = await User.findByMembershipNumber(memberNumber);
+    } else {
+      // Используем общий метод
+      user = await User.findOne({
+        where: { membership_number: memberNumber }
+      });
+    }
 
     if (!user) {
+      console.error('❌ Пользователь не найден с member:', memberNumber);
       return res.status(404).json({
         success: false,
         message: 'Пользователь не найден'
