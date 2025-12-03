@@ -86,7 +86,6 @@ app.get('/api/health', async (req, res) => {
 
 app.get('/api/dashboard', async (req, res) => {
   try {
-    // Получаем memberNumber из query параметра
     const memberNumber = req.query.member;
 
     if (!memberNumber) {
@@ -96,51 +95,29 @@ app.get('/api/dashboard', async (req, res) => {
       });
     }
 
-    console.log('📊 Dashboard API request:', {
-      memberNumber: memberNumber,
-      queryParams: req.query
-    });
+    console.log('📊 Dashboard API request for member:', memberNumber);
 
-    // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЙ МЕТОД
-    let user;
+    // 🔥 Вариант 1: Если модель исправлена
+    const user = await User.findOne({ membership_number: memberNumber });
 
-    // Пробуем найти пользователя разными способами
-    if (User.findByMembershipNumber) {
-      // Используем специальный метод если есть
-      user = await User.findByMembershipNumber(memberNumber);
-    } else {
-      // Используем общий метод
-      user = await User.findOne({
-        where: { membership_number: memberNumber }
-      });
-    }
+    // 🔥 Вариант 2: Если добавили отдельный метод
+    // const user = await User.findByMembershipNumber(memberNumber);
 
     if (!user) {
-      console.error('❌ Пользователь не найден с member:', memberNumber);
       return res.status(404).json({
         success: false,
         message: 'Пользователь не найден'
       });
     }
 
-    console.log('✅ Найден пользователь:', {
-      id: user.id,
-      memberNumber: user.membership_number,
-      email: user.email
-    });
+    console.log('✅ User found:', user.id);
 
-    // Получаем слоты пользователя
-    const userSlots = await Slot.findByUserIdSlots(user.id);
-
-    // Получаем историю платежей
-    const paymentHistory = await Payment.getPaymentHistory(user.id, 10);
-
-    // Получаем статистику
-    const statistics = {
-      totalSlots: userSlots.length,
-      activeSlots: userSlots.filter(slot => slot.status === 'active').length,
-      availableSlots: await Slot.getAvailableSlotsCount()
-    };
+    // Получаем данные параллельно для скорости
+    const [userSlots, paymentHistory, availableSlots] = await Promise.all([
+      Slot.findByUserIdSlots(user.id).catch(() => []),
+      Payment.getPaymentHistory(user.id, 10).catch(() => []),
+      Slot.getAvailableSlotsCount().catch(() => 0)
+    ]);
 
     const dashboardData = {
       user: {
@@ -152,17 +129,16 @@ app.get('/api/dashboard', async (req, res) => {
         membership_status: user.membership_status,
         created_at: user.created_at
       },
-      statistics: statistics,
+      statistics: {
+        totalSlots: userSlots.length,
+        activeSlots: userSlots.filter(slot => slot.status === 'active').length,
+        availableSlots: availableSlots
+      },
       slots: userSlots,
       paymentHistory: paymentHistory
     };
 
-    console.log('✅ Dashboard data loaded:', {
-      userId: user.id,
-      memberNumber: user.membership_number,
-      slotsCount: userSlots.length,
-      paymentsCount: paymentHistory.length
-    });
+    console.log('✅ Dashboard loaded successfully');
 
     res.json({
       success: true,
@@ -173,7 +149,8 @@ app.get('/api/dashboard', async (req, res) => {
     console.error('❌ Dashboard API error:', error);
     res.status(500).json({
       success: false,
-      message: 'Ошибка загрузки дашборда'
+      message: 'Ошибка загрузки дашборда',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
