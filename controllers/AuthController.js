@@ -8,9 +8,9 @@ class AuthController {
   async login(req, res) {
     try {
       console.log('🎯 POST /auth-login вызван!');
-      
+
       const { login, password } = req.body;
-      
+
       if (!login || !password) {
         return res.status(400).json({
           success: false,
@@ -18,32 +18,64 @@ class AuthController {
           redirectTo: '/auth'
         });
       }
-  
+
       const result = await this.authService.loginUser(login, password);
-  
+
+      // 🔥 ДОБАВЬТЕ ОТЛАДКУ
+      console.log('🔍 Результат из AuthService:', {
+        hasResult: !!result,
+        hasUser: !!result?.user,
+        userKeys: result?.user ? Object.keys(result.user) : 'нет user',
+        userData: result?.user,
+        membership_number: result?.user?.membership_number,
+        memberNumber: result?.user?.memberNumber,
+        allFields: result?.user ? Object.entries(result.user).map(([k, v]) => `${k}: ${v}`) : []
+      });
+
+      // 🔥 Пробуем разные варианты имени поля
+      const membershipNumber = result?.user?.membership_number ||
+        result?.user?.memberNumber ||
+        result?.user?.membershipNumber;
+
+      console.log('🔍 Найденный membership number:', {
+        membership_number: result?.user?.membership_number,
+        memberNumber: result?.user?.memberNumber,
+        membershipNumber: result?.user?.membershipNumber,
+        final: membershipNumber
+      });
+
       // 🔥 Формируем URL только с member (без userId)
       let redirectUrl = '/dashboard';
-      
-      if (result.user?.membership_number) {
-        redirectUrl = `/dashboard?member=${encodeURIComponent(result.user.membership_number)}`;
+
+      if (membershipNumber) {
+        redirectUrl = `/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+      } else {
+        console.warn('⚠️ membership_number не найден в данных пользователя');
       }
-  
+
       console.log('🎯 Redirect URL:', redirectUrl);
-  
+
       res.json({
         success: true,
         message: 'Вход выполнен успешно',
         redirectTo: redirectUrl,
-        ...result
+        ...result,
+        // 🔥 Обеспечиваем обратную совместимость
+        user: {
+          ...result.user,
+          // Добавляем все возможные варианты
+          membership_number: membershipNumber,
+          memberNumber: membershipNumber
+        }
       });
-  
+
     } catch (error) {
       console.error('❌ Ошибка входа:', error.message);
-      
+
       res.status(401).json({
         success: false,
         message: error.message,
-        redirectTo: '/auth' 
+        redirectTo: '/auth'
       });
     }
   }
