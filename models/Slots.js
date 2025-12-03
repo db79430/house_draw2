@@ -14,16 +14,10 @@ class Slot {
     } = slotData;
 
     const query = `
-      INSERT INTO slots (user_id, slot_number, purchase_date, status)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
+        INSERT INTO slots (user_id, slot_number, purchase_date, status)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
     `;
-
-    // const metadata = {
-    //   created_at: new Date().toISOString(),
-    //   original_number: this.extractSlotNumber(slotNumber),
-    //   is_range_slot: true
-    // };
 
     const values = [userId, slotNumber, purchaseDate, status];
 
@@ -157,16 +151,34 @@ class Slot {
    * Создание нескольких слотов с номерами из диапазона 1-20000
    */
   static async createMultipleSlotsInRange(userId, count, paymentId = null) {
+    let createdSlots = []; // 🔥 Инициализируем переменную
+
     try {
       console.log(`🎯 Creating ${count} slots for user ${userId}`);
-      
+
       if (!userId || count <= 0) {
         throw new Error('Invalid parameters for slot creation');
       }
-  
+
+      // 🔥 ПРОВЕРЯЕМ ДОСТУПНОСТЬ СЛОТОВ
+      const occupiedCount = await this.getOccupiedSlotCount();
+      const availableCount = this.TOTAL_SLOTS - occupiedCount;
+
+      if (availableCount < count) {
+        console.warn(`⚠️ Only ${availableCount} slots available. Requested: ${count}`);
+
+        // Если есть хоть какие-то доступные слоты, создаем их
+        if (availableCount > 0) {
+          console.log(`🔄 Creating ${availableCount} slots instead of ${count}`);
+          count = availableCount;
+        } else {
+          throw new Error('Нет доступных слотов. Все слоты заняты.');
+        }
+      }
+
       // Получаем занятые номера
       const occupiedNumbers = await this.getOccupiedSlotNumbers();
-      
+
       // Ищем свободные номера
       const availableNumbers = [];
       for (let i = 1; i <= this.TOTAL_SLOTS && availableNumbers.length < count; i++) {
@@ -174,36 +186,38 @@ class Slot {
           availableNumbers.push(i);
         }
       }
-      
-      if (availableNumbers.length < count) {
-        throw new Error(`Only ${availableNumbers.length} slots available. Requested: ${count}`);
-      }
-      
+
       // Форматируем номера
       const slotNumbers = availableNumbers.map(num => this.formatSlotNumber(num));
-      
+
       console.log(`🔢 Generated ${slotNumbers.length} slot numbers:`, slotNumbers);
-  
-      // Создаем слоты БЕЗ metadata
-      const createdSlots = [];
+
+      // Создаем слоты
       const purchaseDate = new Date();
-      
+
       for (let i = 0; i < count; i++) {
         const slotNumber = slotNumbers[i];
-        
-        const slot = await this.create({
+
+        const slotData = {
           userId: userId,
           slotNumber: slotNumber,
           purchaseDate: purchaseDate,
           status: 'active'
-        });
-        
+        };
+
+        // Добавляем paymentId если есть
+        if (paymentId) {
+          slotData.paymentId = paymentId;
+        }
+
+        const slot = await this.create(slotData);
+
         createdSlots.push(slot);
         console.log(`✅ Created slot ${i + 1}/${count}: ${slotNumber}`);
       }
-      
+
       console.log(`🎉 Successfully created ${createdSlots.length} slots for user ${userId}`);
-      
+
       return {
         success: true,
         slots: createdSlots,
@@ -216,14 +230,15 @@ class Slot {
           purchaseDate: purchaseDate
         }
       };
-      
+
     } catch (error) {
       console.error('❌ Error creating multiple slots in range:', error);
-      
+
       return {
         success: false,
         error: error.message,
-        partial: createdSlots ? createdSlots.length : 0
+        partial: createdSlots.length, // 🔥 Теперь createdSlots всегда определена
+        slots: createdSlots
       };
     }
   }
@@ -235,22 +250,67 @@ class Slot {
     return await this.createMultipleSlotsInRange(userId, count);
   }
 
+  static async createSlotsWithNumbers(userId, slotNumbers, paymentId = null) {
+    const createdSlots = [];
+    const purchaseDate = new Date();
+
+    try {
+      console.log(`🎯 Creating ${slotNumbers.length} slots with specific numbers for user ${userId}`);
+
+      for (let i = 0; i < slotNumbers.length; i++) {
+        const slotNumber = slotNumbers[i];
+
+        const slotData = {
+          userId: userId,
+          slotNumber: slotNumber,
+          purchaseDate: purchaseDate,
+          status: 'active'
+        };
+
+        if (paymentId) {
+          slotData.paymentId = paymentId;
+        }
+
+        const slot = await this.create(slotData);
+        createdSlots.push(slot);
+        console.log(`✅ Created slot ${i + 1}/${slotNumbers.length}: ${slotNumber}`);
+      }
+
+      console.log(`🎉 Successfully created ${createdSlots.length} slots`);
+
+      return {
+        success: true,
+        slots: createdSlots
+      };
+
+    } catch (error) {
+      console.error('❌ Error creating slots with numbers:', error);
+
+      return {
+        success: false,
+        error: error.message,
+        partial: createdSlots.length,
+        slots: createdSlots
+      };
+    }
+  }
+
   /**
    * Получение слотов пользователя с дополнительной информацией
    */
   static async findByUserIdSlots(userId) {
     try {
-        const query = `
+      const query = `
             SELECT * FROM slots 
             WHERE user_id = $1 
             ORDER BY purchase_date DESC
         `;
-        return await db.any(query, [userId]);
+      return await db.any(query, [userId]);
     } catch (error) {
-        console.error('❌ Error finding slots by user ID:', error);
-        return []; // Возвращаем пустой массив при ошибке
+      console.error('❌ Error finding slots by user ID:', error);
+      return []; // Возвращаем пустой массив при ошибке
     }
-}
+  }
 
   /**
    * Группировка слотов по покупкам

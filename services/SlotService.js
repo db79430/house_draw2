@@ -46,7 +46,7 @@ class SlotService {
                 TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
                 Amount: amount,
                 OrderId: orderId,
-                Description: `Покупка ${slotCount} слота (ов). Член клуба: ${user.membership_number || 'Не указан'}`,
+                Description: `Покупка ${slotCount} слота (ов). Член клуба: ${user.m || 'Не указан'}`,
                 NotificationURL: `${CONFIG.APP.BASE_URL}/payment-notification`,
                 DATA: {
                     Email: user.email || '',
@@ -202,10 +202,32 @@ class SlotService {
         try {
             console.log('🎰 Creating slots after payment:', { userId, slotCount, paymentId });
 
-            // Создаем слоты
-            const slots = await Slot.createMultipleSlots(userId, slotCount);
+            // 🔥 ПРОВЕРКА
+            if (!userId || !slotCount || slotCount <= 0) {
+                throw new Error('Invalid parameters for slot creation');
+            }
 
-            // Обновляем статус платежа
+            // 🔥 ПРОВЕРЯЕМ ДОСТУПНОСТЬ СЛОТОВ ПЕРЕД СОЗДАНИЕМ
+            const availableSlots = await Slot.getAvailableSlotsCount();
+
+            if (availableSlots < slotCount) {
+                console.warn(`⚠️ Not enough slots available. Available: ${availableSlots}, Requested: ${slotCount}`);
+
+                // СОЗДАЕМ ТОЛЬКО ДОСТУПНЫЕ
+                const actualCount = Math.min(slotCount, availableSlots);
+
+                if (actualCount === 0) {
+                    throw new Error('Нет доступных слотов для покупки');
+                }
+
+                console.log(`🔄 Creating ${actualCount} slots instead of ${slotCount}`);
+                slotCount = actualCount;
+            }
+
+            // 🔥 СОЗДАЕМ СЛОТЫ
+            const slots = await Slot.createMultipleSlots(userId, slotCount, paymentId);
+
+            // 🔥 ОБНОВЛЯЕМ ПЛАТЕЖ
             await Payment.updateStatus(paymentId, 'completed');
 
             console.log(`✅ Successfully created ${slots.length} slots for user ${userId}`);
@@ -213,14 +235,18 @@ class SlotService {
             return {
                 success: true,
                 slots: slots,
-                slotCount: slots.length
+                slotCount: slots.length,
+                requestedCount: slotCount
             };
 
         } catch (error) {
             console.error('❌ Error creating slots after payment:', error);
 
-            // Отмечаем платеж как ошибочный
-            await Payment.updateStatus(paymentId, 'failed');
+            try {
+                await Payment.updateStatus(paymentId, 'failed');
+            } catch (updateError) {
+                console.error('❌ Error updating payment status:', updateError);
+            }
 
             throw error;
         }
