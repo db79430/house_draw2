@@ -75,6 +75,25 @@ app.get('/auth', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'auth.html'));
 });
 
+app.get('/dashboard', (req, res) => {
+  const memberNumber = req.query.member;
+
+  console.log('📄 Serving dashboard.html', {
+    memberNumber: memberNumber,
+    queryParams: req.query
+  });
+
+  if (memberNumber) {
+    console.log('🎯 Dashboard request with member number:', memberNumber);
+  }
+
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.post('/purchase', authenticateToken, (req, res) =>
+  slotController.purchase(req, res)
+);
+
 
 
 // API роуты - ПОСЛЕ HTML
@@ -289,25 +308,6 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
-
-app.get('/dashboard', (req, res) => {
-  const memberNumber = req.query.member;
-
-  console.log('📄 Serving dashboard.html', {
-    memberNumber: memberNumber,
-    queryParams: req.query
-  });
-
-  if (memberNumber) {
-    console.log('🎯 Dashboard request with member number:', memberNumber);
-  }
-
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.post('/purchase', authenticateToken, (req, res) =>
-  slotController.purchase(req, res)
-);
 
 // Получение слотов пользователя
 app.get('/my-slots', (req, res) =>
