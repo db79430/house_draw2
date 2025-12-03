@@ -61,12 +61,134 @@ app.use((req, res, next) => {
   next();
 });
 
+
+
+// API роуты - ПОСЛЕ HTML
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.one('SELECT 1 as test');
+
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      service: 'Tilda Webhook Handler',
+      message: 'Сервер работает корректно'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      database: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/dashboard', async (req, res) => {
+  try {
+    // Получаем memberNumber из query параметра
+    const memberNumber = req.query.member;
+
+    if (!memberNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Требуется параметр member'
+      });
+    }
+
+    console.log('📊 Dashboard API request:', {
+      memberNumber: memberNumber,
+      queryParams: req.query
+    });
+
+    // Находим пользователя по memberNumber
+    const user = await User.findOne({
+      where: { membership_number: memberNumber }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+
+    console.log('✅ Найден пользователь:', {
+      id: user.id,
+      memberNumber: user.membership_number,
+      email: user.email
+    });
+
+    // Получаем слоты пользователя
+    const userSlots = await Slot.findByUserIdSlots(user.id);
+
+    // Получаем историю платежей
+    const paymentHistory = await Payment.getPaymentHistory(user.id, 10);
+
+    // Получаем статистику
+    const statistics = {
+      totalSlots: userSlots.length,
+      activeSlots: userSlots.filter(slot => slot.status === 'active').length,
+      availableSlots: await Slot.getAvailableSlotsCount()
+    };
+
+    const dashboardData = {
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        email: user.email,
+        phone: user.phone,
+        membership_number: user.membership_number,
+        membership_status: user.membership_status,
+        created_at: user.created_at
+      },
+      statistics: statistics,
+      slots: userSlots,
+      paymentHistory: paymentHistory
+    };
+
+    console.log('✅ Dashboard data loaded:', {
+      userId: user.id,
+      memberNumber: user.membership_number,
+      slotsCount: userSlots.length,
+      paymentsCount: paymentHistory.length
+    });
+
+    res.json({
+      success: true,
+      data: dashboardData
+    });
+
+  } catch (error) {
+    console.error('❌ Dashboard API error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка загрузки дашборда'
+    });
+  }
+});
+
 app.get('/', (req, res) => {
   console.log('📄 Serving index.html');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// app.get('/paymentfee', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
+// });
+
 app.get('/paymentfee', (req, res) => {
+  console.log('🎯 ==== PAYMENTFEE REQUEST ====');
+  console.log('Query params:', req.query);
+  console.log('🎯 ==== END PAYMENTFEE ====');
+
+  // Если есть memberNumber в параметрах - отдаем страницу оплаты
+  if (req.query.memberNumber) {
+    console.log('✅ Member number from Tilda:', req.query.memberNumber);
+    return res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
+  }
+
+  // Если нет memberNumber - пробуем найти в сессии или показываем ручной ввод
   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
 });
 
@@ -94,42 +216,6 @@ app.post('/purchase', authenticateToken, (req, res) =>
   slotController.purchase(req, res)
 );
 
-
-
-// API роуты - ПОСЛЕ HTML
-app.get('/api/health', async (req, res) => {
-  try {
-    await db.one('SELECT 1 as test');
-
-    res.json({
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-      service: 'Tilda Webhook Handler',
-      message: 'Сервер работает корректно'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'ERROR',
-      database: 'disconnected',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-app.get('/paymentfee', (req, res) => {
-  console.log('🎯 ==== PAYMENTFEE REQUEST ====');
-  console.log('Query params:', req.query);
-  console.log('🎯 ==== END PAYMENTFEE ====');
-
-  // Если есть memberNumber в параметрах - отдаем страницу оплаты
-  if (req.query.memberNumber) {
-    console.log('✅ Member number from Tilda:', req.query.memberNumber);
-    return res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
-  }
-
-  // Если нет memberNumber - пробуем найти в сессии или показываем ручной ввод
-  res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
-});
 
 const tildaController = new TildaController();
 const tinkoffController = new TinkoffController();
@@ -222,91 +308,6 @@ app.post('/auth-validate', (req, res) => authController.validate(req, res));
 app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 // app.post('/auth-change-password', (req, res) => authController.changePassword(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
-
-
-app.get('/api/dashboard', async (req, res) => {
-  try {
-    // Получаем memberNumber из query параметра
-    const memberNumber = req.query.member;
-
-    if (!memberNumber) {
-      return res.status(400).json({
-        success: false,
-        message: 'Требуется параметр member'
-      });
-    }
-
-    console.log('📊 Dashboard API request:', {
-      memberNumber: memberNumber,
-      queryParams: req.query
-    });
-
-    // Находим пользователя по memberNumber
-    const user = await User.findOne({
-      where: { membership_number: memberNumber }
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Пользователь не найден'
-      });
-    }
-
-    console.log('✅ Найден пользователь:', {
-      id: user.id,
-      memberNumber: user.membership_number,
-      email: user.email
-    });
-
-    // Получаем слоты пользователя
-    const userSlots = await Slot.findByUserIdSlots(user.id);
-
-    // Получаем историю платежей
-    const paymentHistory = await Payment.getPaymentHistory(user.id, 10);
-
-    // Получаем статистику
-    const statistics = {
-      totalSlots: userSlots.length,
-      activeSlots: userSlots.filter(slot => slot.status === 'active').length,
-      availableSlots: await Slot.getAvailableSlotsCount()
-    };
-
-    const dashboardData = {
-      user: {
-        id: user.id,
-        fullname: user.fullname,
-        email: user.email,
-        phone: user.phone,
-        membership_number: user.membership_number,
-        membership_status: user.membership_status,
-        created_at: user.created_at
-      },
-      statistics: statistics,
-      slots: userSlots,
-      paymentHistory: paymentHistory
-    };
-
-    console.log('✅ Dashboard data loaded:', {
-      userId: user.id,
-      memberNumber: user.membership_number,
-      slotsCount: userSlots.length,
-      paymentsCount: paymentHistory.length
-    });
-
-    res.json({
-      success: true,
-      data: dashboardData
-    });
-
-  } catch (error) {
-    console.error('❌ Dashboard API error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Ошибка загрузки дашборда'
-    });
-  }
-});
 
 
 // Получение слотов пользователя
