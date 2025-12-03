@@ -36,11 +36,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', '*');
   res.header('Access-Control-Allow-Methods', '*');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -72,21 +72,21 @@ app.get('/paymentfee', (req, res) => {
 
 app.get('/auth', (req, res) => {
   console.log('📄 Serving auth.html');
-  res.sendFile(path.join(__dirname, 'public','auth.html'));
+  res.sendFile(path.join(__dirname, 'public', 'auth.html'));
 });
 
 app.get('/dashboard', (req, res) => {
   const memberNumber = req.query.member;
-  
-  console.log('📄 Serving dashboard.html', { 
-      memberNumber: memberNumber,
-      queryParams: req.query 
+
+  console.log('📄 Serving dashboard.html', {
+    memberNumber: memberNumber,
+    queryParams: req.query
   });
-  
+
   if (memberNumber) {
-      console.log('🎯 Dashboard request with member number:', memberNumber);
+    console.log('🎯 Dashboard request with member number:', memberNumber);
   }
-  
+
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
@@ -94,9 +94,9 @@ app.get('/dashboard', (req, res) => {
 app.get('/api/health', async (req, res) => {
   try {
     await db.one('SELECT 1 as test');
-    
-    res.json({ 
-      status: 'OK', 
+
+    res.json({
+      status: 'OK',
       timestamp: new Date().toISOString(),
       service: 'Tilda Webhook Handler',
       message: 'Сервер работает корректно'
@@ -126,7 +126,7 @@ app.get('/paymentfee', (req, res) => {
 });
 
 const tildaController = new TildaController();
-const tinkoffController = new TinkoffController(); 
+const tinkoffController = new TinkoffController();
 // const emailController = new EmailController();
 const authController = new AuthController();
 const slotController = new SlotController();
@@ -135,7 +135,7 @@ app.get('/tilda-webhook', (req, res) => {
   console.log('🔔 GET /tilda-webhook - Tilda connectivity check');
   console.log('📋 Query parameters:', req.query);
   console.log('🌐 Headers:', req.headers);
-  
+
   // Tilda ожидает JSON ответ с определенной структурой
   res.json({
     Success: true,
@@ -157,17 +157,17 @@ app.get('/get-member-number', async (req, res) => {
   try {
     const { email, phone } = req.query;
     const user = await User.findUserByEmailOrPhone(email, phone);
-    
+
     if (user) {
       // Пробуем разные варианты названия поля
       const memberNumber = user.membership_number
-      
-      console.log('✅ Найден пользователь:', { 
-        email: user.email, 
+
+      console.log('✅ Найден пользователь:', {
+        email: user.email,
         memberNumber: memberNumber,
-        availableFields: Object.keys(user) 
+        availableFields: Object.keys(user)
       });
-      
+
       res.json({
         success: true,
         memberNumber: memberNumber,
@@ -218,14 +218,23 @@ app.get('/auth-profile', (req, res) => authController.getProfile(req, res));
 app.post('/auth-logout', (req, res) => authController.logout(req, res));
 
 
-app.get('/dashboard', authenticateToken, async (req, res) => {
+app.get('/dashboard', async (req, res) => {
   try {
-    const userId = req.user.id;
+    // Получаем userId из query параметра
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Требуется параметр userId'
+      });
+    }
+
     const memberNumber = req.query.member;
-    
-    console.log('📊 Dashboard API request:', { 
+
+    console.log('📊 Dashboard API request:', {
       userId: userId,
-      memberNumber: memberNumber 
+      memberNumber: memberNumber
     });
 
     // Находим пользователя
@@ -243,13 +252,11 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
         stored: user.membership_number,
         provided: memberNumber
       });
-      // Можно обновить номер члена клуба если нужно
-      // await User.updateMembershipNumber(userId, memberNumber);
     }
 
     // Получаем слоты пользователя
     const userSlots = await Slot.findByUserIdSlots(userId);
-    
+
     // Получаем историю платежей
     const paymentHistory = await Payment.getPaymentHistory(userId, 10);
 
@@ -281,13 +288,16 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
       paymentsCount: paymentHistory.length
     });
 
+    // ВАЖНО: Убедитесь что возвращаете JSON
+    res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
       data: dashboardData
     });
-    
+
   } catch (error) {
     console.error('❌ Dashboard API error:', error);
+    // ВАЖНО: Даже при ошибке возвращаем JSON
     res.status(500).json({
       success: false,
       message: 'Ошибка загрузки дашборда'
@@ -295,22 +305,22 @@ app.get('/dashboard', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/purchase', authenticateToken, (req, res) => 
+app.post('/purchase', authenticateToken, (req, res) =>
   slotController.purchase(req, res)
 );
 
 // Получение слотов пользователя
-app.get('/my-slots', (req, res) => 
+app.get('/my-slots', (req, res) =>
   slotController.getUserSlots(req, res)
 );
 
 // Получение статистики
-app.get('/statistics', (req, res) => 
+app.get('/statistics', (req, res) =>
   slotController.getStatistics(req, res)
 );
 
 // Уведомления от Tinkoff (не требует авторизации)
-app.post('/payment-notification', (req, res) => 
+app.post('/payment-notification', (req, res) =>
   slotController.handlePaymentNotification(req, res)
 );
 
@@ -318,7 +328,7 @@ console.log('🔧 Environment Check:');
 console.log('   Current directory:', process.cwd());
 console.log('   NODE_ENV:', process.env.NODE_ENV);
 console.log('   YANDEX_EMAIL exists:', !!process.env.YANDEX_EMAIL);
-console.log('   All env variables:', Object.keys(process.env).filter(key => 
+console.log('   All env variables:', Object.keys(process.env).filter(key =>
   key.includes('YANDEX') || key.includes('EMAIL') || key.includes('APP')
 ))
 
@@ -327,7 +337,7 @@ console.log('   All env variables:', Object.keys(process.env).filter(key =>
 async function startServer() {
   try {
     await runMigrations();
-    
+
     app.listen(CONFIG.APP.PORT, '0.0.0.0', () => {
       console.log('🚀 Server started successfully');
       console.log(`📍 Port: ${CONFIG.APP.PORT}`);
