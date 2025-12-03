@@ -191,20 +191,23 @@ class SlotController {
         status: payment.status
       });
 
+      const paymentIdForUpdate = payment.id;
+
       let createdSlots = [];
 
       if (Success && Status === 'CONFIRMED') {
         console.log('✅ Payment confirmed, processing...');
 
         // Обновляем статус платежа
-        await Payment.updateStatus(payment.id, 'completed', notificationData);
+        await Payment.updateStatus(paymentIdForUpdate, 'completed', notificationData);
         console.log('✅ Payment status updated to "completed"');
 
         // 🔥 ПРАВИЛЬНО РАССЧИТЫВАЕМ количество слотов
-        let slotCount = 0;
+      
 
         // Используем amount из уведомления или из платежа
-        const paymentAmount = Amount || payment.amount; // в копейках
+        const paymentAmount = Amount || payment.amount;
+          const slotCount = Math.floor(paymentAmount / 100000);
 
         // 🔥 ФОРМУЛА: 1000 рублей = 1 слот
         // Amount в копейках, поэтому 1000 руб = 100000 копеек
@@ -256,11 +259,11 @@ class SlotController {
         }
 
       } else if (Status === 'AUTHORIZED') {
-        await Payment.updateStatus(payment.id, 'authorized', notificationData);
+        await Payment.updateStatus(paymentIdForUpdate, 'authorized', notificationData);
         console.log('🔄 Payment authorized:', Status);
 
       } else {
-        await Payment.updateStatus(payment.id, 'failed', notificationData);
+        await Payment.updateStatus(paymentIdForUpdate, 'failed', notificationData);
         console.log('❌ Payment failed:', Status);
       }
 
@@ -285,7 +288,7 @@ class SlotController {
     }
   }
 
-  static async notifyUserAboutPurchase(userId, slots, payment = null) {
+  async notifyUserAboutPurchase(userId, slots, payment = null) {
     try {
       console.log('📧 Notifying user about purchase:', { userId, slotCount: slots.length });
 

@@ -74,25 +74,102 @@ class Payment {
   /**
    * Обновить статус платежа по order_id (строковому)
    */
-  static async updateStatus(orderId, status, notificationData = null) {
+  // В Payment.js обновите метод updateStatus
+  static async updateStatus(paymentId, status, additionalData = null) {
     try {
-      console.log('🔄 Updating payment status by order_id:', { orderId, status });
+      console.log(`🔄 Updating payment status:`, {
+        paymentId,
+        status,
+        isNumeric: !isNaN(paymentId),
+        type: typeof paymentId
+      });
 
-      // Убедимся что orderId - строка
-      const orderIdStr = String(orderId);
+      // 🔥 ПРЕВРАЩАЕМ paymentId В СТРОКУ (order_id всегда строка)
+      const orderId = paymentId.toString();
 
+      // 🔥 ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ ПЛАТЕЖА
+      const existingPayment = await db.oneOrNone(
+        `SELECT id, order_id, status FROM payments WHERE order_id = $1`,
+        [orderId]
+      );
+
+      if (!existingPayment) {
+        console.error(`❌ Payment with order_id "${orderId}" not found in database`);
+        console.log(`🔍 Available payments:`);
+
+        try {
+          const allPayments = await db.any(
+            `SELECT id, order_id, status, amount FROM payments ORDER BY id DESC LIMIT 10`
+          );
+          console.log('Last 10 payments:', allPayments);
+        } catch (e) {
+          console.error('Error fetching payments:', e);
+        }
+
+        return null;
+      }
+
+      console.log(`✅ Found payment:`, {
+        id: existingPayment.id,
+        order_id: existingPayment.order_id,
+        current_status: existingPayment.status
+      });
+
+      // 🔥 ОБНОВЛЯЕМ ПО ID (надежнее чем по order_id)
       const query = `
-        UPDATE payments 
-        SET status = $1, notification_data = $2, updated_at = CURRENT_TIMESTAMP
-        WHERE order_id = $3
-        RETURNING *
+          UPDATE payments 
+          SET status = $1, 
+              notification_data = COALESCE(notification_data, '{}'::jsonb) || $2::jsonb,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+          RETURNING *
       `;
 
-      const result = await db.one(query, [status, notificationData, orderIdStr]);
-      console.log('✅ Payment status updated:', orderIdStr, '->', status);
+      const notificationJson = additionalData ? JSON.stringify(additionalData) : '{}';
+
+      const result = await db.one(query, [
+        status,
+        notificationJson,
+        existingPayment.id
+      ]);
+
+      console.log(`✅ Payment ${result.id} (order_id: ${result.order_id}) updated to ${status}`);
       return result;
+
     } catch (error) {
-      console.error('❌ Error updating payment status by order_id:', error);
+      console.error('❌ Error updating payment status:', error);
+
+      // 🔥 ЕСЛИ ОШИБКА noData, ПРОБУЕМ ПО order_id как fallback
+      if (error.code === 'noData') {
+        console.log('🔄 Trying update by order_id as fallback...');
+
+        try {
+          const orderId = paymentId.toString();
+          const query = `
+                  UPDATE payments 
+                  SET status = $1, 
+                      notification_data = COALESCE(notification_data, '{}'::jsonb) || $2::jsonb,
+                      updated_at = CURRENT_TIMESTAMP
+                  WHERE order_id = $3
+                  RETURNING *
+              `;
+
+          const notificationJson = additionalData ? JSON.stringify(additionalData) : '{}';
+
+          const result = await db.one(query, [
+            status,
+            notificationJson,
+            orderId
+          ]);
+
+          console.log(`✅ Fallback successful: updated payment by order_id ${orderId}`);
+          return result;
+
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+        }
+      }
+
       throw error;
     }
   }
@@ -184,21 +261,21 @@ class Payment {
     }
   }
 
-  static async getPaymentHistory(userId, limit = 10) {
-    try {
-      const query = `
-          SELECT * FROM payments 
-          WHERE user_id = $1 
-          ORDER BY created_at DESC 
-          LIMIT $2
-      `;
+  // static async getPaymentHistory(userId, limit = 10) {
+  //   try {
+  //     const query = `
+  //         SELECT * FROM payments 
+  //         WHERE user_id = $1 
+  //         ORDER BY created_at DESC 
+  //         LIMIT $2
+  //     `;
 
-      return await db.any(query, [userId, limit]);
-    } catch (error) {
-      console.error('❌ Error getting payment history:', error);
-      return [];
-    }
-  }
+  //     return await db.any(query, [userId, limit]);
+  //   } catch (error) {
+  //     console.error('❌ Error getting payment history:', error);
+  //     return [];
+  //   }
+  // }
 
   static async findSuccessfulPaymentsByUserId(userId) {
     try {
