@@ -703,9 +703,7 @@
                 });
 
                 // Формируем URL - используем memberNumber если есть
-                const url = `/api/dashboard?userId=${userData.id}` +
-                    (memberNumber ? `&member=${encodeURIComponent(memberNumber)}` : '') +
-                    `&_=${Date.now()}`;
+                const url = `/api/dashboard?userId=${userData.id}&member=${encodeURIComponent(userData.membership_number || '')}&_=${Date.now()}`;
 
                 console.log('🔗 Запрос к:', url);
 
