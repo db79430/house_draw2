@@ -217,7 +217,7 @@ class SlotController {
         if (userId) {
           try {
             // Создаем слоты
-            const result = await Slot.createSlotsFromPaymentAmount(userId, paymentAmount, payment.id);
+            const result = await this.slotService.createSlotsAfterPayment(userId, paymentAmount, payment.id);
             
             if (result.success) {
               createdSlots = result.slots;
