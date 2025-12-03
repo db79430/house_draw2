@@ -9,9 +9,9 @@ class AuthController {
     try {
       console.log('🎯 POST /auth-login вызван!');
       console.log('📦 Тело запроса:', req.body);
-      
+
       const { login, password } = req.body;
-      
+
       if (!login || !password) {
         return res.status(400).json({
           success: false,
@@ -19,31 +19,46 @@ class AuthController {
           redirectTo: '/auth'
         });
       }
-  
+
       const result = await this.authService.loginUser(login, password);
-  
+
+      const {
+        membership_number,
+        memberNumber,
+        id: userId
+      } = result.user || {};
+
+      const finalMembershipNumber = membership_number || memberNumber;
+
+      console.log('📋 Извлеченные данные:', {
+        userId,
+        membership_number,
+        memberNumber,
+        finalMembershipNumber
+      });
+
       // 🔥 ФОРМИРУЕМ URL С ПАРАМЕТРАМИ
       let redirectUrl = 'https://npkvdv.ru/dashboard';
-      const membershipNumber = result.user?.memberNumber
-      
-      if (membershipNumber) {
-        redirectUrl = `https://npkvdv.ru/dashboard?member=${encodeURIComponent(membershipNumber)}`;
+      if (finalMembershipNumber && userId) {
+        redirectUrl = `https://npkvdv.ru/dashboard?member=${encodeURIComponent(finalMembershipNumber)}&userId=${userId}`;
+      } else if (userId) {
+        redirectUrl = `https://npkvdv.ru/dashboard?userId=${userId}`;
       }
-  
+
       res.json({
         success: true,
         message: 'Вход выполнен успешно',
         redirectTo: redirectUrl, // URL с параметрами
         ...result
       });
-  
+
     } catch (error) {
       console.error('❌ Ошибка входа:', error.message);
-      
+
       res.status(401).json({
         success: false,
         message: error.message,
-        redirectTo: '/auth' // при ошибке возвращаем на логин
+        redirectTo: '/auth'
       });
     }
   }

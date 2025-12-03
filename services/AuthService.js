@@ -7,14 +7,14 @@ class AuthService {
     try {
       console.log('🔐 Attempting login for:', login);
       console.log('🔐 Input password:', `"${password}"`, 'Length:', password?.length);
-      
+
       // Поиск пользователя по логину или email
       const user = await User.findByLoginOrEmail(login);
       if (!user) {
         console.log('❌ User not found:', login);
         throw new Error('Пользователь не найден');
       }
-  
+
       // 🔧 ДЕТАЛЬНАЯ ОТЛАДКА СРАВНЕНИЯ ПАРОЛЕЙ
       console.log('🔐 Password comparison details:', {
         inputPassword: `"${password}"`,
@@ -25,16 +25,16 @@ class AuthService {
         inputCharCodes: password?.split('').map(c => `${c}(${c.charCodeAt(0)})`),
         storedCharCodes: user.password?.split('').map(c => `${c}(${c.charCodeAt(0)})`)
       });
-  
+
       // Проверка статуса пользователя
       if (user.membership_status !== 'active') {
         console.log('❌ User not active:', user.membership_status);
         throw new Error('Аккаунт не активирован. Дождитесь данных для входа после оплаты.');
       }
-  
+
       // Простая проверка пароля
       const isPasswordValid = password === user.password;
-      
+
       if (!isPasswordValid) {
         console.log('❌ Invalid password for user:', login);
         console.log('🔐 Password debug - side by side:', {
@@ -45,15 +45,22 @@ class AuthService {
         });
         throw new Error('Неверный пароль');
       }
-  
+
       // Генерация простого токена
       const token = this.generateSimpleToken(user.id);
-  
+
       // Обновляем последний вход
       // await User.updateLastLogin(user.id);
-  
+
       console.log('✅ Successful login for user:', user.email);
-  
+
+      console.log('✅ Данные пользователя из БД:', {
+        id: user.id,
+        email: user.email,
+        membership_number: user.membership_number,
+        allFields: Object.keys(user).filter(key => !key.startsWith('_'))
+      });
+      
       return {
         success: true,
         token: token,
@@ -66,14 +73,14 @@ class AuthService {
           memberNumber: user.membership_number
         }
       };
-  
+
     } catch (error) {
       console.error('❌ Error in loginUser service:', error.message);
       throw error;
     }
   }
 
- 
+
   // Функция для генерации простого токена
   generateSimpleToken(userId) {
     return `simple-token-${userId}-${Date.now()}`;
@@ -88,7 +95,7 @@ class AuthService {
       // Простая валидация токена
       const userId = this.parseSimpleToken(token);
       const user = await User.findById(userId);
-      
+
       if (!user) {
         throw new Error('Пользователь не найден');
       }
@@ -124,7 +131,7 @@ class AuthService {
   async getUserProfile(userId) {
     try {
       const user = await User.findById(userId);
-      
+
       if (!user) {
         throw new Error('Пользователь не найден');
       }
@@ -150,7 +157,7 @@ class AuthService {
   async checkUserStatus(email) {
     try {
       const user = await User.findByEmail(email);
-      
+
       if (!user) {
         return {
           exists: false,
@@ -161,8 +168,8 @@ class AuthService {
       return {
         exists: true,
         status: user.membership_status,
-        message: user.membership_status === 'active' 
-          ? 'Аккаунт активен' 
+        message: user.membership_status === 'active'
+          ? 'Аккаунт активен'
           : 'Аккаунт ожидает активации'
       };
 

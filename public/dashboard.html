@@ -639,19 +639,41 @@
         });
 
         // Проверка авторизации
+        function getMemberNumberFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('member') ||
+                urlParams.get('memberNumber') ||
+                urlParams.get('member_number');
+        }
+
+        // Обновите функцию checkAuth:
         function checkAuth() {
             const token = localStorage.getItem('token');
             userData = JSON.parse(localStorage.getItem('user') || '{}');
 
+            // Пробуем получить memberNumber из URL
+            const memberNumberFromUrl = getMemberNumberFromUrl();
+
             if (!token || !userData.id) {
                 console.log('❌ Не авторизован, перенаправление...');
-                window.location.href = '/auth.html';
+                const redirectUrl = memberNumberFromUrl
+                    ? `/auth.html?member=${encodeURIComponent(memberNumberFromUrl)}`
+                    : '/auth.html';
+                window.location.href = redirectUrl;
                 return;
+            }
+
+            // Если в URL есть memberNumber, обновляем его в localStorage
+            if (memberNumberFromUrl && (!userData.membership_number || userData.membership_number !== memberNumberFromUrl)) {
+                console.log('🔄 Обновляем memberNumber из URL:', memberNumberFromUrl);
+                userData.membership_number = memberNumberFromUrl;
+                localStorage.setItem('user', JSON.stringify(userData));
             }
 
             console.log('✅ Авторизован:', {
                 userId: userData.id,
-                email: userData.email
+                email: userData.email,
+                memberNumber: userData.membership_number
             });
         }
 
@@ -663,6 +685,10 @@
                 const token = localStorage.getItem('token');
                 const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
+                // Пробуем получить memberNumber из URL как резервный вариант
+                const memberNumberFromUrl = getMemberNumberFromUrl();
+                const memberNumber = userData.membership_number || memberNumberFromUrl;
+
                 if (!userData || !userData.id) {
                     showError('Данные пользователя не найдены. Пожалуйста, войдите снова.');
                     logout();
@@ -672,11 +698,14 @@
                 console.log('👤 Текущий пользователь:', {
                     id: userData.id,
                     email: userData.email,
-                    membershipNumber: userData.membership_number
+                    membershipNumber: memberNumber,
+                    source: memberNumber === memberNumberFromUrl ? 'URL' : 'localStorage'
                 });
 
-                // Формируем URL с query параметрами
-                const url = `/api/dashboard?userId=${userData.id}&member=${encodeURIComponent(userData.membership_number || '')}&_=${Date.now()}`;
+                // Формируем URL - используем memberNumber если есть
+                const url = `/api/dashboard?userId=${userData.id}` +
+                    (memberNumber ? `&member=${encodeURIComponent(memberNumber)}` : '') +
+                    `&_=${Date.now()}`;
 
                 console.log('🔗 Запрос к:', url);
 
@@ -687,7 +716,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    credentials: 'include', 
+                    credentials: 'include',
                     cache: 'no-store'
                 });
 
@@ -1151,19 +1180,39 @@
         function checkReturnFromPayment() {
             const urlParams = new URLSearchParams(window.location.search);
             const paymentStatus = urlParams.get('payment_status');
+            const orderId = urlParams.get('orderId');
+            const member = urlParams.get('member');
+
+            console.log('🔍 Проверка возврата с оплаты:', {
+                paymentStatus: paymentStatus,
+                orderId: orderId,
+                member: member
+            });
 
             if (paymentStatus === 'success') {
                 showSuccess('✅ Платеж успешно обработан! Обновляем данные...');
+
+                // Если в URL есть member, сохраняем его
+                if (member) {
+                    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                    userData.membership_number = member;
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    console.log('💾 Сохранен memberNumber из URL:', member);
+                }
+
                 setTimeout(() => loadDashboard(), 2000);
 
-                // Очищаем URL
-                const newUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, newUrl);
+                // Очищаем URL от параметров оплаты
+                const cleanUrl = window.location.pathname +
+                    (member ? `?member=${encodeURIComponent(member)}` : '');
+                window.history.replaceState({}, document.title, cleanUrl);
+
             } else if (paymentStatus === 'failed') {
                 showError('❌ Платеж не прошел. Пожалуйста, попробуйте снова.');
 
-                const newUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, newUrl);
+                const cleanUrl = window.location.pathname +
+                    (member ? `?member=${encodeURIComponent(member)}` : '');
+                window.history.replaceState({}, document.title, cleanUrl);
             }
         }
 
