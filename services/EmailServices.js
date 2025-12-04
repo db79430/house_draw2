@@ -335,36 +335,47 @@ class EmailService {
 
   static async sendEmailNotification(user, slots, notificationData) {
     try {
-      console.log(`🎯 Подготовка письма о покупке слотов для: ${user.email}`);
+        console.log(`🎯 Подготовка письма о покупке слотов для: ${user.email}`);
 
-      const subject = `🎰 Успешная покупка ${slots.length} слотов в Клубе НКП ВДВ`;
-      const htmlContent = await this.generatePurchaseTemplate(user, slots, notificationData);
-
-      const emailStatus = this.getEmailStatus();
-      console.log(`📧 Email service status: ${emailStatus.enabled ? 'ENABLED' : 'DISABLED'}`);
-
-      // Используем статический метод sendEmail
-      const result = await this.sendEmail(user.email, subject, htmlContent);
-
-      if (result.success) {
-        if (result.simulated) {
-          console.log('✅ Письмо о покупке было бы отправлено (simulation mode)');
-          console.log(`   Количество слотов: ${slots.length}`);
-          console.log(`   Номера слотов: ${slots.map(s => s.slot_number).join(', ')}`);
-          console.log(`   Получатель: ${user.email}`);
-        } else {
-          console.log('✅ Письмо о покупке отправлено успешно');
+        // Проверяем что есть email
+        if (!user.email) {
+            console.error('❌ У пользователя нет email');
+            return { success: false, error: 'No email address' };
         }
-        return { success: true, result };
-      } else {
-        console.error('❌ Не удалось отправить письмо о покупке');
-        return { success: false, error: result.error };
-      }
+
+        const subject = `🎰 Успешная покупка ${slots.length} слотов в Клубе НКП ВДВ`;
+        
+        // 🔥 ПРАВИЛЬНЫЙ ВЫЗОВ СТАТИЧЕСКОГО МЕТОДА
+        const htmlContent = await EmailService.generatePurchaseTemplate(user, slots, notificationData);
+
+        const emailStatus = EmailService.getEmailStatus();
+        console.log(`📧 Email service status:`, emailStatus);
+
+        // 🔥 ПРАВИЛЬНЫЙ ВЫЗОВ СТАТИЧЕСКОГО МЕТОДА sendEmail
+        const result = await EmailService.sendEmail(user.email, subject, htmlContent);
+
+        if (result.success) {
+            if (result.simulated) {
+                console.log('✅ Письмо о покупке было бы отправлено (simulation mode)');
+                console.log(`   Количество слотов: ${slots.length}`);
+                console.log(`   Номера слотов: ${slots.map(s => s.slot_number).join(', ')}`);
+                console.log(`   Получатель: ${user.email}`);
+                console.log(`   Тема: ${subject}`);
+            } else {
+                console.log('✅ Письмо о покупке отправлено успешно');
+                console.log(`   Message ID: ${result.messageId}`);
+            }
+            return { success: true, result };
+        } else {
+            console.error('❌ Не удалось отправить письмо о покупке');
+            console.error('   Ошибка:', result.error);
+            return { success: false, error: result.error };
+        }
     } catch (error) {
-      console.error('❌ Ошибка в sendEmailNotification:', error);
-      return { success: false, error: error.message };
+        console.error('❌ Ошибка в sendEmailNotification:', error);
+        return { success: false, error: error.message };
     }
-  }
+}
 
   static async generatePurchaseTemplate(user, slots, notificationData = {}) {
     // Формируем список слотов для email
