@@ -75,8 +75,7 @@ class TinkoffController {
             }
 
         // Отправляем email с данными для входа
-        const emailService =  new EmailService();
-        const emailResult = await emailService.sendCredentialsEmail(fullUser, password);
+        const emailResult = await EmailService.sendCredentialsEmail(fullUser, password);
 
         if (emailResult.success) {
           console.log('✅ Email отправлен пользователю:', user.email);
