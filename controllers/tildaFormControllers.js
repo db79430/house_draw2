@@ -116,9 +116,7 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         memberNumber: memberNumber
       };
 
-      const emailService = new EmailService();
-
-      const emailResult = await emailService.sendWelcomeEmail(userData, memberNumber);
+      const emailResult = await EmailService.sendWelcomeEmail(userData, memberNumber);
       
       if (emailResult.success) {
         console.log('✅ Приветственное письмо отправлено успешно');
