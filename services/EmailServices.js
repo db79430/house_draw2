@@ -509,7 +509,7 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${appUrl}/dashboard" class="btn-primary">Перейти в личный кабинет</a>
+                <a href="${appUrl}/dashboard?memberNumber=${memberNumber}" class="btn-primary">Перейти в личный кабинет</a>
             </div>
             
             <div class="footer">
@@ -985,12 +985,11 @@ class EmailService {
             
             <div class="security-note">
               <p style="margin: 0; color: #856404;">
-                Для безопасности рекомендуем сменить пароль после первого входа.
               </p>
             </div>
             
             <p style="text-align: center; margin-top: 40px;">
-              <a href="${appUrl}" class="button">Войти в личный кабинет</a>
+              <a href="${appUrl}/auth" class="button">Войти в личный кабинет</a>
             </p>
           </div>
           
