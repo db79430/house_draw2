@@ -191,14 +191,13 @@ class SlotController {
             status: payment.status
         });
 
-        const paymentIdForUpdate = payment.order_id;
         let createdSlots = [];
 
         if (Success && Status === 'CONFIRMED') {
             console.log('✅ Payment confirmed, processing...');
 
             // Обновляем статус платежа
-            await Payment.updateStatus(paymentIdForUpdate, 'completed', notificationData);
+            await Payment.updateStatus(payment.id, 'completed', notificationData);
             console.log('✅ Payment status updated to "completed"');
 
             // 🔥 ИСПРАВЛЕНО: УБРАЛИ ДУБЛИРОВАНИЕ ОБЪЯВЛЕНИЯ slotCount
