@@ -116,7 +116,9 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         memberNumber: memberNumber
       };
 
-      const emailResult = await EmailService.sendWelcomeEmail(userData, memberNumber);
+      const emailService = new EmailService();
+
+      const emailResult = await emailService.sendWelcomeEmail(userData, memberNumber);
       
       if (emailResult.success) {
         console.log('✅ Приветственное письмо отправлено успешно');
@@ -197,7 +199,7 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         console.log('✅ Пользователь уже оплатил:', user.email);
         return res.json({
           success: false,
-          error: 'Вы уже оплатили вступительный взнос'
+          error: 'Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.'
         });
       }
 

@@ -31,7 +31,7 @@ class TinkoffController {
           fullname: payment.fullname,
           login: payment.login,
           membership_status: payment.membership_status,
-          password_hash: payment.password_hash
+          password: payment.password
         };
 
         console.log('👤 Найден пользователь через платеж:', { 
@@ -75,7 +75,8 @@ class TinkoffController {
             }
 
         // Отправляем email с данными для входа
-        const emailResult = await EmailService.sendCredentialsEmail(fullUser, password);
+        const emailService =  new EmailService();
+        const emailResult = await emailService.sendCredentialsEmail(fullUser, password);
 
         if (emailResult.success) {
           console.log('✅ Email отправлен пользователю:', user.email);
