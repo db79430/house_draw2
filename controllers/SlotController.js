@@ -254,11 +254,11 @@ class SlotController {
         }
 
       } else if (Status === 'AUTHORIZED') {
-        await Payment.updateStatus(paymentIdForUpdate, 'authorized', notificationData);
+        await Payment.updateStatus(payment.id, 'authorized', notificationData);
         console.log('🔄 Payment authorized:', Status);
 
       } else {
-        await Payment.updateStatus(paymentIdForUpdate, 'failed', notificationData);
+        await Payment.updateStatus(payment.id, 'failed', notificationData);
         console.log('❌ Payment failed:', Status);
       }
 

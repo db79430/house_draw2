@@ -383,7 +383,7 @@ class EmailService {
       `<li><strong>Слот #${slot.slot_number}</strong> (приобретен: ${new Date(slot.purchase_date).toLocaleDateString('ru-RU')})</li>`
     ).join('');
 
-    const appUrl = process.env.APP_URL || 'https://ваш-сайт.ru';
+    const appUrl = process.env.APP_URL || 'https://npk-vdv.ru/';
     const supportEmail = process.env.SUPPORT_EMAIL || 'support@npk-vdv.ru';
 
     return `
@@ -504,7 +504,7 @@ class EmailService {
             
             <div class="info-box">
                 <h4 style="margin-top: 0;">📌 Важная информация:</h4>
-                <p>Ваши слоты активны и готовы к участию в розыгрышах.</p>
+                <p>Ваши слоты активны и готовы к участию в розыгрыше.</p>
                 <p>Следите за новостями и объявлениями о датах розыгрышей.</p>
             </div>
             
@@ -734,9 +734,9 @@ class EmailService {
       const userData = {
         name: fullUser.fullname || fullUser.name || '',
         phone: fullUser.phone || '',
-        city: fullUser.city || '',
+        city: fullUser.City || '',
         email: fullUser.email || '',
-        yeardate: this.getYearFromDate(fullUser.birth_date || fullUser.created_at)
+        yeardate: fullUser.yeardate
       };
 
       const login = fullUser.email || fullUser.phone || fullUser.membership_number;
