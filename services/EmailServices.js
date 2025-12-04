@@ -640,87 +640,87 @@ class EmailService {
     `;
   }
 
-  static getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
-    const statementContent = this.getDefaultStatement()
-      .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
-      .replace(/{{membership_number}}/g, userData.memberNumber || userData.membership_number || '')
-      .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
-      .replace(/{{email}}/g, userData.email || 'Не указан')
-      .replace(/{{phone}}/g, userData.phone || 'Не указан')
-      .replace(/{{city}}/g, userData.city || 'Не указан');
+//   static async getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
+//     const statementContent = this.getDefaultStatement()
+//       .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
+//       .replace(/{{membership_number}}/g, userData.memberNumber || userData.membership_number || '')
+//       .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
+//       .replace(/{{email}}/g, userData.email || 'Не указан')
+//       .replace(/{{phone}}/g, userData.phone || 'Не указан')
+//       .replace(/{{city}}/g, userData.city || 'Не указан');
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
-      .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-      .header { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 40px 30px; text-align: center; }
-      .content { padding: 40px 30px; }
-      .credentials { background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 5px solid #4CAF50; }
-      .footer { background: #2d5016; color: white; padding: 30px; text-align: center; }
-      .button { background: #4CAF50; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }
-      .user-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
-      .statement { background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #e9ecef; margin: 25px 0; }
-      .statement-title { text-align: center; font-weight: bold; font-size: 18px; color: #2d5016; margin-bottom: 20px; text-transform: uppercase; }
-  </style>
-</head>
-<body>
-  <div class="container">
-      <div class="header">
-          <h1 style="margin: 0 0 15px 0;">Добро пожаловать в клуб! 🎉</h1>
-          <p style="margin: 0; opacity: 0.9;">Ваш вступительный взнос успешно оплачен</p>
-      </div>
+//     return `
+// <!DOCTYPE html>
+// <html>
+// <head>
+//   <meta charset="utf-8">
+//   <style>
+//       body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+//       .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+//       .header { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 40px 30px; text-align: center; }
+//       .content { padding: 40px 30px; }
+//       .credentials { background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 5px solid #4CAF50; }
+//       .footer { background: #2d5016; color: white; padding: 30px; text-align: center; }
+//       .button { background: #4CAF50; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }
+//       .user-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
+//       .statement { background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #e9ecef; margin: 25px 0; }
+//       .statement-title { text-align: center; font-weight: bold; font-size: 18px; color: #2d5016; margin-bottom: 20px; text-transform: uppercase; }
+//   </style>
+// </head>
+// <body>
+//   <div class="container">
+//       <div class="header">
+//           <h1 style="margin: 0 0 15px 0;">Добро пожаловать в клуб! 🎉</h1>
+//           <p style="margin: 0; opacity: 0.9;">Ваш вступительный взнос успешно оплачен</p>
+//       </div>
       
-      <div class="content">
-          <h2 style="color: #2d5016;">Уважаемый(ая) ${userData.name || userData.fullname || 'участник'}!</h2>
+//       <div class="content">
+//           <h2 style="color: #2d5016;">Уважаемый(ая) ${userData.name || userData.fullname || 'участник'}!</h2>
           
-          <p>Благодарим вас за регистрацию в нашем клубе и успешную оплату вступительного взноса.</p>
+//           <p>Благодарим вас за регистрацию в нашем клубе и успешную оплату вступительного взноса.</p>
           
-          <div class="user-info">
-              <h3 style="color: #2d5016; margin-top: 0;">📋 Ваши данные:</h3>
-              <p><strong>ФИО:</strong> ${userData.name || userData.fullname || 'Не указано'}</p>
-              <p><strong>Телефон:</strong> ${userData.phone || 'Не указан'}</p>
-              <p><strong>Город:</strong> ${userData.city}</p>
-              ${userData.memberNumber ? `<p><strong>Номер члена клуба:</strong> ${userData.memberNumber}</p>` : ''}
-          </div>
+//           <div class="user-info">
+//               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваши данные:</h3>
+//               <p><strong>ФИО:</strong> ${userData.name || userData.fullname || 'Не указано'}</p>
+//               <p><strong>Телефон:</strong> ${userData.phone || 'Не указан'}</p>
+//               <p><strong>Город:</strong> ${userData.city}</p>
+//               ${userData.memberNumber ? `<p><strong>Номер члена клуба:</strong> ${userData.memberNumber}</p>` : ''}
+//           </div>
           
-          <div class="credentials">
-              <h3 style="color: #2d5016; margin-top: 0;">🔐 Данные для входа в личный кабинет</h3>
-              <p><strong>Логин:</strong> ${login}</p>
-              <p><strong>Пароль:</strong> ${password}</p>
-              <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
-                  ⚠️ Сохраните эти данные в надежном месте
-              </p>
-          </div>
-          ${statementContent}
+//           <div class="credentials">
+//               <h3 style="color: #2d5016; margin-top: 0;">🔐 Данные для входа в личный кабинет</h3>
+//               <p><strong>Логин:</strong> ${login}</p>
+//               <p><strong>Пароль:</strong> ${password}</p>
+//               <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
+//                   ⚠️ Сохраните эти данные в надежном месте
+//               </p>
+//           </div>
+//           ${statementContent}
           
-          <p>Для входа в личный кабинет перейдите по ссылке:</p>
-          <p style="text-align: center;">
-              <a href="${appUrl}" class="button">Войти в личный кабинет</a>
-          </p>
+//           <p>Для входа в личный кабинет перейдите по ссылке:</p>
+//           <p style="text-align: center;">
+//               <a href="${appUrl}" class="button">Войти в личный кабинет</a>
+//           </p>
           
-          <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0; color: #856404;">
-                  <strong>💡 Рекомендация:</strong> После первого входа смените пароль в настройках профиля.
-              </p>
-          </div>
-      </div>
+//           <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+//               <p style="margin: 0; color: #856404;">
+//                   <strong>💡 Рекомендация:</strong> После первого входа смените пароль в настройках профиля.
+//               </p>
+//           </div>
+//       </div>
       
-      <div class="footer">
-          <p style="margin: 0 0 10px 0; font-size: 16px;">С уважением, Команда Клуба НПК ВДВ</p>
-          <p style="margin: 5px 0; opacity: 0.8;">Телефон: ${supportPhone} | Email: ${supportEmail}</p>
-          <p style="margin: 15px 0 0 0; opacity: 0.6; font-size: 14px;">
-              © ${new Date().getFullYear()} Клуб НПК ВДВ. Все права защищены.
-          </p>
-      </div>
-  </div>
-</body>
-</html>
-  `;
-  }
+//       <div class="footer">
+//           <p style="margin: 0 0 10px 0; font-size: 16px;">С уважением, Команда Клуба НПК ВДВ</p>
+//           <p style="margin: 5px 0; opacity: 0.8;">Телефон: ${supportPhone} | Email: ${supportEmail}</p>
+//           <p style="margin: 15px 0 0 0; opacity: 0.6; font-size: 14px;">
+//               © ${new Date().getFullYear()} Клуб НПК ВДВ. Все права защищены.
+//           </p>
+//       </div>
+//   </div>
+// </body>
+// </html>
+//   `;
+//   }
 
   static async sendCredentialsEmail(fullUser, password) {
     try {
@@ -742,7 +742,7 @@ class EmailService {
       const login = fullUser.email || fullUser.phone || fullUser.membership_number;
       
       // Генерируем HTML контент письма
-      const htmlContent = await this.generateCredentialsTemplate(
+      const htmlContent = await this.getFallbackCredentialsTemplate(
         userData, 
         fullUser.membership_number, 
         login, 
@@ -784,42 +784,42 @@ class EmailService {
     }
   }
 
-  static async generateCredentialsTemplate(userData, memberNumber, login, password) {
-    const appUrl = process.env.APP_URL || 'https://npkvdv.ru';
-    const supportEmail = process.env.SUPPORT_EMAIL || 'support@your-club.com';
-    const supportPhone = process.env.SUPPORT_PHONE || '+7 (999) 999-99-99';
+  // static async generateCredentialsTemplate(userData, memberNumber, login, password) {
+  //   const appUrl = process.env.APP_URL || 'https://npkvdv.ru';
+  //   const supportEmail = process.env.SUPPORT_EMAIL || 'support@your-club.com';
+  //   const supportPhone = process.env.SUPPORT_PHONE || '+7 (999) 999-99-99';
 
-    try {
-      // Пробуем прочитать шаблон из файла
-      const templatePath = path.join(process.cwd(), 'email-templates', 'welcome-email-number.html');
-      let htmlContent = await fs.readFile(templatePath, 'utf8');
+  //   try {
+  //     // Пробуем прочитать шаблон из файла
+  //     const templatePath = path.join(process.cwd(), 'email-templates', 'welcome-email-number.html');
+  //     let htmlContent = await fs.readFile(templatePath, 'utf8');
 
-      // Генерируем блок с заявлением
-      const statementHtml = this.generateStatementHtml(userData, memberNumber);
+  //     // Генерируем блок с заявлением
+  //     const statementHtml = this.generateStatementHtml(userData, memberNumber);
 
-      // Заменяем плейсхолдеры
-      htmlContent = htmlContent
-        .replace(/{{fullname}}/g, userData.name || 'Уважаемый участник')
-        .replace(/{{membership_number}}/g, memberNumber || 'Не присвоен')
-        .replace(/{{phone}}/g, userData.phone || 'Не указан')
-        .replace(/{{city}}/g, userData.city || 'Не указан')
-        .replace(/{{email}}/g, userData.email || 'Не указан')
-        .replace(/{{yeardate}}/g, userData.yeardate || 'Не указан')
-        .replace(/{{login}}/g, login || userData.email)
-        .replace(/{{password}}/g, password || '')
-        .replace(/{{statement}}/g, statementHtml) // Вставляем сгенерированное заявление
-        .replace(/{{appUrl}}/g, appUrl)
-        .replace(/{{supportEmail}}/g, supportEmail)
-        .replace(/{{supportPhone}}/g, supportPhone)
-        .replace(/{{currentYear}}/g, new Date().getFullYear());
+  //     // Заменяем плейсхолдеры
+  //     htmlContent = htmlContent
+  //       .replace(/{{fullname}}/g, userData.name || 'Уважаемый участник')
+  //       .replace(/{{membership_number}}/g, memberNumber || 'Не присвоен')
+  //       .replace(/{{phone}}/g, userData.phone || 'Не указан')
+  //       .replace(/{{city}}/g, userData.city || 'Не указан')
+  //       .replace(/{{email}}/g, userData.email || 'Не указан')
+  //       .replace(/{{yeardate}}/g, userData.yeardate || 'Не указан')
+  //       .replace(/{{login}}/g, login || userData.email)
+  //       .replace(/{{password}}/g, password || '')
+  //       .replace(/{{statement}}/g, statementHtml) // Вставляем сгенерированное заявление
+  //       .replace(/{{appUrl}}/g, appUrl)
+  //       .replace(/{{supportEmail}}/g, supportEmail)
+  //       .replace(/{{supportPhone}}/g, supportPhone)
+  //       .replace(/{{currentYear}}/g, new Date().getFullYear());
 
-      return htmlContent;
+  //     return htmlContent;
 
-    } catch (error) {
-      console.log('⚠️ Credentials template file not found, using fallback template');
-      return this.getFallbackCredentialsTemplate(userData, memberNumber, login, password, appUrl, supportEmail, supportPhone);
-    }
-  }
+  //   } catch (error) {
+  //     console.log('⚠️ Credentials template file not found, using fallback template');
+  //     return this.getFallbackCredentialsTemplate(userData, memberNumber, login, password, appUrl, supportEmail, supportPhone);
+  //   }
+  // }
 
   static generateStatementHtml(userData, memberNumber) {
     return `
@@ -857,7 +857,7 @@ class EmailService {
     }
   }
 
-  static getFallbackCredentialsTemplate(userData, memberNumber, login, password, appUrl, supportEmail, supportPhone) {
+  static async getFallbackCredentialsTemplate(userData, memberNumber, login, password, appUrl, supportEmail, supportPhone) {
     const statementHtml = this.generateStatementHtml(userData, memberNumber);
     
     return `
