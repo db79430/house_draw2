@@ -5,6 +5,7 @@ import TinkoffService from '../services/TinkoffService.js';
 import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import TokenGenerator from '../utils/tokenGenerator.js';
+import Payment from '../models/Payment.js';
 
 class SlotService {
     /**
