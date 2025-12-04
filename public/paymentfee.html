@@ -331,7 +331,7 @@
                 const isEmail = searchValue.includes('@');
                 const params = isEmail ? `email=${encodeURIComponent(searchValue)}` : `phone=${encodeURIComponent(searchValue)}`;
                 
-                const response = await fetch(`${API_BASE}/api/get-member-number?${params}`);
+                const response = await fetch(`${API_BASE}/get-member-number?${params}`);
                 
                 if (response.ok) {
                     const data = await response.json();
