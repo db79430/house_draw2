@@ -191,7 +191,7 @@ class SlotController {
             status: payment.status
         });
 
-        const paymentIdForUpdate = payment.id;
+        const paymentIdForUpdate = payment.order_id;
         let createdSlots = [];
 
         if (Success && Status === 'CONFIRMED') {
