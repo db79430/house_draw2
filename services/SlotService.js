@@ -116,7 +116,9 @@ class SlotService {
 
             // Обновляем платеж с PaymentId от Tinkoff
             if (tinkoffResult.PaymentId) {
-                await Payment.updateStatus(paymentData.paymentId, 'completed');
+                await Payment.updateStatus(orderId, 'completed', { 
+                    tinkoff_payment_id: tinkoffResult.PaymentId 
+                });
             }
 
             return {
