@@ -289,59 +289,59 @@ class SlotController {
         userId,
         slotCount: slots.length
       });
-
+  
       // Получаем данные пользователя
       const user = await User.findById(userId);
-
+  
       if (!user) {
         console.error('❌ Пользователь не найден для уведомления:', userId);
         return { success: false, error: 'Пользователь не найден' };
       }
-
+  
       if (!user.email) {
         console.warn('⚠️ У пользователя нет email для уведомления');
         return { success: false, error: 'У пользователя нет email' };
       }
-
+  
       console.log('👤 Пользователь найден для уведомления:', {
+        id: user.id,
         email: user.email,
         name: user.fullname || user.name,
         memberNumber: user.membership_number
       });
-
-      // Подготовка данных для email
-      const emailData = {
-        userName: user.fullname || user.name || 'Клиент',
-        userEmail: user.email,
-        memberNumber: user.membership_number || 'Не указан',
+  
+      // Создаем объект с данными для письма
+      const purchaseData = {
         slotCount: slots.length,
-        amount: payment ? payment.amount : slots.length * 1000, // Цена за слот
+        amount: payment ? payment.amount : slots.length * 1000,
         orderId: payment ? payment.order_id : `SLOT-${Date.now()}`,
         purchaseDate: new Date().toLocaleDateString('ru-RU'),
-        slotNumbers: slots.map(s => s.slot_number || s.id),
-        phone: user.phone || '',
-        city: user.city || ''
+        slotNumbers: slots.map(s => s.slot_number || s.id)
       };
-
-      // Отправляем email
-      const emailResult = await EmailService.sendEmailNotification(emailData);
-
+  
+      // 🔥 ПРАВИЛЬНЫЙ ВЫЗОВ: передаем user, slots и purchaseData
+      const emailResult = await EmailService.sendEmailNotification(
+        user, 
+        slots, 
+        purchaseData
+      );
+  
       if (emailResult.success) {
         console.log('✅ Email уведомление отправлено успешно');
         console.log(`   Получатель: ${user.email}`);
-        console.log(`   Номер заказа: ${emailData.orderId}`);
+        console.log(`   Номер заказа: ${purchaseData.orderId}`);
         console.log(`   Количество слотов: ${slots.length}`);
       } else {
         console.warn('⚠️ Не удалось отправить email уведомление:', emailResult.error);
       }
-
+  
       return {
         success: emailResult.success,
         emailSent: emailResult.success,
-        data: emailData,
+        data: purchaseData,
         error: emailResult.error
       };
-
+  
     } catch (error) {
       console.error('❌ Ошибка при отправке уведомления:', error);
       return {

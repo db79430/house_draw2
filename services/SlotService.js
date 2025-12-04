@@ -65,7 +65,7 @@ class SlotService {
 
             const paymentCreateData = {
                 orderId: orderId,
-                userId: userId, // Убедитесь что это число, а не undefined
+                userId: userId,
                 amount: amount,
                 tinkoffPaymentId: null,
                 description: paymentData.Description,
