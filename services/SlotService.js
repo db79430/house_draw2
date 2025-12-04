@@ -116,8 +116,8 @@ class SlotService {
 
             // Обновляем платеж с PaymentId от Tinkoff
             if (tinkoffResult.PaymentId) {
-                await Payment.updateStatus(orderId, 'completed', { 
-                    tinkoff_payment_id: tinkoffResult.PaymentId 
+                await Payment.updateStatus(orderId, 'completed', {
+                    tinkoff_payment_id: tinkoffResult.PaymentId
                 });
             }
 
@@ -234,6 +234,25 @@ class SlotService {
 
             console.log(`✅ Successfully created ${slots.length} slots for user ${userId}`);
 
+            // 🔥 🔥 🔥 ДОБАВЛЯЕМ ОТПРАВКУ ПИСЬМА ЗДЕСЬ 🔥 🔥 🔥
+            try {
+                // Получаем информацию о платеже для письма
+                const payment = await Payment.findById(paymentId);
+
+                if (payment) {
+                    // Отправляем уведомление пользователю
+                    await this.notifyUserAboutPurchase(userId, slots, payment);
+                    console.log('📧 Email notification sent successfully');
+                } else {
+                    console.warn('⚠️ Payment not found for email notification');
+                }
+            } catch (emailError) {
+                // Не прерываем основной поток из-за ошибки email
+                console.error('❌ Error sending email notification:', emailError);
+                console.log('⚠️ Slots created, but email notification failed');
+            }
+            // 🔥 🔥 🔥 КОНЕЦ ДОБАВЛЕНИЯ 🔥 🔥 🔥
+
             return {
                 success: true,
                 slots: slots,
@@ -251,6 +270,53 @@ class SlotService {
             }
 
             throw error;
+        }
+    }
+
+    // В классе SlotService добавляем:
+    async notifyUserAboutPurchase(userId, slots, payment = null) {
+        try {
+            console.log('📧 Уведомление о покупке слотов:', { userId, slotCount: slots.length });
+
+            // Получаем пользователя
+            const user = await User.findById(userId);
+            if (!user || !user.email) {
+                console.warn('⚠️ User not found or no email');
+                return { success: false, error: 'User or email not found' };
+            }
+
+            // Получаем информацию о платеже, если не передана
+            let paymentInfo = payment;
+            if (!paymentInfo && slots[0]?.payment_id) {
+                paymentInfo = await Payment.findById(slots[0].payment_id);
+            }
+
+            // Данные для письма
+            const emailData = {
+                userName: user.fullname || user.name || 'Клиент',
+                userEmail: user.email,
+                memberNumber: user.membership_number || 'Не указан',
+                slotCount: slots.length,
+                amount: paymentInfo ? paymentInfo.amount : slots.length * 100000, // В копейках
+                orderId: paymentInfo ? paymentInfo.order_id : `SLOT-${Date.now()}`,
+                purchaseDate: new Date().toLocaleDateString('ru-RU'),
+                slotNumbers: slots.map(s => s.slot_number || s.id)
+            };
+
+            // Используем EmailService
+            const emailResult = await EmailService.sendPurchaseNotification(emailData);
+
+            if (emailResult.success) {
+                console.log('✅ Email отправлен:', user.email);
+            } else {
+                console.warn('⚠️ Email не отправлен:', emailResult.error);
+            }
+
+            return emailResult;
+
+        } catch (error) {
+            console.error('❌ Ошибка отправки уведомления:', error);
+            return { success: false, error: error.message };
         }
     }
 
