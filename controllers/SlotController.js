@@ -98,63 +98,6 @@ class SlotController {
     }
   }
 
-  /**
-   * Обработка уведомления от Tinkoff
-   */
-  // async handlePaymentNotification(req, res) {
-  //   try {
-  //     console.log('💰 Tinkoff notification received:', req.body);
-
-  //     const notificationData = req.body;
-
-  //     // Верифицируем уведомление
-  //     const isValid = await TinkoffService.verifyNotification(notificationData);
-
-  //     if (!isValid) {
-  //       console.error('❌ Invalid Tinkoff notification');
-  //       return res.status(400).send('Invalid notification');
-  //     }
-
-  //     const { OrderId, Success, Status, PaymentId } = notificationData;
-
-  //     // Находим платеж в базе
-  //     const payment = await Payment.findByOrderId(OrderId);
-
-  //     if (!payment) {
-  //       console.error('❌ Payment not found for order:', OrderId);
-  //       return res.status(404).send('Payment not found');
-  //     }
-
-  //     if (Success && Status === 'CONFIRMED') {
-  //       console.log('✅ Payment confirmed, creating slots...');
-
-  //       // Извлекаем количество слотов из описания
-  //       const slotCountMatch = payment.description.match(/Покупка (\d+) слотов/);
-  //       const slotCount = slotCountMatch ? parseInt(slotCountMatch[1]) : 1;
-
-  //       // Создаем слоты
-  //       await this.slotService.createSlotsAfterPayment(
-  //         payment.user_id, 
-  //         slotCount, 
-  //         payment.id
-  //       );
-
-  //       console.log('✅ Slots created successfully');
-
-  //     } else {
-  //       // Платеж не прошел
-  //       await Payment.updateStatus(payment.id, 'failed');
-  //       console.log('❌ Payment failed:', Status);
-  //     }
-
-  //     // Всегда отвечаем OK Tinkoff
-  //     res.send('OK');
-
-  //   } catch (error) {
-  //     console.error('❌ Error handling payment notification:', error);
-  //     res.status(500).send('Error');
-  //   }
-  // }
 
   // controllers/PaymentController.js
   async handlePaymentNotification(req, res) {
@@ -228,7 +171,7 @@ class SlotController {
             const result = await this.slotService.createSlotsAfterPayment(
               userId,
               slotCount, // 🔥 количество слотов
-              payment.id
+              OrderId
             );
 
             if (result.success) {
