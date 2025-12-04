@@ -333,200 +333,120 @@ class EmailService {
     `;
   }
 
-  static async sendEmailNotification(user, slots, notificationData) {
+  static async sendEmailNotification(user, slots, purchaseData) {
     try {
-        console.log(`🎯 Подготовка письма о покупке слотов для: ${user.email}`);
+      console.log(`🎯 Подготовка письма о покупке слотов для:`, {
+        email: user.email,
+        name: user.fullname || user.name,
+        slotCount: slots.length
+      });
 
-        // Проверяем что есть email
-        if (!user.email) {
-            console.error('❌ У пользователя нет email');
-            return { success: false, error: 'No email address' };
+      // Проверяем что есть email
+      if (!user.email) {
+        console.error('❌ У пользователя нет email');
+        return { success: false, error: 'No email address' };
+      }
+
+      const subject = `✅ Успешная покупка ${slots.length} слотов в Клубе НПК ВДВ`;
+
+      // Генерируем HTML контент
+      const htmlContent = await this.generatePurchaseNotificationTemplate(user, slots, purchaseData);
+
+      // Проверяем статус email сервиса
+      console.log(`📧 Email service config:`, {
+        host: process.env.SMTP_HOST || 'localhost',
+        port: process.env.SMTP_PORT || 1025,
+        enabled: process.env.SMTP_ENABLED !== 'false'
+      });
+
+      // Отправляем email
+      const result = await this.sendEmail(user.email, subject, htmlContent);
+
+      if (result.success) {
+        console.log('✅ Письмо о покупке отправлено успешно');
+        if (result.messageId) {
+          console.log(`   Message ID: ${result.messageId}`);
         }
-
-        const subject = `🎰 Успешная покупка ${slots.length} слотов в Клубе НКП ВДВ`;
-        
-        // 🔥 ПРАВИЛЬНЫЙ ВЫЗОВ СТАТИЧЕСКОГО МЕТОДА
-        const htmlContent = await EmailService.generatePurchaseTemplate(user, slots, notificationData);
-
-        const emailStatus = EmailService.getEmailStatus();
-        console.log(`📧 Email service status:`, emailStatus);
-
-        // 🔥 ПРАВИЛЬНЫЙ ВЫЗОВ СТАТИЧЕСКОГО МЕТОДА sendEmail
-        const result = await EmailService.sendEmail(user.email, subject, htmlContent);
-
-        if (result.success) {
-            if (result.simulated) {
-                console.log('✅ Письмо о покупке было бы отправлено (simulation mode)');
-                console.log(`   Количество слотов: ${slots.length}`);
-                console.log(`   Номера слотов: ${slots.map(s => s.slot_number).join(', ')}`);
-                console.log(`   Получатель: ${user.email}`);
-                console.log(`   Тема: ${subject}`);
-            } else {
-                console.log('✅ Письмо о покупке отправлено успешно');
-                console.log(`   Message ID: ${result.messageId}`);
-            }
-            return { success: true, result };
-        } else {
-            console.error('❌ Не удалось отправить письмо о покупке');
-            console.error('   Ошибка:', result.error);
-            return { success: false, error: result.error };
-        }
+        return { success: true, messageId: result.messageId };
+      } else {
+        console.error('❌ Не удалось отправить письмо о покупке');
+        console.error('   Ошибка:', result.error);
+        return { success: false, error: result.error };
+      }
     } catch (error) {
-        console.error('❌ Ошибка в sendEmailNotification:', error);
-        return { success: false, error: error.message };
+      console.error('❌ Ошибка в sendEmailNotification:', error);
+      return { success: false, error: error.message };
     }
-}
-
-  static async generatePurchaseTemplate(user, slots, notificationData = {}) {
-    // Формируем список слотов для email
-    const slotListHtml = slots.map(slot =>
-      `<li><strong>Слот #${slot.slot_number}</strong> (приобретен: ${new Date(slot.purchase_date).toLocaleDateString('ru-RU')})</li>`
-    ).join('');
-
-    const appUrl = process.env.APP_URL || 'https://npk-vdv.ru/';
-    const supportEmail = process.env.SUPPORT_EMAIL || 'support@npk-vdv.ru';
-
-    return `
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Успешная покупка слотов</title>
-    <style>
-        body { 
-            font-family: 'Arial', sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-        }
-        .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            padding: 20px; 
-        }
-        .header { 
-            background: linear-gradient(135deg, #4a7c3a, #2d5016); 
-            color: white; 
-            padding: 30px 20px; 
-            border-radius: 10px 10px 0 0;
-            text-align: center;
-        }
-        .content { 
-            background: white; 
-            padding: 40px 30px; 
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .success-badge { 
-            background: #4CAF50; 
-            color: white; 
-            padding: 8px 16px; 
-            border-radius: 20px; 
-            display: inline-block;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .slot-card { 
-            background: #e8f5e8; 
-            border: 2px solid #4a7c3a; 
-            border-radius: 8px; 
-            padding: 15px; 
-            margin: 10px 0; 
-        }
-        .info-box { 
-            background: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin: 25px 0;
-            border-left: 4px solid #4a7c3a;
-        }
-        .footer { 
-            margin-top: 40px; 
-            padding-top: 20px; 
-            border-top: 1px solid #eee; 
-            color: #666; 
-            font-size: 12px;
-            text-align: center;
-        }
-        .btn-primary {
-            display: inline-block;
-            background: linear-gradient(135deg, #4a7c3a, #2d5016);
-            color: white;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-        }
-        ul {
-            padding-left: 20px;
-        }
-        li {
-            margin-bottom: 8px;
-        }
-        h1, h2, h3, h4 {
-            color: #2d5016;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 style="margin: 0; font-size: 28px;">🎉 Покупка успешно завершена!</h1>
-            <p style="margin: 10px 0 0; opacity: 0.9;">Клуб НКП ВДВ</p>
-        </div>
-        
-        <div class="content">
-            <p style="font-size: 16px;">Здравствуйте, <strong>${user.fullname || 'Уважаемый участник'}</strong>!</p>
-            
-            <div style="text-align: center;">
-                <div class="success-badge">✅ ${slots.length} слотов успешно приобретены</div>
-            </div>
-            
-            <h3>📋 Детали покупки:</h3>
-            <ul>
-                <li><strong>Номер члена клуба:</strong> ${user.membership_number || 'Не указан'}</li>
-                <li><strong>Количество слотов:</strong> ${slots.length}</li>
-                <li><strong>Дата покупки:</strong> ${new Date().toLocaleDateString('ru-RU')}</li>
-                <li><strong>Статус:</strong> <span style="color: #4CAF50; font-weight: bold;">✅ Активен</span></li>
-            </ul>
-            
-            ${slots.length > 0 ? `
-            <h3>🎰 Ваши слоты:</h3>
-            <ul>
-                ${slotListHtml}
-            </ul>
-            ` : ''}
-            
-            <div class="info-box">
-                <h4 style="margin-top: 0;">📌 Важная информация:</h4>
-                <p>Ваши слоты активны и готовы к участию в розыгрыше.</p>
-                <p>Следите за новостями и объявлениями о датах розыгрышей.</p>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="${appUrl}/dashboard?memberNumber=${memberNumber}" class="btn-primary">Перейти в личный кабинет</a>
-            </div>
-            
-            <div class="footer">
-                <p>С уважением,<br>
-                <strong>Команда Клуба НКП ВДВ</strong></p>
-                <p>Если у вас возникли вопросы, пожалуйста, свяжитесь с поддержкой:<br>
-                <a href="mailto:${supportEmail}" style="color: #4a7c3a;">${supportEmail}</a></p>
-                <p style="font-size: 11px; color: #999; margin-top: 15px;">
-                    Это письмо было отправлено автоматически. Пожалуйста, не отвечайте на него.
-                </p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
   }
 
+  static async generatePurchaseNotificationTemplate(user, slots, purchaseData) {
+    const appUrl = process.env.APP_URL || 'https://npkvdv.ru';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@npkvdv.ru';
+    const supportPhone = process.env.SUPPORT_PHONE || '+7 (999) 999-99-99';
+  
+    const slotNumbers = slots.map(s => s.slot_number || s.id).join(', ');
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }
+          .content { padding: 30px; border: 1px solid #ddd; margin-top: 20px; }
+          .info-box { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 15px 0; }
+          .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Покупка слотов подтверждена! 🎉</h1>
+          </div>
+          
+          <div class="content">
+            <h2>Уважаемый(ая) ${user.fullname || user.name || 'Клиент'}!</h2>
+            
+            <p>Ваша покупка успешно завершена. Ниже приведены детали вашего заказа:</p>
+            
+            <div class="info-box">
+              <h3>📋 Детали покупки</h3>
+              <p><strong>Номер заказа:</strong> ${purchaseData.orderId}</p>
+              <p><strong>Дата покупки:</strong> ${purchaseData.purchaseDate}</p>
+              <p><strong>Количество слотов:</strong> ${slots.length}</p>
+              <p><strong>Сумма:</strong> ${purchaseData.amount / 100} руб.</p>
+              <p><strong>Номера слотов:</strong> ${slotNumbers}</p>
+              ${user.membership_number ? `<p><strong>Ваш номер члена клуба:</strong> ${user.membership_number}</p>` : ''}
+            </div>
+            
+            <p>Спасибо за вашу покупку! Ваши слоты уже активны в вашем личном кабинете.</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="${appUrl}/dashboard" style="
+                background: #4CAF50; 
+                color: white; 
+                padding: 15px 30px; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                display: inline-block;
+                font-weight: bold;
+              ">Перейти в личный кабинет</a>
+            </p>
+            
+            <div class="footer">
+              <p>Если у вас есть вопросы, обращайтесь:</p>
+              <p>📧 ${supportEmail} | 📞 ${supportPhone}</p>
+              <p>© ${new Date().getFullYear()} Клуб НПК ВДВ</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+  
   static htmlToText(html) {
     // Простая конвертация HTML в текст
     return html
@@ -640,87 +560,87 @@ class EmailService {
     `;
   }
 
-//   static async getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
-//     const statementContent = this.getDefaultStatement()
-//       .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
-//       .replace(/{{membership_number}}/g, userData.memberNumber || userData.membership_number || '')
-//       .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
-//       .replace(/{{email}}/g, userData.email || 'Не указан')
-//       .replace(/{{phone}}/g, userData.phone || 'Не указан')
-//       .replace(/{{city}}/g, userData.city || 'Не указан');
+  //   static async getFallbackCredentialsTemplate(userData, login, password, appUrl, supportEmail, supportPhone) {
+  //     const statementContent = this.getDefaultStatement()
+  //       .replace(/{{fullname}}/g, userData.name || userData.fullname || 'Уважаемый участник')
+  //       .replace(/{{membership_number}}/g, userData.memberNumber || userData.membership_number || '')
+  //       .replace(/{{yeardate}}/g, userData.yeardate || new Date().getFullYear())
+  //       .replace(/{{email}}/g, userData.email || 'Не указан')
+  //       .replace(/{{phone}}/g, userData.phone || 'Не указан')
+  //       .replace(/{{city}}/g, userData.city || 'Не указан');
 
-//     return `
-// <!DOCTYPE html>
-// <html>
-// <head>
-//   <meta charset="utf-8">
-//   <style>
-//       body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
-//       .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-//       .header { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 40px 30px; text-align: center; }
-//       .content { padding: 40px 30px; }
-//       .credentials { background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 5px solid #4CAF50; }
-//       .footer { background: #2d5016; color: white; padding: 30px; text-align: center; }
-//       .button { background: #4CAF50; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }
-//       .user-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
-//       .statement { background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #e9ecef; margin: 25px 0; }
-//       .statement-title { text-align: center; font-weight: bold; font-size: 18px; color: #2d5016; margin-bottom: 20px; text-transform: uppercase; }
-//   </style>
-// </head>
-// <body>
-//   <div class="container">
-//       <div class="header">
-//           <h1 style="margin: 0 0 15px 0;">Добро пожаловать в клуб! 🎉</h1>
-//           <p style="margin: 0; opacity: 0.9;">Ваш вступительный взнос успешно оплачен</p>
-//       </div>
-      
-//       <div class="content">
-//           <h2 style="color: #2d5016;">Уважаемый(ая) ${userData.name || userData.fullname || 'участник'}!</h2>
-          
-//           <p>Благодарим вас за регистрацию в нашем клубе и успешную оплату вступительного взноса.</p>
-          
-//           <div class="user-info">
-//               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваши данные:</h3>
-//               <p><strong>ФИО:</strong> ${userData.name || userData.fullname || 'Не указано'}</p>
-//               <p><strong>Телефон:</strong> ${userData.phone || 'Не указан'}</p>
-//               <p><strong>Город:</strong> ${userData.city}</p>
-//               ${userData.memberNumber ? `<p><strong>Номер члена клуба:</strong> ${userData.memberNumber}</p>` : ''}
-//           </div>
-          
-//           <div class="credentials">
-//               <h3 style="color: #2d5016; margin-top: 0;">🔐 Данные для входа в личный кабинет</h3>
-//               <p><strong>Логин:</strong> ${login}</p>
-//               <p><strong>Пароль:</strong> ${password}</p>
-//               <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
-//                   ⚠️ Сохраните эти данные в надежном месте
-//               </p>
-//           </div>
-//           ${statementContent}
-          
-//           <p>Для входа в личный кабинет перейдите по ссылке:</p>
-//           <p style="text-align: center;">
-//               <a href="${appUrl}" class="button">Войти в личный кабинет</a>
-//           </p>
-          
-//           <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-//               <p style="margin: 0; color: #856404;">
-//                   <strong>💡 Рекомендация:</strong> После первого входа смените пароль в настройках профиля.
-//               </p>
-//           </div>
-//       </div>
-      
-//       <div class="footer">
-//           <p style="margin: 0 0 10px 0; font-size: 16px;">С уважением, Команда Клуба НПК ВДВ</p>
-//           <p style="margin: 5px 0; opacity: 0.8;">Телефон: ${supportPhone} | Email: ${supportEmail}</p>
-//           <p style="margin: 15px 0 0 0; opacity: 0.6; font-size: 14px;">
-//               © ${new Date().getFullYear()} Клуб НПК ВДВ. Все права защищены.
-//           </p>
-//       </div>
-//   </div>
-// </body>
-// </html>
-//   `;
-//   }
+  //     return `
+  // <!DOCTYPE html>
+  // <html>
+  // <head>
+  //   <meta charset="utf-8">
+  //   <style>
+  //       body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+  //       .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  //       .header { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); color: white; padding: 40px 30px; text-align: center; }
+  //       .content { padding: 40px 30px; }
+  //       .credentials { background: #e8f5e9; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 5px solid #4CAF50; }
+  //       .footer { background: #2d5016; color: white; padding: 30px; text-align: center; }
+  //       .button { background: #4CAF50; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }
+  //       .user-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
+  //       .statement { background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #e9ecef; margin: 25px 0; }
+  //       .statement-title { text-align: center; font-weight: bold; font-size: 18px; color: #2d5016; margin-bottom: 20px; text-transform: uppercase; }
+  //   </style>
+  // </head>
+  // <body>
+  //   <div class="container">
+  //       <div class="header">
+  //           <h1 style="margin: 0 0 15px 0;">Добро пожаловать в клуб! 🎉</h1>
+  //           <p style="margin: 0; opacity: 0.9;">Ваш вступительный взнос успешно оплачен</p>
+  //       </div>
+
+  //       <div class="content">
+  //           <h2 style="color: #2d5016;">Уважаемый(ая) ${userData.name || userData.fullname || 'участник'}!</h2>
+
+  //           <p>Благодарим вас за регистрацию в нашем клубе и успешную оплату вступительного взноса.</p>
+
+  //           <div class="user-info">
+  //               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваши данные:</h3>
+  //               <p><strong>ФИО:</strong> ${userData.name || userData.fullname || 'Не указано'}</p>
+  //               <p><strong>Телефон:</strong> ${userData.phone || 'Не указан'}</p>
+  //               <p><strong>Город:</strong> ${userData.city}</p>
+  //               ${userData.memberNumber ? `<p><strong>Номер члена клуба:</strong> ${userData.memberNumber}</p>` : ''}
+  //           </div>
+
+  //           <div class="credentials">
+  //               <h3 style="color: #2d5016; margin-top: 0;">🔐 Данные для входа в личный кабинет</h3>
+  //               <p><strong>Логин:</strong> ${login}</p>
+  //               <p><strong>Пароль:</strong> ${password}</p>
+  //               <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
+  //                   ⚠️ Сохраните эти данные в надежном месте
+  //               </p>
+  //           </div>
+  //           ${statementContent}
+
+  //           <p>Для входа в личный кабинет перейдите по ссылке:</p>
+  //           <p style="text-align: center;">
+  //               <a href="${appUrl}" class="button">Войти в личный кабинет</a>
+  //           </p>
+
+  //           <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+  //               <p style="margin: 0; color: #856404;">
+  //                   <strong>💡 Рекомендация:</strong> После первого входа смените пароль в настройках профиля.
+  //               </p>
+  //           </div>
+  //       </div>
+
+  //       <div class="footer">
+  //           <p style="margin: 0 0 10px 0; font-size: 16px;">С уважением, Команда Клуба НПК ВДВ</p>
+  //           <p style="margin: 5px 0; opacity: 0.8;">Телефон: ${supportPhone} | Email: ${supportEmail}</p>
+  //           <p style="margin: 15px 0 0 0; opacity: 0.6; font-size: 14px;">
+  //               © ${new Date().getFullYear()} Клуб НПК ВДВ. Все права защищены.
+  //           </p>
+  //       </div>
+  //   </div>
+  // </body>
+  // </html>
+  //   `;
+  //   }
 
   static async sendCredentialsEmail(fullUser, password) {
     try {
@@ -740,12 +660,12 @@ class EmailService {
       };
 
       const login = fullUser.email || fullUser.phone || fullUser.membership_number;
-      
+
       // Генерируем HTML контент письма
       const htmlContent = await this.getFallbackCredentialsTemplate(
-        userData, 
-        fullUser.membership_number, 
-        login, 
+        userData,
+        fullUser.membership_number,
+        login,
         password
       );
 
@@ -859,7 +779,7 @@ class EmailService {
 
   static async getFallbackCredentialsTemplate(userData, memberNumber, login, password, appUrl, supportEmail, supportPhone) {
     const statementHtml = this.generateStatementHtml(userData, memberNumber);
-    
+
     return `
       <!DOCTYPE html>
       <html>
