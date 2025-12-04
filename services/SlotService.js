@@ -5,6 +5,7 @@ import TinkoffService from '../services/TinkoffService.js';
 import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import TokenGenerator from '../utils/tokenGenerator.js';
+import EmailService from './EmailServices.js';
 
 class SlotService {
     /**
@@ -200,28 +201,61 @@ class SlotService {
     /**
      * Создание слотов после успешной оплаты
      */
-    async createSlotsAfterPayment(userId, slotCount, paymentId) {
+    async createSlotsAfterPayment(userId, slotCount, orderId) {
         try {
             console.log('🎰 Creating slots after payment:', { 
                 userId, 
                 slotCount, 
-                paymentId,
-                type: typeof paymentId,
-                length: paymentId?.length
+                orderId
             });
     
-            // 🔥 ПРОВЕРКА
-            if (!userId || !slotCount || slotCount <= 0) {
-                throw new Error('Invalid parameters for slot creation');
+            // ПРОВЕРКА
+            if (!userId || !slotCount || slotCount <= 0 || !orderId) {
+                throw new Error('Неверные параметры для создания слотов');
             }
     
-            // 🔥 ПРОВЕРЯЕМ ДОСТУПНОСТЬ СЛОТОВ ПЕРЕД СОЗДАНИЕМ
+            // Получаем платеж по OrderId (orderId - это OrderId от Тинькофф)
+            const payment = await Payment.findByOrderId(orderId);
+            
+            if (!payment) {
+                throw new Error(`Платеж не найден для orderId: ${orderId}`);
+            }
+    
+            console.log('✅ Found payment:', {
+                id: payment.id,
+                order_id: payment.order_id,
+                user_id: payment.user_id,
+                amount: payment.amount,
+                status: payment.status
+            });
+    
+            // Проверяем, что платеж принадлежит пользователю
+            if (payment.user_id !== userId) {
+                throw new Error('Платеж не принадлежит пользователю');
+            }
+    
+            // Проверяем, что платеж уже не обработан
+            if (payment.status === 'completed') {
+                console.warn('⚠️ Payment already completed, checking for existing slots...');
+                const existingSlots = await Slot.findByPaymentId(payment.id);
+                if (existingSlots && existingSlots.length > 0) {
+                    console.log('✅ Slots already exist for this payment');
+                    return {
+                        success: true,
+                        slots: existingSlots,
+                        slotCount: existingSlots.length,
+                        payment: payment
+                    };
+                }
+            }
+    
+            // Проверяем доступность слотов
             const availableSlots = await Slot.getAvailableSlotsCount();
     
             if (availableSlots < slotCount) {
                 console.warn(`⚠️ Not enough slots available. Available: ${availableSlots}, Requested: ${slotCount}`);
-    
-                // СОЗДАЕМ ТОЛЬКО ДОСТУПНЫЕ
+                
+                // Создаем только доступные
                 const actualCount = Math.min(slotCount, availableSlots);
     
                 if (actualCount === 0) {
@@ -232,46 +266,21 @@ class SlotService {
                 slotCount = actualCount;
             }
     
-            // 🔥 ПЕРВЫМ ДЕЛОМ ПОЛУЧАЕМ ПЛАТЕЖ ПО ORDER_ID
-            let payment = null;
-            try {
-                // paymentId здесь - это OrderId от Тинькофф
-                payment = await Payment.findByOrderId(paymentId);
-                
-                if (!payment) {
-                    console.warn(`⚠️ Payment not found for orderId: ${paymentId}`);
-                    // Попробуем как есть, может это ID платежа
-                } else {
-                    console.log('✅ Found payment:', {
-                        id: payment.id,
-                        order_id: payment.order_id,
-                        user_id: payment.user_id,
-                        amount: payment.amount,
-                        status: payment.status
-                    });
-                }
-            } catch (paymentError) {
-                console.error('❌ Error fetching payment:', paymentError);
-            }
+            // СОЗДАЕМ СЛОТЫ (передаем payment.id)
+            const slots = await Slot.createMultipleSlots(userId, slotCount, payment.id);
     
-            // 🔥 СОЗДАЕМ СЛОТЫ (передаем payment.id если нашли, иначе paymentId)
-            const slots = await Slot.createMultipleSlots(
-                userId, 
-                slotCount, 
-                payment ? payment.id : paymentId
-            );
-    
-            // 🔥 ОБНОВЛЯЕМ ПЛАТЕЖ
-            if (payment) {
-                await Payment.updateStatus(payment.order_id, 'completed');
-            } else {
-                // Пробуем обновить по тому, что есть
-                await Payment.updateStatus(paymentId, 'completed');
+            // 🔥 ПРОВЕРКА: slots должен быть массивом
+            if (!Array.isArray(slots)) {
+                console.error('❌ Expected slots to be an array, got:', typeof slots, slots);
+                throw new Error('Slots creation returned invalid data');
             }
     
             console.log(`✅ Successfully created ${slots.length} slots for user ${userId}`);
     
-            // 🔥 ОТПРАВКА ПИСЬМА ПОКУПАТЕЛЮ
+            // ОБНОВЛЯЕМ СТАТУС ПЛАТЕЖА
+            await Payment.updateStatus(orderId, 'completed');
+    
+            // 🔥 БЕЗОПАСНАЯ ОТПРАВКА ПИСЬМА
             try {
                 const user = await User.findById(userId);
                 
@@ -282,38 +291,42 @@ class SlotService {
                         memberNumber: user.membership_number
                     });
     
+                    // 🔥 БЕЗОПАСНОЕ ПОЛУЧЕНИЕ НОМЕРОВ СЛОТОВ
+                    const slotNumbers = Array.isArray(slots) 
+                        ? slots.map(s => s.slot_number || s.id || 'N/A').filter(Boolean)
+                        : [];
+    
                     // Подготавливаем данные для письма
                     const emailData = {
                         userName: user.fullname || user.name || 'Клиент',
                         userEmail: user.email,
                         memberNumber: user.membership_number || 'Не указан',
                         slotCount: slots.length,
-                        amount: payment ? payment.amount : slots.length * 100000, // В копейках
-                        orderId: payment ? payment.order_id : paymentId || `ORDER-${Date.now()}`,
+                        amount: payment.amount,
+                        orderId: payment.order_id,
                         purchaseDate: new Date().toLocaleDateString('ru-RU'),
-                        slotNumbers: slots.map(s => s.slot_number || s.id)
+                        slotNumbers: slotNumbers,
+                        phone: user.phone || '',
+                        city: user.city || ''
                     };
     
-                    console.log('📝 Email data:', emailData);
-    
-                    // Проверяем есть ли EmailService
-                    if (EmailService && typeof EmailService.sendNotification === 'function') {
-                        const emailResult = await EmailService.sendNotification(emailData);
-                        
-                        if (emailResult.success) {
-                            console.log('✅ Purchase email sent successfully');
-                            console.log('   To:', user.email);
-                            console.log('   Order:', emailData.orderId);
-                        } else {
-                            console.warn('⚠️ Failed to send purchase email:', emailResult.error);
-                        }
-                    } 
-                } else {
-                    console.warn('⚠️ Cannot send email:', {
-                        userFound: !!user,
-                        hasEmail: user ? !!user.email : false,
-                        email: user ? user.email : 'no user'
+                    console.log('📝 Email data prepared:', {
+                        to: emailData.userEmail,
+                        orderId: emailData.orderId,
+                        slotCount: emailData.slotCount,
+                        hasSlotNumbers: emailData.slotNumbers.length > 0
                     });
+    
+                    // Отправляем уведомление о покупке
+                    const emailResult = await EmailService.sendEmailNotification(user, slots, payment);
+                    
+                    if (emailResult.success) {
+                        console.log('✅ Purchase email sent successfully');
+                    } else {
+                        console.warn('⚠️ Failed to send purchase email:', emailResult.error);
+                    }
+                } else {
+                    console.warn('⚠️ Cannot send email: user not found or no email');
                 }
             } catch (emailError) {
                 console.error('❌ Error in email sending process:', emailError);
@@ -331,9 +344,9 @@ class SlotService {
         } catch (error) {
             console.error('❌ Error creating slots after payment:', error);
     
+            // Обновляем статус платежа на failed при ошибке
             try {
-                // Пробуем обновить статус платежа на failed
-                await Payment.updateStatus(paymentId, 'failed');
+                await Payment.updateStatus(orderId, 'failed');
             } catch (updateError) {
                 console.error('❌ Error updating payment status:', updateError);
             }
@@ -342,54 +355,6 @@ class SlotService {
         }
     }
     
-
-    // В классе SlotService добавляем:
-    async notifyUserAboutPurchase(userId, slots, payment = null) {
-        try {
-            console.log('📧 Уведомление о покупке слотов:', { userId, slotCount: slots.length });
-
-            // Получаем пользователя
-            const user = await User.findById(userId);
-            if (!user || !user.email) {
-                console.warn('⚠️ User not found or no email');
-                return { success: false, error: 'User or email not found' };
-            }
-
-            // Получаем информацию о платеже, если не передана
-            let paymentInfo = payment;
-            if (!paymentInfo && slots[0]?.payment_id) {
-                paymentInfo = await Payment.findByOrderId(slots[0].payment_id);
-            }
-
-            // Данные для письма
-            const emailData = {
-                userName: user.fullname || user.name || 'Клиент',
-                userEmail: user.email,
-                memberNumber: user.membership_number || 'Не указан',
-                slotCount: slots.length,
-                amount: paymentInfo ? paymentInfo.amount : slots.length * 100000, // В копейках
-                orderId: paymentInfo ? paymentInfo.order_id : `SLOT-${Date.now()}`,
-                purchaseDate: new Date().toLocaleDateString('ru-RU'),
-                slotNumbers: slots.map(s => s.slot_number || s.id)
-            };
-
-            // Используем EmailService
-            const emailResult = await EmailService.sendPurchaseNotification(emailData);
-
-            if (emailResult.success) {
-                console.log('✅ Email отправлен:', user.email);
-            } else {
-                console.warn('⚠️ Email не отправлен:', emailResult.error);
-            }
-
-            return emailResult;
-
-        } catch (error) {
-            console.error('❌ Ошибка отправки уведомления:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
     /**
      * Получение статистики по слотам
      */
