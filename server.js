@@ -32,6 +32,16 @@ const __dirname = path.dirname(__filename)
 const app = express();
 // app.use(cors());
 
+app.use(session({
+  secret: process.env.SESSION_SECRET || '9VZ9O4zoG9qRzbxAOMCM5eS/t2sDegtmU3ooqH2KR3U=',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 часа
+  }
+}));
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', '*');
@@ -167,11 +177,20 @@ app.get('/', (req, res) => {
 app.get('/paymentfee', (req, res) => {
   console.log('🎯 ==== PAYMENTFEE PAGE REQUEST ====');
   console.log('Query params:', req.query);
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
   
+  // Проверяем и сохраняем memberNumber безопасно
   if (req.query.memberNumber) {
     console.log('✅ Member number from URL:', req.query.memberNumber);
-    // Можно сохранить в сессии или передать через шаблон
-    req.session.memberNumber = req.query.memberNumber;
+    
+    // Проверяем, что сессия существует перед записью
+    if (req.session) {
+      req.session.memberNumber = req.query.memberNumber;
+      console.log('💾 Saved to session:', req.session.memberNumber);
+    } else {
+      console.warn('⚠️  Session is not available');
+    }
   }
   
   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
@@ -267,7 +286,10 @@ app.get('/get-member-number', async (req, res) => {
   try {
     const { email, phone } = req.query;
     
-    console.log('🔍 GET MEMBER NUMBER REQUEST:', { email, phone });
+    console.log('🔍 GET MEMBER NUMBER REQUEST:', { 
+      email: email || 'undefined', 
+      phone: phone || 'undefined' 
+    });
     
     if (!email && !phone) {
       return res.status(400).json({
@@ -289,9 +311,20 @@ app.get('/get-member-number', async (req, res) => {
       console.log('✅ User found:', {
         id: user.id,
         email: user.email,
-        memberNumber: memberNumber,
-        allFields: Object.keys(user)
+        memberNumber: memberNumber
       });
+      
+      // Сохраняем в сессии безопасно
+      if (req.session) {
+        req.session.memberNumber = memberNumber;
+        req.session.userData = {
+          name: user.name || user.fullname || user.first_name + ' ' + user.last_name,
+          email: user.email,
+          phone: user.phone,
+          city: user.city || user.location
+        };
+        console.log('💾 Session updated with memberNumber:', memberNumber);
+      }
       
       res.json({
         success: true,
@@ -374,6 +407,13 @@ console.log('   All env variables:', Object.keys(process.env).filter(key =>
   key.includes('YANDEX') || key.includes('EMAIL') || key.includes('APP')
 ))
 
+app.use((req, res, next) => {
+  console.log('📋 Session Check:');
+  console.log('   Session ID:', req.sessionID);
+  console.log('   Has session object:', !!req.session);
+  console.log('   Session keys:', req.session ? Object.keys(req.session) : 'No session');
+  next();
+});
 
 // Start server
 async function startServer() {
