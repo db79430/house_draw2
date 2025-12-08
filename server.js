@@ -1,4 +1,5 @@
 import express, { json, urlencoded } from 'express';
+import session from 'express-session';
 import CONFIG from './config/index.js'
 import runMigrations from './database/migrate.js';
 import path from 'path';
