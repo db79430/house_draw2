@@ -165,17 +165,15 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/paymentfee', (req, res) => {
-  console.log('🎯 ==== PAYMENTFEE REQUEST ====');
+  console.log('🎯 ==== PAYMENTFEE PAGE REQUEST ====');
   console.log('Query params:', req.query);
-  console.log('🎯 ==== END PAYMENTFEE ====');
-
-  // Если есть memberNumber в параметрах - отдаем страницу оплаты
+  
   if (req.query.memberNumber) {
-    console.log('✅ Member number from Tilda:', req.query.memberNumber);
-    return res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
+    console.log('✅ Member number from URL:', req.query.memberNumber);
+    // Можно сохранить в сессии или передать через шаблон
+    req.session.memberNumber = req.query.memberNumber;
   }
-
-  // Если нет memberNumber - пробуем найти в сессии или показываем ручной ввод
+  
   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
 });
 
@@ -232,36 +230,92 @@ app.post('/test-webhook', (req, res) => {
   res.json({ status: 'success', received: req.body });
 });
 
+// app.get('/get-member-number', async (req, res) => {
+//   try {
+//     const { email, phone } = req.query;
+//     const user = await User.findUserByEmailOrPhone(email, phone);
+
+//     if (user) {
+//       // Пробуем разные варианты названия поля
+//       const memberNumber = user.membership_number
+
+//       console.log('✅ Найден пользователь:', {
+//         email: user.email,
+//         memberNumber: memberNumber,
+//         availableFields: Object.keys(user)
+//       });
+
+//       res.json({
+//         success: true,
+//         memberNumber: memberNumber,
+//         userData: {
+//           name: user.name || user.fullname,
+//           email: user.email,
+//           phone: user.phone,
+//           city: user.city
+//         }
+//       });
+//     } else {
+//       res.json({ success: false, error: 'Пользователь не найден' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
+
 app.get('/get-member-number', async (req, res) => {
   try {
     const { email, phone } = req.query;
+    
+    console.log('🔍 GET MEMBER NUMBER REQUEST:', { email, phone });
+    
+    if (!email && !phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Укажите email или телефон'
+      });
+    }
+    
     const user = await User.findUserByEmailOrPhone(email, phone);
-
+    
     if (user) {
-      // Пробуем разные варианты названия поля
-      const memberNumber = user.membership_number
-
-      console.log('✅ Найден пользователь:', {
+      // Пробуем разные варианты названия поля member number
+      const memberNumber = user.member_number || 
+                          user.membership_number || 
+                          user.memberNumber || 
+                          user.member_id ||
+                          `USER${user.id}`;
+      
+      console.log('✅ User found:', {
+        id: user.id,
         email: user.email,
         memberNumber: memberNumber,
-        availableFields: Object.keys(user)
+        allFields: Object.keys(user)
       });
-
+      
       res.json({
         success: true,
         memberNumber: memberNumber,
         userData: {
-          name: user.name || user.fullname,
+          name: user.name || user.fullname || user.first_name + ' ' + user.last_name,
           email: user.email,
           phone: user.phone,
-          city: user.city
+          city: user.city || user.location
         }
       });
     } else {
-      res.json({ success: false, error: 'Пользователь не найден' });
+      console.log('❌ User not found');
+      res.json({ 
+        success: false, 
+        error: 'Пользователь не найден. Проверьте email или телефон.' 
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error in get-member-number:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Ошибка сервера: ' + error.message 
+    });
   }
 });
 
@@ -275,7 +329,7 @@ app.post('/tinkoff-callback', (req, res) => tinkoffController.handleNotification
 // app.post('/find-order', tildaAuthMiddleware, (req, res) => tildaController.findOrder(req, res));
 
 app.post('/create-payment', (req, res) => tildaController.createPayment(req, res));
-app.get('/get-member/:memberNumber', (req, res) => tildaController.getMemberData(req, res));
+// app.get('/get-member/:memberNumber', (req, res) => tildaController.getMemberData(req, res));
 app.get('/check-payment-status/:memberNumber', (req, res) => tildaController.checkPaymentStatus(req, res));
 
 // Email routes
