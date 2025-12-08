@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     email VARCHAR(100) NOT NULL,
     login VARCHAR(100) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     yeardate DATE,
     city VARCHAR(100) NOT NULL,
     conditions VARCHAR(20) DEFAULT 'pending',
