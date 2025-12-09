@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оплата вступительного взноса</title>
-    <script src="../utils/phoneFormatter.js"></script>
-    <script src="../utils/inputFormatter.js"></script>
     <style>
         * {
             margin: 0;
@@ -258,13 +256,13 @@
         <div id="payment-page" class="form-wrapper">
             
             <!-- Блок загрузки -->
-            <!-- <div id="loading-section" class="section active">
+            <div id="loading-section" class="section active">
                 <div style="text-align: center; padding: 60px 20px;">
                     <div class="loading-spinner"></div>
                     <h2 style="color: #2d5016; margin-bottom: 15px;">Ищем ваш номер члена клуба</h2>
                     <p style="color: #4a7c2a;">Пожалуйста, подождите...</p>
                 </div>
-            </div> -->
+            </div>
 
             <!-- Блок поиска -->
             <div id="search-section" class="section search-section">
@@ -335,5 +333,50 @@
         </div>
     </div>
     <script src="/js/app.js"></script>
+    
+    <!-- Инициализация при загрузке -->
+    <script>
+        // Проверка загрузки скриптов
+        console.log('🔍 Проверка загрузки скриптов...');
+        console.log('PhoneFormatter доступен:', typeof PhoneFormatter !== 'undefined');
+        console.log('InputFormatter доступен:', typeof InputFormatter !== 'undefined');
+        console.log('App функции доступны:', typeof findMemberNumber !== 'undefined');
+        
+        // Проверка, что все секции скрыты кроме нужной
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Страница загружена');
+            
+            // Скрываем все секции кроме поиска
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Показываем только поиск
+            const searchSection = document.getElementById('search-section');
+            if (searchSection) {
+                searchSection.classList.add('active');
+                console.log('✅ Показана секция поиска');
+            }
+            
+            // Фокус на поле ввода
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                setTimeout(() => {
+                    searchInput.focus();
+                    console.log('🎯 Фокус на поле ввода');
+                }, 500);
+            }
+            
+            // Проверка URL параметров
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberNumber = urlParams.get('memberNumber');
+            if (memberNumber) {
+                console.log('🔗 Найден memberNumber в URL:', memberNumber);
+                // Можно автоматически искать
+                // findMemberByNumber(memberNumber);
+            }
+        });
+    </script>
 </body>
 </html>
