@@ -253,7 +253,7 @@ async function findMemberByNumber(memberNumber) {
         showLoading(true);
         
         // ✅ Используем существующий endpoint /api/paymentfee?memberNumber=
-        const url = `${API_BASE}/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
+        const url = `${API_BASE}/api/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
         console.log('🌐 Запрос к API:', url);
         
         const response = await fetch(url);

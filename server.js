@@ -197,6 +197,99 @@ app.get('/paymentfee', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'paymentfee.html'));
 });
 
+app.get('/api/paymentfee', async (req, res) => {
+  console.log('🎯 ==== API PAYMENTFEE REQUEST ====');
+  console.log('Query params:', req.query);
+  
+  const { memberNumber, email, phone } = req.query;
+  
+  try {
+    // Если есть memberNumber - ищем по нему
+    if (memberNumber) {
+      console.log('🔍 Поиск по memberNumber:', memberNumber);
+      
+      // Здесь ваш код поиска в БД
+      const user = await findUserByMemberNumber(memberNumber);
+      
+      if (user) {
+        return res.json({
+          success: true,
+          user: {
+            id: user.id,
+            fullname: user.fullname,
+            email: user.email,
+            phone: user.phone,
+            city: user.city,
+            memberNumber: user.membership_number || memberNumber
+          }
+        });
+      } else {
+        return res.json({
+          success: false,
+          error: 'Пользователь не найден'
+        });
+      }
+    }
+    
+    // Если есть email - ищем по email
+    if (email) {
+      console.log('🔍 Поиск по email:', email);
+      
+      const user = await findUserByEmail(email);
+      
+      if (user) {
+        return res.json({
+          success: true,
+          user: {
+            id: user.id,
+            fullname: user.fullname,
+            email: user.email,
+            phone: user.phone,
+            city: user.city,
+            memberNumber: user.membership_number
+          },
+          memberNumber: user.membership_number
+        });
+      }
+    }
+    
+    // Если есть phone - ищем по телефону
+    if (phone) {
+      console.log('🔍 Поиск по phone:', phone);
+      
+      const user = await findUserByPhone(phone);
+      
+      if (user) {
+        return res.json({
+          success: true,
+          user: {
+            id: user.id,
+            fullname: user.fullname,
+            email: user.email,
+            phone: user.phone,
+            city: user.city,
+            memberNumber: user.membership_number
+          },
+          memberNumber: user.membership_number
+        });
+      }
+    }
+    
+    // Если ничего не нашли
+    return res.json({
+      success: false,
+      error: 'Пользователь не найден. Проверьте введенные данные.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Ошибка поиска:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
 app.get('/auth', (req, res) => {
   console.log('📄 Serving auth.html');
   res.sendFile(path.join(__dirname, 'public', 'auth.html'));
