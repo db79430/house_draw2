@@ -226,7 +226,6 @@
             0% {
                 transform: rotate(0deg);
             }
-
             100% {
                 transform: rotate(360deg);
             }
@@ -237,7 +236,6 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -270,7 +268,7 @@
         <div id="payment-page" class="form-wrapper">
 
             <!-- Блок загрузки -->
-            <div id="loading-section" class="section active">
+            <div id="loading-section" class="section">
                 <div style="text-align: center; padding: 60px 20px;">
                     <div class="loading-spinner"></div>
                     <h2 style="color: #2d5016; margin-bottom: 15px;">Ищем ваш номер члена клуба</h2>
@@ -288,186 +286,367 @@
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
                         class="search-input" autocomplete="email tel">
-                    <button id="search-button" onclick="handleMemberSearch()" class="search-btn">
+                    <button id="search-button" class="search-btn">
                         🌿 Найти номер
                     </button>
                 </div>
-
-                <!-- Блок данных пользователя -->
-                <div id="user-section" class="section">
-                    <div class="member-header">
-                        <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
-                        <h2 style="margin: 0 0 15px 0; font-size: 24px;">Добро пожаловать в наше сообщество!</h2>
-                        <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Ваш номер члена клуба:</div>
-                        <div id="member-number"
-                            style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">
-                            -</div>
-                    </div>
-
-                    <div
-                        style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
-                        <h3
-                            style="color: #2d5016; margin-bottom: 25px; border-bottom: 2px solid #4CAF50; padding-bottom: 12px; display: flex; align-items: center;">
-                            <span style="margin-right: 10px;">📋</span>Ваши данные
-                        </h3>
-
-                        <div class="data-row">
-                            <div class="data-label">👤 ФИО:</div>
-                            <div id="user-fullname" class="data-value">-</div>
-                        </div>
-
-                        <div class="data-row">
-                            <div class="data-label">📧 Email:</div>
-                            <div id="user-email" class="data-value">-</div>
-                        </div>
-
-                        <div class="data-row">
-                            <div class="data-label">📞 Телефон:</div>
-                            <div id="user-phone" class="data-value">-</div>
-                        </div>
-
-                        <div class="data-row">
-                            <div class="data-label">🏙️ Город:</div>
-                            <div id="user-city" class="data-value">-</div>
-                        </div>
-                    </div>
-
-                    <!-- Блок оплаты -->
-                    <div style="margin: 30px 20px; text-align: center;">
-                        <div
-                            style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
-                            <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
-                                🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос
-                            </p>
-                        </div>
-                        <button id="payment-btn">
-                            💳 Оплатить вступительный взнос
-                        </button>
-                    </div>
-                </div>
             </div>
 
-            <script src="./app.js"></script>
+            <!-- Блок данных пользователя -->
+            <div id="user-section" class="section">
+                <div class="member-header">
+                    <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
+                    <h2 style="margin: 0 0 15px 0; font-size: 24px;">Добро пожаловать в наше сообщество!</h2>
+                    <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Ваш номер члена клуба:</div>
+                    <div id="member-number"
+                        style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">
+                        -</div>
+                </div>
 
-            <!-- Инициализация при загрузке -->
-            <script>
-                async function handleMemberSearch(searchValue) {
-                    if (!searchValue) {
-                        alert('Пожалуйста, введите email или телефон');
-                        return;
-                    }
+                <div
+                    style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
+                    <h3
+                        style="color: #2d5016; margin-bottom: 25px; border-bottom: 2px solid #4CAF50; padding-bottom: 12px; display: flex; align-items: center;">
+                        <span style="margin-right: 10px;">📋</span>Ваши данные
+                    </h3>
 
-                    try {
-                        // Показываем загрузку
-                        const searchBtn = document.getElementById('search-button');
-                        const originalText = searchBtn.textContent;
-                        searchBtn.textContent = '🔍 Поиск...';
-                        searchBtn.disabled = true;
+                    <div class="data-row">
+                        <div class="data-label">👤 ФИО:</div>
+                        <div id="user-fullname" class="data-value">-</div>
+                    </div>
 
-                        console.log('🌐 Поиск участника:', searchValue);
+                    <div class="data-row">
+                        <div class="data-label">📧 Email:</div>
+                        <div id="user-email" class="data-value">-</div>
+                    </div>
 
-                        // Определяем тип ввода (email или телефон)
-                        const isEmail = searchValue.includes('@');
-                        const paramName = isEmail ? 'email' : 'phone';
-                        let paramValue = searchValue;
+                    <div class="data-row">
+                        <div class="data-label">📞 Телефон:</div>
+                        <div id="user-phone" class="data-value">-</div>
+                    </div>
 
-                        // Нормализуем телефон, если это телефон
-                        if (!isEmail) {
-                            // Удаляем все нецифровые символы
-                            paramValue = searchValue.replace(/\D/g, '');
+                    <div class="data-row">
+                        <div class="data-label">🏙️ Город:</div>
+                        <div id="user-city" class="data-value">-</div>
+                    </div>
+                </div>
 
-                            // Если номер начинается с 8, меняем на 7
-                            if (paramValue.startsWith('8') && paramValue.length >= 11) {
-                                paramValue = '7' + paramValue.substring(1);
-                            }
+                <!-- Блок оплаты -->
+                <div style="margin: 30px 20px; text-align: center;">
+                    <div
+                        style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
+                        <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
+                            🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос
+                        </p>
+                    </div>
+                    <button id="payment-btn">
+                        💳 Оплатить вступительный взнос
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                            console.log('📱 Нормализованный телефон:', paramValue);
+    <script>
+        // Глобальные переменные
+        const API_BASE = window.location.origin;
+        
+        // Состояние приложения
+        const AppState = {
+            currentUser: null,
+            currentMemberNumber: null
+        };
 
-                            // Проверяем длину телефона
-                            if (paramValue.length < 11) {
-                                throw new Error('Введите полный номер телефона (11 цифр)');
-                            }
-                        }
+        // Показать/скрыть секцию
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('active');
+                console.log('Показана секция:', sectionId);
+            }
+        }
 
-                        // ✅ Используем /get-member-number endpoint
-                        const url = `${window.location.origin}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
-                        console.log('🌐 Запрос к API:', url);
+        // Показать/скрыть загрузку
+        function showLoading(show) {
+            if (show) {
+                document.getElementById('loading-section').classList.add('active');
+            } else {
+                document.getElementById('loading-section').classList.remove('active');
+            }
+        }
 
-                        const response = await fetch(url);
-                        console.log('📥 Статус ответа:', response.status);
+        // Нормализация телефона
+        function normalizePhone(phone) {
+            if (!phone) return '';
+            
+            let clean = phone.replace(/\D/g, '');
+            
+            if (clean.startsWith('8') && clean.length >= 11) {
+                clean = '7' + clean.substring(1);
+            }
+            
+            if (clean.startsWith('7') && clean.length === 11) {
+                return clean;
+            }
+            
+            if (clean.length === 10 && !clean.startsWith('7')) {
+                return '7' + clean;
+            }
+            
+            return clean;
+        }
 
-                        // Проверяем ответ
-                        const contentType = response.headers.get('content-type');
-                        console.log('Content-Type:', contentType);
-
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error('❌ Ошибка сервера:', errorText.substring(0, 200));
-
-                            if (errorText.includes('<!DOCTYPE')) {
-                                throw new Error('Endpoint /get-member-number не найден');
-                            }
-                            throw new Error(`Ошибка сервера: ${response.status}`);
-                        }
-
-                        // Проверяем что ответ JSON
-                        if (!contentType || !contentType.includes('application/json')) {
-                            const text = await response.text();
-                            console.error('❌ Не JSON ответ:', text.substring(0, 200));
-
-                            if (text.includes('<!DOCTYPE')) {
-                                throw new Error('Сервер вернул HTML страницу вместо данных');
-                            }
-                            throw new Error('Неверный формат ответа от сервера');
-                        }
-
-                        const data = await response.json();
-                        console.log('📦 Ответ API:', data);
-
-                        if (data.success) {
-                            // Отображаем данные (адаптируем под структуру ответа /get-member-number)
-                            showUserData(data.userData || data.user, data.memberNumber || searchValue);
-                            console.log('✅ Пользователь найден');
-                        } else {
-                            throw new Error(data.error || 'Пользователь не найден');
-                        }
-
-                    } catch (error) {
-                        console.error('❌ Ошибка поиска:', error);
-                        alert('Ошибка: ' + error.message);
-
-                    } finally {
-                        // Восстанавливаем кнопку
-                        const searchBtn = document.getElementById('search-button');
-                        if (searchBtn) {
-                            searchBtn.textContent = '🌿 Найти номер';
-                            searchBtn.disabled = false;
-                        }
+        // Поиск участника
+        async function searchMember() {
+            const searchInput = document.getElementById('search-input');
+            const searchValue = searchInput.value.trim();
+            
+            if (!searchValue) {
+                alert('Пожалуйста, введите email или телефон');
+                searchInput.focus();
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                const searchBtn = document.getElementById('search-button');
+                searchBtn.disabled = true;
+                searchBtn.textContent = '🔍 Поиск...';
+                
+                // Определяем тип ввода
+                const isEmail = searchValue.includes('@');
+                const paramName = isEmail ? 'email' : 'phone';
+                let paramValue = searchValue;
+                
+                // Нормализуем телефон
+                if (!isEmail) {
+                    paramValue = normalizePhone(searchValue);
+                    
+                    if (paramValue.length < 11) {
+                        throw new Error('Введите полный номер телефона (11 цифр)');
                     }
                 }
-
-                // Функция отображения данных (обновленная)
-                function showUserData(user, memberNumber) {
-                    // Заполняем данные пользователя
-                    document.getElementById('member-number').textContent = memberNumber;
-                    document.getElementById('user-fullname').textContent = user.fullname || user.name || 'Не указано';
-                    document.getElementById('user-email').textContent = user.email || 'Не указано';
-                    document.getElementById('user-phone').textContent = user.phone || 'Не указано';
-                    document.getElementById('user-city').textContent = user.city || 'Не указано';
-
-                    // Показываем секцию с данными
-                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                    document.getElementById('user-section').classList.add('active');
-
-                    // Обновляем URL
-                    const url = new URL(window.location);
-                    url.searchParams.set('memberNumber', memberNumber);
-                    window.history.pushState({}, '', url);
-
-                    console.log('✅ Данные пользователя отображены');
+                
+                // Делаем запрос к API
+                const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
+                console.log('Запрос к API:', url);
+                
+                const response = await fetch(url);
+                
+                // Проверяем ответ
+                if (!response.ok) {
+                    const text = await response.text();
+                    if (text.includes('<!DOCTYPE')) {
+                        throw new Error('Ошибка сервера. Endpoint не найден.');
+                    }
+                    throw new Error(`Ошибка сервера: ${response.status}`);
                 }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Сервер вернул неверный формат');
+                }
+                
+                const data = await response.json();
+                console.log('Ответ API:', data);
+                
+                if (data.success) {
+                    // Сохраняем данные
+                    AppState.currentUser = data.userData || data.user || {};
+                    AppState.currentMemberNumber = data.memberNumber || searchValue;
+                    
+                    // Отображаем данные
+                    displayUserData(AppState.currentUser, AppState.currentMemberNumber);
+                } else {
+                    throw new Error(data.error || 'Пользователь не найден');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка поиска:', error);
+                alert('Ошибка: ' + error.message);
+                searchInput.focus();
+                
+            } finally {
+                showLoading(false);
+                const searchBtn = document.getElementById('search-button');
+                if (searchBtn) {
+                    searchBtn.disabled = false;
+                    searchBtn.textContent = '🌿 Найти номер';
+                }
+            }
+        }
 
-            </script>
+        // Отображение данных пользователя
+        function displayUserData(user, memberNumber) {
+            // Заполняем поля
+            document.getElementById('member-number').textContent = memberNumber;
+            document.getElementById('user-fullname').textContent = user.fullname || user.name || 'Не указано';
+            document.getElementById('user-email').textContent = user.email || 'Не указано';
+            document.getElementById('user-phone').textContent = user.phone || 'Не указано';
+            document.getElementById('user-city').textContent = user.city || 'Не указано';
+            
+            // Показываем секцию с данными
+            showSection('user-section');
+            
+            // Обновляем URL
+            const url = new URL(window.location);
+            url.searchParams.set('memberNumber', memberNumber);
+            window.history.pushState({}, '', url);
+        }
+
+        // Создание платежа
+        async function createPayment() {
+            if (!AppState.currentMemberNumber) {
+                alert('Сначала найдите пользователя');
+                return;
+            }
+            
+            const paymentBtn = document.getElementById('payment-btn');
+            const originalText = paymentBtn.textContent;
+            
+            try {
+                paymentBtn.disabled = true;
+                paymentBtn.textContent = 'Создание платежа...';
+                showLoading(true);
+                
+                console.log('Создание платежа для:', AppState.currentMemberNumber);
+                
+                const response = await fetch(`${API_BASE}/create-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        memberNumber: AppState.currentMemberNumber,
+                        userData: AppState.currentUser
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.paymentUrl) {
+                    alert('Платеж создан успешно! Перенаправление...');
+                    setTimeout(() => {
+                        window.location.href = result.paymentUrl;
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Неизвестная ошибка');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка создания платежа:', error);
+                alert('Ошибка: ' + error.message);
+                paymentBtn.disabled = false;
+                paymentBtn.textContent = originalText;
+                
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Проверка URL параметров
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberNumber = urlParams.get('memberNumber');
+            const email = urlParams.get('email');
+            const phone = urlParams.get('phone');
+            
+            const searchInput = document.getElementById('search-input');
+            
+            if (memberNumber) {
+                console.log('Автопоиск по memberNumber:', memberNumber);
+                if (searchInput) searchInput.value = memberNumber;
+                // Можно добавить автоматический поиск
+                // setTimeout(() => searchMember(), 500);
+                
+            } else if (email || phone) {
+                if (searchInput) {
+                    searchInput.value = email || phone;
+                    console.log('Автопоиск по email/phone:', email || phone);
+                    // setTimeout(() => searchMember(), 500);
+                }
+            }
+        }
+
+        // Форматирование телефона при вводе
+        function setupPhoneFormatting() {
+            const searchInput = document.getElementById('search-input');
+            
+            if (!searchInput) return;
+            
+            searchInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                
+                if (value.startsWith('7') || value.startsWith('8')) {
+                    if (value.startsWith('8')) {
+                        value = '7' + value.substring(1);
+                    }
+                    
+                    if (value.length <= 1) {
+                        e.target.value = '+7';
+                    } else if (value.length <= 4) {
+                        e.target.value = `+7 (${value.substring(1, 4)}`;
+                    } else if (value.length <= 7) {
+                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}`;
+                    } else if (value.length <= 9) {
+                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}`;
+                    } else {
+                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}-${value.substring(9, 11)}`;
+                    }
+                }
+            });
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Страница загружена');
+            
+            // Инициализация элементов
+            const searchBtn = document.getElementById('search-button');
+            const searchInput = document.getElementById('search-input');
+            const paymentBtn = document.getElementById('payment-btn');
+            
+            // Настройка обработчиков
+            if (searchBtn && searchInput) {
+                searchBtn.addEventListener('click', searchMember);
+                
+                // Поиск по Enter
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchMember();
+                    }
+                });
+                
+                // Форматирование телефона
+                setupPhoneFormatting();
+                
+                // Фокус на поле ввода
+                setTimeout(() => {
+                    searchInput.focus();
+                }, 500);
+            }
+            
+            // Обработчик кнопки оплаты
+            if (paymentBtn) {
+                paymentBtn.addEventListener('click', createPayment);
+            }
+            
+            // Проверка URL параметров
+            checkUrlParams();
+            
+            // Скрываем загрузку через 1 секунду (на всякий случай)
+            setTimeout(() => {
+                showLoading(false);
+            }, 1000);
+        });
+    </script>
 </body>
-
 </html>
