@@ -116,8 +116,8 @@ function checkUrlParameters() {
     if (memberNumber) {
         // Если есть memberNumber в URL, сразу используем его
         console.log('🔍 Автопоиск по memberNumber:', memberNumber);
-        if (typeof findMemberByNumber === 'function') {
-            findMemberByNumber(memberNumber);
+        if (typeof findMemberNumber === 'function') {
+            findMemberNumber(memberNumber);
         } else {
             console.warn('⚠️ findMemberByNumber не определена');
             if (searchInput) searchInput.value = memberNumber;
@@ -244,56 +244,56 @@ async function findMemberNumber() {
 }
 
 // Поиск пользователя по номеру участника
-async function findMemberByNumber(memberNumber) {
-    console.log('🔍 Поиск по номеру участника:', memberNumber);
+// async function findMemberByNumber(memberNumber) {
+//     console.log('🔍 Поиск по номеру участника:', memberNumber);
     
-    if (!memberNumber) return;
+//     if (!memberNumber) return;
     
-    try {
-        showLoading(true);
+//     try {
+//         showLoading(true);
         
-        // ✅ Используем существующий endpoint /api/paymentfee?memberNumber=
-        const url = `${API_BASE}/api/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
-        console.log('🌐 Запрос к API:', url);
+//         // ✅ Используем существующий endpoint /api/paymentfee?memberNumber=
+//         const url = `${API_BASE}/api/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
+//         console.log('🌐 Запрос к API:', url);
         
-        const response = await fetch(url);
-        console.log('📥 Статус ответа:', response.status);
+//         const response = await fetch(url);
+//         console.log('📥 Статус ответа:', response.status);
         
-        if (!response.ok) {
-            throw new Error(`Ошибка сервера: ${response.status}`);
-        }
+//         if (!response.ok) {
+//             throw new Error(`Ошибка сервера: ${response.status}`);
+//         }
         
-        const data = await response.json();
-        console.log('📦 Данные ответа:', data);
+//         const data = await response.json();
+//         console.log('📦 Данные ответа:', data);
         
-        if (data.success) {
-            AppState.currentUser = data.user || {};
-            AppState.currentMemberNumber = memberNumber;
+//         if (data.success) {
+//             AppState.currentUser = data.user || {};
+//             AppState.currentMemberNumber = memberNumber;
             
-            // Отображаем данные
-            document.getElementById('member-number').textContent = memberNumber;
-            document.getElementById('user-fullname').textContent = data.user?.fullname || data.user?.name || 'Не указано';
-            document.getElementById('user-email').textContent = data.user?.email || 'Не указано';
-            document.getElementById('user-phone').textContent = data.user?.phone || 'Не указано';
-            document.getElementById('user-city').textContent = data.user?.city || 'Не указано';
+//             // Отображаем данные
+//             document.getElementById('member-number').textContent = memberNumber;
+//             document.getElementById('user-fullname').textContent = data.user?.fullname || data.user?.name || 'Не указано';
+//             document.getElementById('user-email').textContent = data.user?.email || 'Не указано';
+//             document.getElementById('user-phone').textContent = data.user?.phone || 'Не указано';
+//             document.getElementById('user-city').textContent = data.user?.city || 'Не указано';
             
-            showSection('user-section');
+//             showSection('user-section');
             
-            // Добавляем memberNumber в URL
-            updateUrlWithMemberNumber(memberNumber);
+//             // Добавляем memberNumber в URL
+//             updateUrlWithMemberNumber(memberNumber);
             
-        } else {
-            throw new Error(data.error || 'Пользователь не найден');
-        }
+//         } else {
+//             throw new Error(data.error || 'Пользователь не найден');
+//         }
         
-    } catch (error) {
-        console.error('❌ Ошибка:', error);
-        alert('Ошибка: ' + error.message);
+//     } catch (error) {
+//         console.error('❌ Ошибка:', error);
+//         alert('Ошибка: ' + error.message);
         
-    } finally {
-        showLoading(false);
-    }
-}
+//     } finally {
+//         showLoading(false);
+//     }
+// }
 
 // Отображение данных пользователя
 function displayUserData(data) {
@@ -459,7 +459,7 @@ function showLoading(show) {
 
 // Делаем функции глобальными для onclick
 window.findMemberNumber = findMemberNumber;
-window.findMemberByNumber = findMemberByNumber; // ✅ Добавлено для глобального доступа
+// window.findMemberByNumber = findMemberByNumber; // ✅ Добавлено для глобального доступа
 window.createPayment = createPayment;
 
 // Добавляем базовые стили

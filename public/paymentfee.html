@@ -288,7 +288,7 @@
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
                         class="search-input" autocomplete="email tel">
-                    <button id="search-button" class="search-btn">
+                    <button id="search-button" onclick="findMemberNumber()" class="search-btn">
                         🌿 Найти номер
                     </button>
                 </div>
@@ -351,7 +351,6 @@
 
             <!-- Инициализация при загрузке -->
             <script>
-                // Полная реализация поиска прямо в HTML (не зависит от app.js)
                 async function handleMemberSearch(searchValue) {
                     if (!searchValue) {
                         alert('Пожалуйста, введите email или телефон');
@@ -365,20 +364,69 @@
                         searchBtn.textContent = '🔍 Поиск...';
                         searchBtn.disabled = true;
 
-                        // Делаем запрос
                         console.log('🌐 Поиск участника:', searchValue);
-                        const response = await fetch(`/paymentfee?memberNumber=${encodeURIComponent(searchValue)}`);
+
+                        // Определяем тип ввода (email или телефон)
+                        const isEmail = searchValue.includes('@');
+                        const paramName = isEmail ? 'email' : 'phone';
+                        let paramValue = searchValue;
+
+                        // Нормализуем телефон, если это телефон
+                        if (!isEmail) {
+                            // Удаляем все нецифровые символы
+                            paramValue = searchValue.replace(/\D/g, '');
+
+                            // Если номер начинается с 8, меняем на 7
+                            if (paramValue.startsWith('8') && paramValue.length >= 11) {
+                                paramValue = '7' + paramValue.substring(1);
+                            }
+
+                            console.log('📱 Нормализованный телефон:', paramValue);
+
+                            // Проверяем длину телефона
+                            if (paramValue.length < 11) {
+                                throw new Error('Введите полный номер телефона (11 цифр)');
+                            }
+                        }
+
+                        // ✅ Используем /get-member-number endpoint
+                        const url = `${window.location.origin}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
+                        console.log('🌐 Запрос к API:', url);
+
+                        const response = await fetch(url);
+                        console.log('📥 Статус ответа:', response.status);
+
+                        // Проверяем ответ
+                        const contentType = response.headers.get('content-type');
+                        console.log('Content-Type:', contentType);
 
                         if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('❌ Ошибка сервера:', errorText.substring(0, 200));
+
+                            if (errorText.includes('<!DOCTYPE')) {
+                                throw new Error('Endpoint /get-member-number не найден');
+                            }
                             throw new Error(`Ошибка сервера: ${response.status}`);
+                        }
+
+                        // Проверяем что ответ JSON
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await response.text();
+                            console.error('❌ Не JSON ответ:', text.substring(0, 200));
+
+                            if (text.includes('<!DOCTYPE')) {
+                                throw new Error('Сервер вернул HTML страницу вместо данных');
+                            }
+                            throw new Error('Неверный формат ответа от сервера');
                         }
 
                         const data = await response.json();
                         console.log('📦 Ответ API:', data);
 
-                        if (data.success && data.user) {
-                            // Отображаем данные
-                            showUserData(data.user, searchValue);
+                        if (data.success) {
+                            // Отображаем данные (адаптируем под структуру ответа /get-member-number)
+                            showUserData(data.userData || data.user, data.memberNumber || searchValue);
                             console.log('✅ Пользователь найден');
                         } else {
                             throw new Error(data.error || 'Пользователь не найден');
@@ -391,12 +439,14 @@
                     } finally {
                         // Восстанавливаем кнопку
                         const searchBtn = document.getElementById('search-button');
-                        searchBtn.textContent = '🌿 Найти номер';
-                        searchBtn.disabled = false;
+                        if (searchBtn) {
+                            searchBtn.textContent = '🌿 Найти номер';
+                            searchBtn.disabled = false;
+                        }
                     }
                 }
 
-                // Функция отображения данных
+                // Функция отображения данных (обновленная)
                 function showUserData(user, memberNumber) {
                     // Заполняем данные пользователя
                     document.getElementById('member-number').textContent = memberNumber;
@@ -417,67 +467,6 @@
                     console.log('✅ Данные пользователя отображены');
                 }
 
-                // Инициализация при загрузке страницы
-                document.addEventListener('DOMContentLoaded', function () {
-                    console.log('📄 Страница загружена');
-
-                    // Назначаем обработчик на кнопку поиска
-                    const searchBtn = document.getElementById('search-button');
-                    const searchInput = document.getElementById('search-input');
-
-                    if (searchBtn && searchInput) {
-                        searchBtn.addEventListener('click', function () {
-                            handleMemberSearch(searchInput.value.trim());
-                        });
-
-                        // Поиск по Enter
-                        searchInput.addEventListener('keypress', function (e) {
-                            if (e.key === 'Enter') {
-                                handleMemberSearch(this.value.trim());
-                            }
-                        });
-
-                        console.log('✅ Обработчики поиска установлены');
-                    }
-
-                    // Фокус на поле ввода
-                    if (searchInput) {
-                        setTimeout(() => {
-                            searchInput.focus();
-                            console.log('🎯 Фокус на поле ввода');
-                        }, 500);
-                    }
-
-                    // Проверка URL параметров
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const memberNumber = urlParams.get('memberNumber');
-                    if (memberNumber) {
-                        console.log('🔗 Найден memberNumber в URL:', memberNumber);
-                        if (searchInput) searchInput.value = memberNumber;
-                        // Запускаем поиск с небольшой задержкой
-                        setTimeout(() => handleMemberSearch(memberNumber), 300);
-                    }
-
-                    // Обработчик для кнопки оплаты
-                    const paymentBtn = document.getElementById('payment-btn');
-                    if (paymentBtn) {
-                        paymentBtn.addEventListener('click', function () {
-                            const memberNum = document.getElementById('member-number').textContent;
-                            if (memberNum && memberNum !== '-') {
-                                // Здесь будет логика оплаты
-                                alert('Оплата для участника ' + memberNum);
-                                console.log('💳 Инициирована оплата для:', memberNum);
-                            } else {
-                                alert('Сначала найдите участника');
-                            }
-                        });
-                    }
-                });
-
-                // Если app.js загрузится, он может переопределить функции
-                document.addEventListener('appLoaded', function () {
-                    console.log('⚡ App.js загружен, функции могут быть переопределены');
-                });
             </script>
 </body>
 
