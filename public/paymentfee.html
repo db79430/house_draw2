@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,19 +11,19 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
             min-height: 100vh;
             font-family: 'Arial', sans-serif;
         }
-        
+
         .container {
             max-width: 500px;
             margin: 0 auto;
             padding: 20px;
         }
-        
+
         .form-wrapper {
             background: #ffffff;
             border-radius: 15px;
@@ -30,7 +31,7 @@
             border: 1px solid #e0f0e0;
             overflow: hidden;
         }
-        
+
         .data-row {
             display: flex;
             justify-content: space-between;
@@ -38,24 +39,24 @@
             padding: 12px 0;
             border-bottom: 1px solid #e8f5e8;
         }
-        
+
         .data-row:last-child {
             border-bottom: none;
         }
-        
+
         .data-label {
             font-weight: 600;
             color: #2d5016;
             flex: 1;
         }
-        
+
         .data-value {
             color: #4a7c2a;
             flex: 2;
             text-align: right;
             font-weight: 500;
         }
-        
+
         #payment-btn {
             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
@@ -70,20 +71,20 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
-        
+
         #payment-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
             background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%);
         }
-        
+
         #payment-btn:disabled {
             background: #cccccc;
             transform: none;
             box-shadow: none;
             cursor: not-allowed;
         }
-        
+
         .member-header {
             text-align: center;
             margin-bottom: 30px;
@@ -94,7 +95,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .member-header::before {
             content: '';
             position: absolute;
@@ -105,7 +106,7 @@
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.1"><path fill="white" d="M50 20L60 40H40L50 20Z M30 60L50 40L70 60L50 80Z"/></svg>');
             background-size: 80px;
         }
-        
+
         .search-section {
             text-align: center;
             padding: 50px 30px;
@@ -114,7 +115,7 @@
             margin: 20px;
             border: 2px dashed #c8e6c9;
         }
-        
+
         .search-input {
             padding: 15px;
             border: 2px solid #4CAF50;
@@ -125,13 +126,13 @@
             background: #ffffff;
             transition: all 0.3s ease;
         }
-        
+
         .search-input:focus {
             outline: none;
             border-color: #2E7D32;
             box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
         }
-        
+
         .search-btn {
             padding: 15px 30px;
             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
@@ -145,21 +146,21 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
-        
+
         .search-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
-        
+
         .section {
             display: none;
             animation: fadeIn 0.5s ease-in;
         }
-        
+
         .active {
             display: block;
         }
-        
+
         .success-badge {
             background: #4CAF50;
             color: white;
@@ -171,7 +172,7 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
         }
-        
+
         .loading-spinner {
             width: 60px;
             height: 60px;
@@ -185,29 +186,29 @@
         .formatted-input {
             transition: all 0.3s ease;
         }
-        
+
         .formatted-phone.phone-active {
             background-color: #f8fff8;
             border-color: #4CAF50;
             font-family: monospace;
             letter-spacing: 1px;
         }
-        
+
         .formatted-email.email-active {
             background-color: #f0f8ff;
             border-color: #2196F3;
         }
-        
+
         .formatted-email.email-error {
             border-color: #f44336;
             background-color: #fff8f8;
         }
-        
+
         .formatted-number {
             text-align: right;
             font-family: monospace;
         }
-        
+
         .phone-hint {
             font-size: 12px;
             color: #4a7c2a;
@@ -215,22 +216,34 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
+
         .input-wrapper {
             position: relative;
             margin-bottom: 20px;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
+
         .info-box {
             background: #e8f5e9;
             border-left: 4px solid #4CAF50;
@@ -238,23 +251,24 @@
             margin: 20px 0;
             border-radius: 8px;
         }
-        
+
         .house-icon {
             font-size: 48px;
             margin-bottom: 20px;
             display: block;
         }
-        
+
         .leaf-icon {
             color: #4CAF50;
             margin-right: 8px;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div id="payment-page" class="form-wrapper">
-            
+
             <!-- Блок загрузки -->
             <div id="loading-section" class="section active">
                 <div style="text-align: center; padding: 60px 20px;">
@@ -268,115 +282,118 @@
             <div id="search-section" class="section search-section">
                 <div class="house-icon">🏡</div>
                 <h3 style="color: #2d5016; margin-bottom: 15px;">Найдите ваш номер члена клуба</h3>
-                <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при регистрации</p>
-                
+                <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
+                    регистрации</p>
+
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
-                    <input type="text" 
-                           id="search-input" 
-                           data-format="auto" 
-                           placeholder="Email или телефон"
-                           class="search-input"
-                           autocomplete="email tel">
-                    <button onclick="findMemberNumber()" class="search-btn">
+                    <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
+                        class="search-input" autocomplete="email tel">
+                    <button onclick="findMemberByNumber()" class="search-btn">
                         🌿 Найти номер
                     </button>
                 </div>
 
-            <!-- Блок данных пользователя -->
-            <div id="user-section" class="section">
-                <div class="member-header">
-                    <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
-                    <h2 style="margin: 0 0 15px 0; font-size: 24px;">Добро пожаловать в наше сообщество!</h2>
-                    <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Ваш номер члена клуба:</div>
-                    <div id="member-number" style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">-</div>
-                </div>
-                
-                <div style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
-                    <h3 style="color: #2d5016; margin-bottom: 25px; border-bottom: 2px solid #4CAF50; padding-bottom: 12px; display: flex; align-items: center;">
-                        <span style="margin-right: 10px;">📋</span>Ваши данные
-                    </h3>
-                    
-                    <div class="data-row">
-                        <div class="data-label">👤 ФИО:</div>
-                        <div id="user-fullname" class="data-value">-</div>
+                <!-- Блок данных пользователя -->
+                <div id="user-section" class="section">
+                    <div class="member-header">
+                        <div class="success-badge">✅ РЕГИСТРАЦИЯ УСПЕШНА</div>
+                        <h2 style="margin: 0 0 15px 0; font-size: 24px;">Добро пожаловать в наше сообщество!</h2>
+                        <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Ваш номер члена клуба:</div>
+                        <div id="member-number"
+                            style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">
+                            -</div>
                     </div>
-                    
-                    <div class="data-row">
-                        <div class="data-label">📧 Email:</div>
-                        <div id="user-email" class="data-value">-</div>
+
+                    <div
+                        style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
+                        <h3
+                            style="color: #2d5016; margin-bottom: 25px; border-bottom: 2px solid #4CAF50; padding-bottom: 12px; display: flex; align-items: center;">
+                            <span style="margin-right: 10px;">📋</span>Ваши данные
+                        </h3>
+
+                        <div class="data-row">
+                            <div class="data-label">👤 ФИО:</div>
+                            <div id="user-fullname" class="data-value">-</div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">📧 Email:</div>
+                            <div id="user-email" class="data-value">-</div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">📞 Телефон:</div>
+                            <div id="user-phone" class="data-value">-</div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">🏙️ Город:</div>
+                            <div id="user-city" class="data-value">-</div>
+                        </div>
                     </div>
-                    
-                    <div class="data-row">
-                        <div class="data-label">📞 Телефон:</div>
-                        <div id="user-phone" class="data-value">-</div>
-                    </div>
-                    
-                    <div class="data-row">
-                        <div class="data-label">🏙️ Город:</div>
-                        <div id="user-city" class="data-value">-</div>
+
+                    <!-- Блок оплаты -->
+                    <div style="margin: 30px 20px; text-align: center;">
+                        <div
+                            style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
+                            <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
+                                🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос
+                            </p>
+                        </div>
+                        <button id="payment-btn">
+                            💳 Оплатить вступительный взнос
+                        </button>
                     </div>
                 </div>
 
-                <!-- Блок оплаты -->
-                <div style="margin: 30px 20px; text-align: center;">
-                    <div style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
-                        <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
-                            🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос
-                        </p>
-                    </div>
-                    <button id="payment-btn">
-                        💳 Оплатить вступительный взнос
-                    </button>
-                </div>
             </div>
-
         </div>
-    </div>
-    <script src="/js/app.js"></script>
-    
-    <!-- Инициализация при загрузке -->
-    <script>
-        // Проверка загрузки скриптов
-        console.log('🔍 Проверка загрузки скриптов...');
-        console.log('PhoneFormatter доступен:', typeof PhoneFormatter !== 'undefined');
-        console.log('InputFormatter доступен:', typeof InputFormatter !== 'undefined');
-        console.log('App функции доступны:', typeof findMemberNumber !== 'undefined');
-        
-        // Проверка, что все секции скрыты кроме нужной
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 Страница загружена');
-            
-            // Скрываем все секции кроме поиска
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(section => {
-                section.classList.remove('active');
+        <script src="/js/app.js"></script>
+
+        <!-- Инициализация при загрузке -->
+        <script>
+            // Проверка загрузки скриптов
+            console.log('🔍 Проверка загрузки скриптов...');
+            console.log('PhoneFormatter доступен:', typeof PhoneFormatter !== 'undefined');
+            console.log('InputFormatter доступен:', typeof InputFormatter !== 'undefined');
+            console.log('App функции доступны:', typeof findMemberNumber !== 'undefined');
+
+            // Проверка, что все секции скрыты кроме нужной
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('📄 Страница загружена');
+
+                // Скрываем все секции кроме поиска
+                const sections = document.querySelectorAll('.section');
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                // Показываем только поиск
+                const searchSection = document.getElementById('search-section');
+                if (searchSection) {
+                    searchSection.classList.add('active');
+                    console.log('✅ Показана секция поиска');
+                }
+
+                // Фокус на поле ввода
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    setTimeout(() => {
+                        searchInput.focus();
+                        console.log('🎯 Фокус на поле ввода');
+                    }, 500);
+                }
+
+                // Проверка URL параметров
+                const urlParams = new URLSearchParams(window.location.search);
+                const memberNumber = urlParams.get('memberNumber');
+                if (memberNumber) {
+                    console.log('🔗 Найден memberNumber в URL:', memberNumber);
+                    // Можно автоматически искать
+                    findMemberByNumber(memberNumber);
+                }
             });
-            
-            // Показываем только поиск
-            const searchSection = document.getElementById('search-section');
-            if (searchSection) {
-                searchSection.classList.add('active');
-                console.log('✅ Показана секция поиска');
-            }
-            
-            // Фокус на поле ввода
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                setTimeout(() => {
-                    searchInput.focus();
-                    console.log('🎯 Фокус на поле ввода');
-                }, 500);
-            }
-            
-            // Проверка URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            const memberNumber = urlParams.get('memberNumber');
-            if (memberNumber) {
-                console.log('🔗 Найден memberNumber в URL:', memberNumber);
-                // Можно автоматически искать
-                // findMemberByNumber(memberNumber);
-            }
-        });
-    </script>
+        </script>
 </body>
+
 </html>

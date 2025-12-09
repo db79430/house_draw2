@@ -1,11 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const crypto = require('crypto');
+import express, { json } from 'express';
+import cors from 'cors';
+import { post } from 'axios';
+import { createHash } from 'crypto';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 const CONFIG = {
   TERMINAL_KEY: '1761129018508DEMO',
@@ -14,6 +14,22 @@ const CONFIG = {
 };
 
 console.log('🔧 Server started with TerminalKey:', CONFIG.TERMINAL_KEY);
+
+window.findMemberNumber = function() {
+  console.log('⚠️ Функция вызвана до загрузки');
+  // Вызовем основную функцию, когда она будет готова
+  if (typeof findMemberNumber === 'function') {
+      return findMemberNumber();
+  }
+  alert('Приложение загружается, подождите...');
+};
+
+window.createPayment = function() {
+  if (typeof createPayment === 'function') {
+      return createPayment();
+  }
+  alert('Приложение загружается, подождите...');
+};
 
 // ✅ ГЕНЕРАЦИЯ OrderId ТОЛЬКО ИЗ ЦИФР
 function generateOrderId() {
@@ -63,7 +79,7 @@ function generateToken(paymentData) {
   console.log('🔐 Concatenated values:', values.replace(CONFIG.SECRET_KEY, '***' + CONFIG.SECRET_KEY.slice(-4)));
 
   // 5. Применяем SHA-256
-  const token = crypto.createHash('sha256')
+  const token = createHash('sha256')
     .update(values)
     .digest('hex');
 
@@ -110,7 +126,7 @@ app.post('/init-payment', async (req, res) => {
 
     console.log('📤 Final request to Tinkoff:', JSON.stringify(paymentData, null, 2));
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData, {
+    const response = await post(`${CONFIG.BASE_URL}Init`, paymentData, {
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json'
@@ -167,7 +183,7 @@ app.post('/init-minimal', async (req, res) => {
 
     console.log('📤 Minimal request:', paymentData);
 
-    const response = await axios.post(`${CONFIG.BASE_URL}Init`, paymentData);
+    const response = await post(`${CONFIG.BASE_URL}Init`, paymentData);
 
     res.json({
       request: paymentData,
