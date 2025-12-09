@@ -423,13 +423,13 @@
                 let paramValue = searchValue;
                 
                 // Нормализуем телефон
-                if (!isEmail) {
-                    paramValue = normalizePhone(searchValue);
+                // if (!isEmail) {
+                //     paramValue = normalizePhone(searchValue);
                     
-                    if (paramValue.length < 11) {
-                        throw new Error('Введите полный номер телефона (11 цифр)');
-                    }
-                }
+                //     if (paramValue.length < 11) {
+                //         throw new Error('Введите полный номер телефона (11 цифр)');
+                //     }
+                // }
                 
                 // Делаем запрос к API
                 const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
