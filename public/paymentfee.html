@@ -418,9 +418,9 @@
                 searchBtn.textContent = '🔍 Поиск...';
                 
                 // Определяем тип ввода
-                // const isEmail = searchValue.includes('@');
-                // const paramName = isEmail ? 'email' : 'phone';
-                // let paramValue = searchValue;
+                const isEmail = searchValue.includes('@');
+                const paramName = isEmail ? 'email' : 'phone';
+                let paramValue = searchValue;
                 
                 // Нормализуем телефон
                 // if (!isEmail) {
@@ -577,33 +577,33 @@
         }
 
         // Форматирование телефона при вводе
-        function setupPhoneFormatting() {
-            const searchInput = document.getElementById('search-input');
+        // function setupPhoneFormatting() {
+        //     const searchInput = document.getElementById('search-input');
             
-            if (!searchInput) return;
+        //     if (!searchInput) return;
             
-            searchInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
+        //     searchInput.addEventListener('input', function(e) {
+        //         let value = e.target.value.replace(/\D/g, '');
                 
-                if (value.startsWith('7') || value.startsWith('8')) {
-                    if (value.startsWith('8')) {
-                        value = '7' + value.substring(1);
-                    }
+        //         if (value.startsWith('7') || value.startsWith('8')) {
+        //             if (value.startsWith('8')) {
+        //                 value = '7' + value.substring(1);
+        //             }
                     
-                    if (value.length <= 1) {
-                        e.target.value = '+7';
-                    } else if (value.length <= 4) {
-                        e.target.value = `+7 (${value.substring(1, 4)}`;
-                    } else if (value.length <= 7) {
-                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}`;
-                    } else if (value.length <= 9) {
-                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}`;
-                    } else {
-                        e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}-${value.substring(9, 11)}`;
-                    }
-                }
-            });
-        }
+        //             if (value.length <= 1) {
+        //                 e.target.value = '+7';
+        //             } else if (value.length <= 4) {
+        //                 e.target.value = `+7 (${value.substring(1, 4)}`;
+        //             } else if (value.length <= 7) {
+        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}`;
+        //             } else if (value.length <= 9) {
+        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}`;
+        //             } else {
+        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}-${value.substring(9, 11)}`;
+        //             }
+        //         }
+        //     });
+        // }
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
