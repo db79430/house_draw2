@@ -281,7 +281,7 @@
                 <div class="house-icon">🏡</div>
                 <h3 style="color: #2d5016; margin-bottom: 15px;">Найдите ваш номер члена клуба</h3>
                 <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
-                    регистрации</p>
+                    регистрации. Для ввода по номеру телефона начинать ввод +7</p>
 
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
@@ -302,6 +302,7 @@
                         style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">
                         -</div>
                 </div>
+            
 
                 <div
                     style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
@@ -561,19 +562,19 @@
             
             const searchInput = document.getElementById('search-input');
             
-            if (memberNumber) {
-                console.log('Автопоиск по memberNumber:', memberNumber);
-                if (searchInput) searchInput.value = memberNumber;
-                // Можно добавить автоматический поиск
-                // setTimeout(() => searchMember(), 500);
+            // if (memberNumber) {
+            //     console.log('Автопоиск по memberNumber:', memberNumber);
+            //     // if (searchInput) searchInput.value = memberNumber;
+            //     // Можно добавить автоматический поиск
+            //     // setTimeout(() => searchMember(), 500);
                 
-            } else if (email || phone) {
-                if (searchInput) {
-                    searchInput.value = email || phone;
-                    console.log('Автопоиск по email/phone:', email || phone);
-                    // setTimeout(() => searchMember(), 500);
-                }
-            }
+            // } else if (email || phone) {
+            //     if (searchInput) {
+            //         searchInput.value = email || phone;
+            //         console.log('Автопоиск по email/phone:', email || phone);
+            //         // setTimeout(() => searchMember(), 500);
+            //     }
+            // }
         }
 
         // Форматирование телефона при вводе
