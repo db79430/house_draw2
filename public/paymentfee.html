@@ -279,7 +279,7 @@
             </div>
 
             <!-- Блок поиска -->
-            <div id="search-section" class="section search-section">
+            <div id="search-section" class="section search-section active">
                 <div class="house-icon">🏡</div>
                 <h3 style="color: #2d5016; margin-bottom: 15px;">Найдите ваш номер члена клуба</h3>
                 <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
@@ -288,7 +288,7 @@
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
                         class="search-input" autocomplete="email tel">
-                    <button onclick="findMemberByNumber()" class="search-btn">
+                    <button id="search-button" class="search-btn">
                         🌿 Найти номер
                     </button>
                 </div>
@@ -345,55 +345,140 @@
                         </button>
                     </div>
                 </div>
-
             </div>
-        </div>
-        <script src="/js/app.js"></script>
 
-        <!-- Инициализация при загрузке -->
-        <script>
-            // Проверка загрузки скриптов
-            console.log('🔍 Проверка загрузки скриптов...');
-            console.log('PhoneFormatter доступен:', typeof PhoneFormatter !== 'undefined');
-            console.log('InputFormatter доступен:', typeof InputFormatter !== 'undefined');
-            console.log('App функции доступны:', typeof findMemberNumber !== 'undefined');
+            <script src="/js/app.js"></script>
 
-            // Проверка, что все секции скрыты кроме нужной
-            document.addEventListener('DOMContentLoaded', function () {
-                console.log('📄 Страница загружена');
+            <!-- Инициализация при загрузке -->
+            <script>
+                // Полная реализация поиска прямо в HTML (не зависит от app.js)
+                async function handleMemberSearch(searchValue) {
+                    if (!searchValue) {
+                        alert('Пожалуйста, введите email или телефон');
+                        return;
+                    }
 
-                // Скрываем все секции кроме поиска
-                const sections = document.querySelectorAll('.section');
-                sections.forEach(section => {
-                    section.classList.remove('active');
+                    try {
+                        // Показываем загрузку
+                        const searchBtn = document.getElementById('search-button');
+                        const originalText = searchBtn.textContent;
+                        searchBtn.textContent = '🔍 Поиск...';
+                        searchBtn.disabled = true;
+
+                        // Делаем запрос
+                        console.log('🌐 Поиск участника:', searchValue);
+                        const response = await fetch(`/paymentfee?memberNumber=${encodeURIComponent(searchValue)}`);
+
+                        if (!response.ok) {
+                            throw new Error(`Ошибка сервера: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        console.log('📦 Ответ API:', data);
+
+                        if (data.success && data.user) {
+                            // Отображаем данные
+                            showUserData(data.user, searchValue);
+                            console.log('✅ Пользователь найден');
+                        } else {
+                            throw new Error(data.error || 'Пользователь не найден');
+                        }
+
+                    } catch (error) {
+                        console.error('❌ Ошибка поиска:', error);
+                        alert('Ошибка: ' + error.message);
+
+                    } finally {
+                        // Восстанавливаем кнопку
+                        const searchBtn = document.getElementById('search-button');
+                        searchBtn.textContent = '🌿 Найти номер';
+                        searchBtn.disabled = false;
+                    }
+                }
+
+                // Функция отображения данных
+                function showUserData(user, memberNumber) {
+                    // Заполняем данные пользователя
+                    document.getElementById('member-number').textContent = memberNumber;
+                    document.getElementById('user-fullname').textContent = user.fullname || user.name || 'Не указано';
+                    document.getElementById('user-email').textContent = user.email || 'Не указано';
+                    document.getElementById('user-phone').textContent = user.phone || 'Не указано';
+                    document.getElementById('user-city').textContent = user.city || 'Не указано';
+
+                    // Показываем секцию с данными
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('user-section').classList.add('active');
+
+                    // Обновляем URL
+                    const url = new URL(window.location);
+                    url.searchParams.set('memberNumber', memberNumber);
+                    window.history.pushState({}, '', url);
+
+                    console.log('✅ Данные пользователя отображены');
+                }
+
+                // Инициализация при загрузке страницы
+                document.addEventListener('DOMContentLoaded', function () {
+                    console.log('📄 Страница загружена');
+
+                    // Назначаем обработчик на кнопку поиска
+                    const searchBtn = document.getElementById('search-button');
+                    const searchInput = document.getElementById('search-input');
+
+                    if (searchBtn && searchInput) {
+                        searchBtn.addEventListener('click', function () {
+                            handleMemberSearch(searchInput.value.trim());
+                        });
+
+                        // Поиск по Enter
+                        searchInput.addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') {
+                                handleMemberSearch(this.value.trim());
+                            }
+                        });
+
+                        console.log('✅ Обработчики поиска установлены');
+                    }
+
+                    // Фокус на поле ввода
+                    if (searchInput) {
+                        setTimeout(() => {
+                            searchInput.focus();
+                            console.log('🎯 Фокус на поле ввода');
+                        }, 500);
+                    }
+
+                    // Проверка URL параметров
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const memberNumber = urlParams.get('memberNumber');
+                    if (memberNumber) {
+                        console.log('🔗 Найден memberNumber в URL:', memberNumber);
+                        if (searchInput) searchInput.value = memberNumber;
+                        // Запускаем поиск с небольшой задержкой
+                        setTimeout(() => handleMemberSearch(memberNumber), 300);
+                    }
+
+                    // Обработчик для кнопки оплаты
+                    const paymentBtn = document.getElementById('payment-btn');
+                    if (paymentBtn) {
+                        paymentBtn.addEventListener('click', function () {
+                            const memberNum = document.getElementById('member-number').textContent;
+                            if (memberNum && memberNum !== '-') {
+                                // Здесь будет логика оплаты
+                                alert('Оплата для участника ' + memberNum);
+                                console.log('💳 Инициирована оплата для:', memberNum);
+                            } else {
+                                alert('Сначала найдите участника');
+                            }
+                        });
+                    }
                 });
 
-                // Показываем только поиск
-                const searchSection = document.getElementById('search-section');
-                if (searchSection) {
-                    searchSection.classList.add('active');
-                    console.log('✅ Показана секция поиска');
-                }
-
-                // Фокус на поле ввода
-                const searchInput = document.getElementById('search-input');
-                if (searchInput) {
-                    setTimeout(() => {
-                        searchInput.focus();
-                        console.log('🎯 Фокус на поле ввода');
-                    }, 500);
-                }
-
-                // Проверка URL параметров
-                const urlParams = new URLSearchParams(window.location.search);
-                const memberNumber = urlParams.get('memberNumber');
-                if (memberNumber) {
-                    console.log('🔗 Найден memberNumber в URL:', memberNumber);
-                    // Можно автоматически искать
-                    findMemberByNumber(memberNumber);
-                }
-            });
-        </script>
+                // Если app.js загрузится, он может переопределить функции
+                document.addEventListener('appLoaded', function () {
+                    console.log('⚡ App.js загружен, функции могут быть переопределены');
+                });
+            </script>
 </body>
 
 </html>

@@ -17,11 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeApp() {
     const searchInput = document.getElementById('search-input');
     const paymentBtn = document.getElementById('payment-btn');
+    const searchBtn = document.getElementById('search-button'); // Добавлено: поиск кнопки по ID
     
     // Проверяем элементы
     console.log('🔍 Elements found:', {
         searchInput: !!searchInput,
-        paymentBtn: !!paymentBtn
+        paymentBtn: !!paymentBtn,
+        searchBtn: !!searchBtn
     });
     
     if (searchInput) {
@@ -46,6 +48,16 @@ function initializeApp() {
         }, 500);
     } else {
         console.error('❌ Не найден элемент search-input');
+    }
+    
+    // Обработчик для кнопки поиска
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function(e) {
+            console.log('🔍 Кнопка поиска нажата');
+            findMemberNumber();
+        });
+    } else {
+        console.warn('⚠️ Не найден элемент search-button (кнопка поиска)');
     }
     
     if (paymentBtn) {
@@ -104,14 +116,21 @@ function checkUrlParameters() {
     if (memberNumber) {
         // Если есть memberNumber в URL, сразу используем его
         console.log('🔍 Автопоиск по memberNumber:', memberNumber);
-        findMemberByNumber(memberNumber);
+        if (typeof findMemberByNumber === 'function') {
+            findMemberByNumber(memberNumber);
+        } else {
+            console.warn('⚠️ findMemberByNumber не определена');
+            if (searchInput) searchInput.value = memberNumber;
+        }
     } else if (email || phone) {
         // Если есть email или телефон, заполняем поле и ищем
         if (searchInput) {
             searchInput.value = email || phone;
             console.log('🔍 Автопоиск по email/phone:', email || phone);
             setTimeout(() => {
-                findMemberNumber();
+                if (typeof findMemberNumber === 'function') {
+                    findMemberNumber();
+                }
             }, 500);
         }
     }
@@ -154,7 +173,7 @@ function isPhone(value) {
     );
 }
 
-// Поиск номера члена клуба
+// Поиск номера члена клуба - ВЕРНУЛ оригинальный endpoint /get-member-number
 async function findMemberNumber() {
     const searchInput = document.getElementById('search-input');
     let searchValue = searchInput.value.trim();
@@ -163,7 +182,7 @@ async function findMemberNumber() {
     
     if (!searchValue) {
         alert('Пожалуйста, введите email или телефон');
-        searchInput.focus();
+        if (searchInput) searchInput.focus();
         return;
     }
     
@@ -186,6 +205,7 @@ async function findMemberNumber() {
             }
         }
         
+        // ✅ Используем существующий endpoint /get-member-number
         const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
         console.log('🌐 Запрос к API:', url);
         
@@ -216,7 +236,7 @@ async function findMemberNumber() {
     } catch (error) {
         console.error('❌ Ошибка поиска:', error);
         alert('Ошибка: ' + error.message);
-        searchInput.focus();
+        if (searchInput) searchInput.focus();
         
     } finally {
         showLoading(false);
@@ -232,7 +252,8 @@ async function findMemberByNumber(memberNumber) {
     try {
         showLoading(true);
         
-        const url = `${API_BASE}/api/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
+        // ✅ Используем существующий endpoint /api/paymentfee?memberNumber=
+        const url = `${API_BASE}/paymentfee?memberNumber=${encodeURIComponent(memberNumber)}`;
         console.log('🌐 Запрос к API:', url);
         
         const response = await fetch(url);
@@ -251,7 +272,7 @@ async function findMemberByNumber(memberNumber) {
             
             // Отображаем данные
             document.getElementById('member-number').textContent = memberNumber;
-            document.getElementById('user-fullname').textContent = data.user?.name || 'Не указано';
+            document.getElementById('user-fullname').textContent = data.user?.fullname || data.user?.name || 'Не указано';
             document.getElementById('user-email').textContent = data.user?.email || 'Не указано';
             document.getElementById('user-phone').textContent = data.user?.phone || 'Не указано';
             document.getElementById('user-city').textContent = data.user?.city || 'Не указано';
@@ -276,10 +297,10 @@ async function findMemberByNumber(memberNumber) {
 
 // Отображение данных пользователя
 function displayUserData(data) {
-    const userData = data.userData || {};
+    const userData = data.userData || data.user || {};
     
     document.getElementById('member-number').textContent = data.memberNumber || 'Не указан';
-    document.getElementById('user-fullname').textContent = userData.name || 'Не указано';
+    document.getElementById('user-fullname').textContent = userData.fullname || userData.name || 'Не указано';
     document.getElementById('user-email').textContent = userData.email || 'Не указано';
     document.getElementById('user-phone').textContent = userData.phone || 'Не указано';
     document.getElementById('user-city').textContent = userData.city || 'Не указано';
@@ -290,7 +311,7 @@ function displayUserData(data) {
     
     console.log('✅ Данные пользователя отображены:', {
         memberNumber: data.memberNumber,
-        name: userData.name
+        name: userData.fullname || userData.name
     });
 }
 
@@ -313,6 +334,11 @@ async function createPayment() {
     }
     
     const paymentBtn = document.getElementById('payment-btn');
+    if (!paymentBtn) {
+        console.error('❌ Кнопка оплаты не найдена');
+        return;
+    }
+    
     const originalText = paymentBtn.textContent;
     
     try {
@@ -322,6 +348,7 @@ async function createPayment() {
         
         console.log('💳 Создание платежа для:', AppState.currentMemberNumber);
         
+        // ✅ Используем существующий endpoint /create-payment
         const response = await fetch(`${API_BASE}/create-payment`, {
             method: 'POST',
             headers: {
@@ -400,11 +427,39 @@ function showLoading(show) {
         }
     } else {
         console.warn('⚠️  Не найден элемент loading-section');
+        // Создаем временный индикатор загрузки
+        if (show) {
+            const tempLoader = document.createElement('div');
+            tempLoader.id = 'temp-loader';
+            tempLoader.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255,255,255,0.9);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+            tempLoader.innerHTML = `
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 20px; color: #2d5016;">Загрузка...</p>
+            `;
+            document.body.appendChild(tempLoader);
+        } else {
+            const tempLoader = document.getElementById('temp-loader');
+            if (tempLoader) {
+                tempLoader.remove();
+            }
+        }
     }
 }
 
 // Делаем функции глобальными для onclick
 window.findMemberNumber = findMemberNumber;
+window.findMemberByNumber = findMemberByNumber; // ✅ Добавлено для глобального доступа
 window.createPayment = createPayment;
 
 // Добавляем базовые стили
@@ -439,3 +494,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
     console.log('🎨 Стили добавлены');
 });
+
+// Создаем событие о загрузке приложения
+setTimeout(() => {
+    const event = new Event('appLoaded');
+    document.dispatchEvent(event);
+    console.log('⚡ Событие appLoaded отправлено');
+}, 1000);
