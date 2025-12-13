@@ -47,7 +47,7 @@ class SlotService {
                 TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
                 Amount: amount,
                 OrderId: orderId,
-                Description: `Покупка ${slotCount} слота (ов). Член клуба: ${user.membership_number || 'Не указан'}`,
+                Description: `Покупка ${slotCount} слота (ов). № пайщика: ${user.membership_number || 'Не указан'}`,
                 NotificationURL: `${CONFIG.APP.BASE_URL}/payment-notification`,
                 DATA: {
                     Email: user.email || '',

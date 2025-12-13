@@ -418,7 +418,7 @@ class EmailService {
               <p><strong>Количество слотов:</strong> ${slots.length}</p>
               <p><strong>Сумма:</strong> ${purchaseData.amount / 100} руб.</p>
               <p><strong>Номера слотов:</strong> ${slotNumbers}</p>
-              ${user.membership_number ? `<p><strong>Ваш номер индивидуальный номер:</strong> ${user.membership_number}</p>` : ''}
+              ${user.membership_number ? `<p><strong>Ваш индивидуальный номер:</strong> ${user.membership_number}</p>` : ''}
             </div>
             
             <p>Спасибо за вашу покупку! Ваши слоты уже активны в вашем личном кабинете.</p>
