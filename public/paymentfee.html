@@ -226,6 +226,7 @@
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
@@ -236,6 +237,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -283,9 +285,10 @@
                 <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
                     регистрации. </p>
                 <div>
-                    <p style="color: #a3a3a3; margin-bottom: 25px;">Для ввода по номеру телефона, введите номер, начиная +7, без скобочек и тире</p>
+                    <p style="color: #a3a3a3; margin-bottom: 25px;">Для ввода по номеру телефона, введите номер, начиная
+                        +7, без скобочек и тире</p>
                 </div>
-                
+
 
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
@@ -306,7 +309,7 @@
                         style="font-size: 32px; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);">
                         -</div>
                 </div>
-            
+
 
                 <div
                     style="background: white; padding: 30px 25px; margin: 0 20px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1); border: 1px solid #e8f5e8;">
@@ -345,32 +348,33 @@
                         </p>
                     </div>
                     <div style="margin-top: 20px;">
-                        <a href="/utils/documents/payment-terms.pdf" 
-                           target="_blank" 
-                           style="color: #2d5016; text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 20px; background: white; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid #c8e6c9; transition: all 0.3s;"
-                           onmouseover="this.style.boxShadow='0 4px 12px rgba(56, 142, 60, 0.2)'; this.style.transform='translateY(-2px)'"
-                           onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)'">
+                        <a href="https://docs.google.com/document/d/1wLgKHXzr8-lr_VlpJQjwDMOeUKyMLmU7/edit"
+                            target="_blank"
+                            style="color: #2d5016; text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 20px; background: white; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid #c8e6c9; transition: all 0.3s;"
+                            onmouseover="this.style.boxShadow='0 4px 12px rgba(56, 142, 60, 0.2)'; this.style.transform='translateY(-2px)'"
+                            onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)'">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="#2d5016">
-                                <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                <path
+                                    d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                             </svg>
                             📄 Ознакомиться с правилами оплаты
                         </a>
                     </div>
-                </div>
-                <div>
-                    <button id="payment-btn">
-                        💳 Оплатить вступительный взнос
-                    </button>
-                </div>
+                    <div>
+                        <button id="payment-btn">
+                            💳 Оплатить вступительный взнос
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <script>
         // Глобальные переменные
         const API_BASE = window.location.origin;
-        
+
         // Состояние приложения
         const AppState = {
             currentUser: null,
@@ -382,7 +386,7 @@
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
-            
+
             const section = document.getElementById(sectionId);
             if (section) {
                 section.classList.add('active');
@@ -402,21 +406,21 @@
         // Нормализация телефона
         function normalizePhone(phone) {
             if (!phone) return '';
-            
+
             let clean = phone.replace(/\D/g, '');
-            
+
             if (clean.startsWith('8') && clean.length >= 11) {
                 clean = '7' + clean.substring(1);
             }
-            
+
             if (clean.startsWith('7') && clean.length === 11) {
                 return clean;
             }
-            
+
             if (clean.length === 10 && !clean.startsWith('7')) {
                 return '7' + clean;
             }
-            
+
             return clean;
         }
 
@@ -424,39 +428,39 @@
         async function searchMember() {
             const searchInput = document.getElementById('search-input');
             const searchValue = searchInput.value.trim();
-            
+
             if (!searchValue) {
                 alert('Пожалуйста, введите email или телефон');
                 searchInput.focus();
                 return;
             }
-            
+
             try {
                 showLoading(true);
                 const searchBtn = document.getElementById('search-button');
                 searchBtn.disabled = true;
                 searchBtn.textContent = '🔍 Поиск...';
-                
+
                 // Определяем тип ввода
                 const isEmail = searchValue.includes('@');
                 const paramName = isEmail ? 'email' : 'phone';
                 let paramValue = searchValue;
-                
+
                 // Нормализуем телефон
                 // if (!isEmail) {
                 //     paramValue = normalizePhone(searchValue);
-                    
+
                 //     if (paramValue.length < 11) {
                 //         throw new Error('Введите полный номер телефона (11 цифр)');
                 //     }
                 // }
-                
+
                 // Делаем запрос к API
                 const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
                 console.log('Запрос к API:', url);
-                
+
                 const response = await fetch(url);
-                
+
                 // Проверяем ответ
                 if (!response.ok) {
                     const text = await response.text();
@@ -465,31 +469,31 @@
                     }
                     throw new Error(`Ошибка сервера: ${response.status}`);
                 }
-                
+
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     throw new Error('Сервер вернул неверный формат');
                 }
-                
+
                 const data = await response.json();
                 console.log('Ответ API:', data);
-                
+
                 if (data.success) {
                     // Сохраняем данные
                     AppState.currentUser = data.userData || data.user || {};
                     AppState.currentMemberNumber = data.memberNumber || searchValue;
-                    
+
                     // Отображаем данные
                     displayUserData(AppState.currentUser, AppState.currentMemberNumber);
                 } else {
                     throw new Error(data.error || 'Пользователь не найден');
                 }
-                
+
             } catch (error) {
                 console.error('Ошибка поиска:', error);
                 alert('Ошибка: ' + error.message);
                 searchInput.focus();
-                
+
             } finally {
                 showLoading(false);
                 const searchBtn = document.getElementById('search-button');
@@ -508,10 +512,10 @@
             document.getElementById('user-email').textContent = user.email || 'Не указано';
             document.getElementById('user-phone').textContent = user.phone || 'Не указано';
             document.getElementById('user-city').textContent = user.city || 'Не указано';
-            
+
             // Показываем секцию с данными
             showSection('user-section');
-            
+
             // Обновляем URL
             const url = new URL(window.location);
             url.searchParams.set('memberNumber', memberNumber);
@@ -523,17 +527,17 @@
             if (!AppState.currentMemberNumber) {
                 return;
             }
-            
+
             const paymentBtn = document.getElementById('payment-btn');
             const originalText = paymentBtn.textContent;
-            
+
             try {
                 paymentBtn.disabled = true;
                 paymentBtn.textContent = 'Создание платежа...';
                 showLoading(true);
-                
+
                 console.log('Создание платежа для:', AppState.currentMemberNumber);
-                
+
                 const response = await fetch(`${API_BASE}/create-payment`, {
                     method: 'POST',
                     headers: {
@@ -544,13 +548,13 @@
                         userData: AppState.currentUser
                     })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Ошибка сервера: ${response.status}`);
                 }
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.paymentUrl) {
                     setTimeout(() => {
                         window.location.href = result.paymentUrl;
@@ -558,13 +562,13 @@
                 } else {
                     throw new Error(result.error || 'Неизвестная ошибка');
                 }
-                
+
             } catch (error) {
                 console.error('Ошибка создания платежа:', error);
                 alert('Ошибка: ' + error.message);
                 paymentBtn.disabled = false;
                 paymentBtn.textContent = originalText;
-                
+
             } finally {
                 showLoading(false);
             }
@@ -576,15 +580,15 @@
             const memberNumber = urlParams.get('memberNumber');
             const email = urlParams.get('email');
             const phone = urlParams.get('phone');
-            
+
             const searchInput = document.getElementById('search-input');
-            
+
             // if (memberNumber) {
             //     console.log('Автопоиск по memberNumber:', memberNumber);
             //     // if (searchInput) searchInput.value = memberNumber;
             //     // Можно добавить автоматический поиск
             //     // setTimeout(() => searchMember(), 500);
-                
+
             // } else if (email || phone) {
             //     if (searchInput) {
             //         searchInput.value = email || phone;
@@ -597,17 +601,17 @@
         // Форматирование телефона при вводе
         // function setupPhoneFormatting() {
         //     const searchInput = document.getElementById('search-input');
-            
+
         //     if (!searchInput) return;
-            
+
         //     searchInput.addEventListener('input', function(e) {
         //         let value = e.target.value.replace(/\D/g, '');
-                
+
         //         if (value.startsWith('7') || value.startsWith('8')) {
         //             if (value.startsWith('8')) {
         //                 value = '7' + value.substring(1);
         //             }
-                    
+
         //             if (value.length <= 1) {
         //                 e.target.value = '+7';
         //             } else if (value.length <= 4) {
@@ -624,42 +628,42 @@
         // }
 
         // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Страница загружена');
-            
+
             // Инициализация элементов
             const searchBtn = document.getElementById('search-button');
             const searchInput = document.getElementById('search-input');
             const paymentBtn = document.getElementById('payment-btn');
-            
+
             // Настройка обработчиков
             if (searchBtn && searchInput) {
                 searchBtn.addEventListener('click', searchMember);
-                
+
                 // Поиск по Enter
-                searchInput.addEventListener('keypress', function(e) {
+                searchInput.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
                         searchMember();
                     }
                 });
-                
+
                 // // Форматирование телефона
                 // setupPhoneFormatting();
-                
+
                 // Фокус на поле ввода
                 setTimeout(() => {
                     searchInput.focus();
                 }, 500);
             }
-            
+
             // Обработчик кнопки оплаты
             if (paymentBtn) {
                 paymentBtn.addEventListener('click', createPayment);
             }
-            
+
             // Проверка URL параметров
             checkUrlParams();
-            
+
             // Скрываем загрузку через 1 секунду (на всякий случай)
             setTimeout(() => {
                 showLoading(false);
@@ -667,4 +671,5 @@
         });
     </script>
 </body>
+
 </html>
