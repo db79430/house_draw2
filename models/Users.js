@@ -221,6 +221,7 @@ class User {
           fullname,
           email,
           phone,
+          city,
           login,
           membership_number,
           membership_status,

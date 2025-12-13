@@ -209,7 +209,7 @@ app.get('/api/paymentfee', async (req, res) => {
       console.log('🔍 Поиск по memberNumber:', memberNumber);
       
       // Здесь ваш код поиска в БД
-      const user = await findUserByMemberNumber(memberNumber);
+      const user = await User.findByMembershipNumber(memberNumber);
       
       if (user) {
         return res.json({
@@ -235,7 +235,7 @@ app.get('/api/paymentfee', async (req, res) => {
     if (email) {
       console.log('🔍 Поиск по email:', email);
       
-      const user = await findUserByEmail(email);
+      const user = await User.findByEmail(email);
       
       if (user) {
         return res.json({
@@ -257,7 +257,7 @@ app.get('/api/paymentfee', async (req, res) => {
     if (phone) {
       console.log('🔍 Поиск по phone:', phone);
       
-      const user = await findUserByPhone(phone);
+      const user = await User.findByPhone(phone);
       
       if (user) {
         return res.json({
@@ -377,72 +377,99 @@ app.post('/test-webhook', (req, res) => {
 // });
 
 app.get('/get-member-number', async (req, res) => {
+  console.log('🔍 GET MEMBER NUMBER REQUEST:', req.query);
+  
+  // Получаем параметры
+  let { email, phone } = req.query;
+  
+  // ✅ ФИКС: Игнорируем строку 'undefined'
+  if (email === 'undefined') email = undefined;
+  if (phone === 'undefined') phone = undefined;
+  
+  // Если оба параметра undefined, возвращаем ошибку
+  if (!email && !phone) {
+      return res.json({
+          success: false,
+          error: 'Не указаны email или телефон'
+      });
+  }
+  
   try {
-    const { email, phone } = req.query;
-    
-    console.log('🔍 GET MEMBER NUMBER REQUEST:', { 
-      email: email || 'undefined', 
-      phone: phone || 'undefined' 
-    });
-    
-    if (!email && !phone) {
-      return res.status(400).json({
-        success: false,
-        error: 'Укажите email или телефон'
-      });
-    }
-    
-    const user = await User.findUserByEmailOrPhone(email, phone);
-    
-    if (user) {
-      // Пробуем разные варианты названия поля member number
-      const memberNumber = user.member_number || 
-                          user.membership_number || 
-                          user.memberNumber || 
-                          user.member_id ||
-                          `USER${user.id}`;
+      let user = null;
+      let searchType = '';
       
-      console.log('✅ User found:', {
-        id: user.id,
-        email: user.email,
-        memberNumber: memberNumber
-      });
-      
-      // Сохраняем в сессии безопасно
-      if (req.session) {
-        req.session.memberNumber = memberNumber;
-        req.session.userData = {
-          name: user.name || user.fullname || user.first_name + ' ' + user.last_name,
-          email: user.email,
-          phone: user.phone,
-          city: user.city || user.location
-        };
-        console.log('💾 Session updated with memberNumber:', memberNumber);
+      // 1. Поиск по email
+      if (email && email !== 'undefined') {
+          searchType = 'email';
+          console.log(`🔍 Поиск по ${searchType}:`, email);
+          
+          // Нормализуем email (нижний регистр)
+          const normalizedEmail = email.toLowerCase().trim();
+          user = await pool.query(
+              'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1',
+              [normalizedEmail]
+          ).then(result => result.rows[0]);
       }
       
-      res.json({
-        success: true,
-        memberNumber: memberNumber,
-        userData: {
-          name: user.name || user.fullname || user.first_name + ' ' + user.last_name,
-          email: user.email,
-          phone: user.phone,
-          city: user.city || user.location
-        }
+      // 2. Поиск по телефону
+      if (!user && phone && phone !== 'undefined') {
+          searchType = 'phone';
+          console.log(`🔍 Поиск по ${searchType}:`, phone);
+          
+          // Нормализуем телефон
+          const cleanPhone = phone.replace(/\D/g, '');
+          console.log('📱 Нормализованный телефон:', cleanPhone);
+          
+          // Ищем в нескольких форматах
+          user = await pool.query(`
+              SELECT * FROM users 
+              WHERE 
+                  REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), '(', ''), ')', ''), ' ', '') = $1
+                  OR phone LIKE $2
+                  OR phone LIKE $3
+              LIMIT 1
+          `, [
+              cleanPhone,
+              `%${cleanPhone}%`,
+              `%${cleanPhone.substring(cleanPhone.length - 10)}%`
+          ]).then(result => result.rows[0]);
+      }
+      
+      // 3. Если нашли пользователя
+      if (user) {
+          console.log('✅ Найден пользователь:', {
+              id: user.id,
+              email: user.email,
+              phone: user.phone
+          });
+          
+          return res.json({
+              success: true,
+              memberNumber: user.membership_number || `USER${user.id}`,
+              userData: {
+                  id: user.id,
+                  name: user.fullname,
+                  email: user.email,
+                  phone: user.phone,
+                  city: user.city,
+                  payment_status: user.payment_status
+              }
+          });
+      }
+      
+      // 4. Если не нашли
+      console.log('❌ Пользователь не найден. Параметры:', { email, phone });
+      return res.json({
+          success: false,
+          error: 'Пользователь не найден. Проверьте введенные данные.'
       });
-    } else {
-      console.log('❌ User not found');
-      res.json({ 
-        success: false, 
-        error: 'Пользователь не найден. Проверьте email или телефон.' 
-      });
-    }
+      
   } catch (error) {
-    console.error('Error in get-member-number:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Ошибка сервера: ' + error.message 
-    });
+      console.error('❌ Ошибка сервера:', error);
+      return res.status(500).json({
+          success: false,
+          error: 'Внутренняя ошибка сервера'
+      });
   }
 });
 
@@ -501,13 +528,13 @@ console.log('   All env variables:', Object.keys(process.env).filter(key =>
   key.includes('YANDEX') || key.includes('EMAIL') || key.includes('APP')
 ))
 
-app.use((req, res, next) => {
-  console.log('📋 Session Check:');
-  console.log('   Session ID:', req.sessionID);
-  console.log('   Has session object:', !!req.session);
-  console.log('   Session keys:', req.session ? Object.keys(req.session) : 'No session');
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('📋 Session Check:');
+//   console.log('   Session ID:', req.sessionID);
+//   console.log('   Has session object:', !!req.session);
+//   console.log('   Session keys:', req.session ? Object.keys(req.session) : 'No session');
+//   next();
+// });
 
 // Start server
 async function startServer() {
