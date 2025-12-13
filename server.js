@@ -311,6 +311,11 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+
+app.get('/payment/success', (req, res) => { 
+  res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
+});
+
 app.post('/purchase', authenticateToken, (req, res) =>
   slotController.purchase(req, res)
 );

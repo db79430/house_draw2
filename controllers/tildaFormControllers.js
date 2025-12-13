@@ -225,7 +225,7 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         userId: user.id,
         amount: paymentResult.amount,
         tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: `Вступительный взнос в клуб (Член клуба: ${memberNumber})`,
+        description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
         status: 'pending',
         memberNumber: memberNumber,
         payment_url: paymentResult.paymentUrl
@@ -474,7 +474,7 @@ async sendWelcomeEmailNumber(user, memberNumber) {
       TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
       Amount: amount,
       OrderId: orderId,
-      Description: `Вступительный взнос в клуб. Член клуба: ${memberNumber}`,
+      Description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
       NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
       DATA: {
         Email: user.email,
