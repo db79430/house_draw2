@@ -4,67 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оплата прошла успешно</title>
-    <!-- УДАЛИТЕ meta CSP - проблема в серверных заголовках -->
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f9ff; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); max-width: 500px; width: 100%;">
-        <div style="color: #4CAF50; font-size: 60px; margin-bottom: 20px; animation: pulse 2s infinite;">✓</div>
-        <h1 style="color: #2E7D32; margin-bottom: 20px;">Оплата прошла успешно!</h1>
+<body style="font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+
+    <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15); max-width: 500px; width: 90%; margin: 20px; border: 2px solid #e8f5e9;">
         
-        <!-- Детали платежа (заполняются JavaScript) -->
-        <div style="margin: 25px 0; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50;">
-            <p style="margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee;">
-                <strong>Сумма:</strong> 
-                <span id="amount" style="float: right; color: #2E7D32; font-weight: bold;">Загрузка...</span>
-            </p>
-            <p style="margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee;">
-                <strong>Номер платежа:</strong> 
-                <span id="paymentId" style="float: right; font-family: monospace; color: #2196F3;">Загрузка...</span>
-            </p>
-            <p style="margin: 10px 0; padding: 8px 0;">
-                <strong>Ваш номер участника:</strong> 
-                <span id="memberNumber" style="float: right; font-weight: bold; color: #ff9800;">Загрузка...</span>
-            </p>
+        <!-- Зеленая иконка успеха -->
+        <div style="width: 80px; height: 80px; background: #4CAF50; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
         </div>
         
-        <!-- Дополнительная информация из платежа -->
-        <div id="additionalInfo" style="display: none; margin: 20px 0; font-size: 14px; color: #666; text-align: left; background: #e8f5e8; padding: 15px; border-radius: 5px; border: 1px solid #c8e6c9;">
-            <p style="margin: 5px 0;"><strong>Дата:</strong> <span id="paymentDate">-</span></p>
-            <p style="margin: 5px 0;"><strong>Статус:</strong> <span id="paymentStatus">-</span></p>
-            <p style="margin: 5px 0;"><strong>Email для чека:</strong> <span id="customerEmail">-</span></p>
-        </div>
+        <!-- Заголовок -->
+        <h1 style="color: #2E7D32; text-align: center; margin-bottom: 10px; font-size: 28px; font-weight: 700;">
+            Оплата прошла успешно!
+        </h1>
         
-        <p style="margin: 25px 0; color: #555; line-height: 1.5;">
-            ✅ Ваш вступительный взнос успешно оплачен.<br>
-            Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.
+        <p style="color: #558b2f; text-align: center; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
+            Ваш вступительный взнос успешно оплачен. Данные для входа будут отправлены на ваш email.
         </p>
         
-        <div style="margin: 30px 0; padding: 15px; background: #e3f2fd; border-radius: 8px; color: #1565c0;">
-            ⏳ Перенаправление на страницу авторизации через 
-            <span id="countdown" style="font-weight: bold; font-size: 18px;">5</span> секунд...
+        <!-- Детали платежа -->
+        <div style="background: #f8faf8; border-radius: 12px; padding: 25px; margin-bottom: 30px; border: 2px solid #e0f2e1;">
+            <h2 style="color: #388e3c; margin-top: 0; margin-bottom: 20px; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#388e3c">
+                    <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+                </svg>
+                Детали платежа
+            </h2>
+            
+            <div style="display: grid; gap: 15px;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;">
+                    <span style="color: #558b2f; font-weight: 600;">Сумма:</span>
+                    <span id="amount" style="color: #2E7D32; font-weight: 700; font-size: 18px;">Загрузка...</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;">
+                    <span style="color: #558b2f; font-weight: 600;">Номер платежа:</span>
+                    <span id="paymentId" style="color: #1565c0; font-family: monospace; font-weight: 600;">Загрузка...</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #558b2f; font-weight: 600;">Ваш номер участника:</span>
+                    <span id="memberNumber" style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px;">Загрузка...</span>
+                </div>
+            </div>
         </div>
         
-        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-            <a href="https://npkvdv.ru/auth" style="background: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; transition: all 0.3s;">
-                Войти в личный кабинет
+        <!-- Дополнительная информация -->
+        <div id="additionalInfo" style="display: none; background: #e8f5e8; border-radius: 10px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #66bb6a;">
+            <h3 style="color: #388e3c; margin-top: 0; margin-bottom: 15px; font-size: 16px;">Дополнительная информация</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <div style="color: #558b2f; font-size: 14px;">Дата:</div>
+                    <div id="paymentDate" style="color: #2E7D32; font-weight: 600;">-</div>
+                </div>
+                <div>
+                    <div style="color: #558b2f; font-size: 14px;">Статус:</div>
+                    <div id="paymentStatus" style="color: #2E7D32; font-weight: 600;">-</div>
+                </div>
+                <div style="grid-column: span 2;">
+                    <div style="color: #558b2f; font-size: 14px;">Email для чека:</div>
+                    <div id="customerEmail" style="color: #2E7D32; font-weight: 600; word-break: break-all;">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Информационное сообщение -->
+        <div style="background: #e8f5e8; border-radius: 10px; padding: 18px; margin-bottom: 30px; text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 10px; color: #2E7D32;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#2E7D32">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span style="font-weight: 600;">Данные для входа будут отправлены в течение 10-15 минут</span>
+            </div>
+        </div>
+        
+        <!-- Кнопки действий -->
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <a href="https://npkvdv.ru/auth" style="background: linear-gradient(135deg, #4CAF50 0%, #388e3c 100%); color: white; padding: 18px; text-decoration: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 16px; border: none; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);">
+                <div style="display: inline-flex; align-items: center; gap: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                        <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
+                    </svg>
+                    Войти в личный кабинет
+                </div>
             </a>
-            <button onclick="printReceipt()" style="background: #f5f5f5; color: #333; padding: 15px 30px; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; transition: all 0.3s;">
+            
+            <button onclick="printReceipt()" style="background: white; color: #388e3c; padding: 16px; border: 2px solid #c8e6c9; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#388e3c">
+                    <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/>
+                </svg>
                 Сохранить квитанцию
             </button>
         </div>
         
-        <div style="margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 15px;">
-            По вопросам обращайтесь: <a href="mailto:domdarom2025@gmail.com" style="color: #2196F3;">domdarom2025@gmail.com</a>
+        <!-- Контактная информация -->
+        <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #e0f2e1; text-align: center; color: #78909c; font-size: 14px;">
+            <p style="margin: 5px 0;">По вопросам обращайтесь:</p>
+            <a href="mailto:domdarom2025@gmail.com" style="color: #388e3c; font-weight: 600; text-decoration: none;">
+                domdarom2025@gmail.com
+            </a>
         </div>
     </div>
 
     <script>
-        // Получаем ВСЕ параметры из URL
+        // Получаем все параметры из URL
         function getAllUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
             const params = {};
             
-            // Собираем все параметры в объект
             for (const [key, value] of urlParams.entries()) {
                 params[key] = value;
             }
@@ -72,7 +122,7 @@
             return params;
         }
         
-        // Основные параметры платежа
+        // Получаем информацию о платеже
         function getPaymentInfo() {
             const params = getAllUrlParams();
             
@@ -110,21 +160,23 @@
                 document.getElementById('additionalInfo').style.display = 'block';
             }
             
-            // Сохраняем данные для автозаполнения при входе
+            // Сохраняем номер участника для автозаполнения
             if (payment.orderId && payment.orderId !== 'Не указан') {
                 localStorage.setItem('suggested_login', payment.orderId);
+                // Также можно добавить в sessionStorage для текущей сессии
+                sessionStorage.setItem('current_member', payment.orderId);
             }
             
-            // Сохраняем данные платежа в историю
-            savePaymentToHistory(payment);
-            
-            // Меняем заголовок если платеж не успешен
+            // Если платеж не успешен, меняем оформление
             if (!payment.success) {
                 document.querySelector('h1').textContent = 'Проблема с платежом';
-                document.querySelector('h1').style.color = '#f44336';
-                document.querySelector('.success-icon').textContent = '✗';
-                document.querySelector('.success-icon').style.color = '#f44336';
+                document.querySelector('h1').style.color = '#d32f2f';
+                document.querySelector('.success-icon').style.background = '#d32f2f';
+                document.querySelector('.success-icon svg').innerHTML = '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>';
             }
+            
+            // Сохраняем в историю
+            savePaymentToHistory(payment);
         }
         
         // Форматируем сумму в рублях
@@ -133,24 +185,24 @@
             return isNaN(num) ? '0 ₽' : num.toLocaleString('ru-RU') + ' ₽';
         }
         
-        // Сохраняем платеж в localStorage для истории
+        // Сохраняем платеж в историю
         function savePaymentToHistory(payment) {
             try {
                 const paymentRecord = {
                     ...payment,
                     timestamp: new Date().toISOString(),
-                    pageUrl: window.location.href
+                    memberNumber: payment.orderId // Явно сохраняем номер участника
                 };
                 
                 let history = JSON.parse(localStorage.getItem('paymentHistory') || '[]');
                 history.unshift(paymentRecord);
                 
-                // Сохраняем только последние 10 платежей
                 if (history.length > 10) {
                     history = history.slice(0, 10);
                 }
                 
                 localStorage.setItem('paymentHistory', JSON.stringify(history));
+                localStorage.setItem('lastPayment', JSON.stringify(paymentRecord));
             } catch (e) {
                 console.log('Не удалось сохранить историю платежей');
             }
@@ -161,62 +213,76 @@
             const payment = getPaymentInfo();
             
             const receiptContent = `
+                <!DOCTYPE html>
                 <html>
-                <head><title>Квитанция об оплате</title>
-                <style>
-                    body { font-family: Arial; padding: 20px; max-width: 500px; margin: 0 auto; }
-                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
-                    .company { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-                    .title { font-size: 24px; font-weight: bold; margin: 20px 0; }
-                    .details { margin: 25px 0; }
-                    .row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-                    .total { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 30px 0; text-align: center; }
-                    .amount { font-size: 28px; font-weight: bold; color: #2d5016; }
-                    .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
-                    @media print { body { padding: 0; } .no-print { display: none; } }
-                </style></head>
+                <head>
+                    <title>Квитанция об оплате</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 25px; max-width: 500px; margin: 0 auto; background: white; }
+                        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #4CAF50; }
+                        .company { font-size: 22px; font-weight: bold; color: #2E7D32; margin-bottom: 8px; }
+                        .title { font-size: 20px; color: #388e3c; margin: 15px 0; }
+                        .details { margin: 30px 0; }
+                        .row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0; }
+                        .label { color: #558b2f; font-weight: 600; }
+                        .value { color: #2E7D32; font-weight: 700; }
+                        .total { background: #f8faf8; padding: 25px; border-radius: 10px; margin: 35px 0; text-align: center; border: 2px solid #c8e6c9; }
+                        .amount { font-size: 32px; font-weight: bold; color: #2E7D32; margin: 10px 0; }
+                        .member-number { background: #fff8e1; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; }
+                        .footer { margin-top: 40px; text-align: center; color: #78909c; font-size: 13px; line-height: 1.6; }
+                        @media print { body { padding: 15px; } .no-print { display: none; } }
+                    </style>
+                </head>
                 <body>
                     <div class="header">
                         <div class="company">${payment.companyName}</div>
-                        <div>Квитанция об оплате вступительного взноса</div>
+                        <div style="color: #558b2f;">Квитанция об оплате вступительного взноса</div>
+                        <div style="margin-top: 10px; color: #78909c; font-size: 14px;">№ ${payment.paymentId}</div>
                     </div>
                     
                     <div class="details">
                         <div class="row">
-                            <span>Номер участника:</span>
-                            <strong>${payment.orderId}</strong>
+                            <span class="label">Номер участника:</span>
+                            <span class="value">
+                                <span class="member-number">${payment.orderId}</span>
+                            </span>
                         </div>
                         <div class="row">
-                            <span>Номер платежа:</span>
-                            <strong>${payment.paymentId}</strong>
+                            <span class="label">Дата оплаты:</span>
+                            <span class="value">${new Date().toLocaleDateString('ru-RU')}</span>
                         </div>
                         <div class="row">
-                            <span>Дата оплаты:</span>
-                            <strong>${new Date().toLocaleDateString('ru-RU')}</strong>
+                            <span class="label">Время оплаты:</span>
+                            <span class="value">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div class="row">
-                            <span>Время:</span>
-                            <strong>${new Date().toLocaleTimeString('ru-RU')}</strong>
+                            <span class="label">Получатель:</span>
+                            <span class="value">${payment.merchantName}</span>
                         </div>
                     </div>
                     
                     <div class="total">
-                        <div>Сумма оплаты:</div>
+                        <div style="color: #558b2f; font-size: 16px; margin-bottom: 10px;">Сумма оплаты</div>
                         <div class="amount">${formatCurrency(payment.amount)}</div>
+                        <div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб</div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 25px 0; padding: 15px; background: #e8f5e8; border-radius: 8px; color: #2E7D32;">
+                        <strong>✅ Оплата успешно проведена</strong>
                     </div>
                     
                     <div class="footer">
-                        <p>Данный документ является подтверждением оплаты</p>
+                        <p>Данный документ является подтверждением оплаты вступительного взноса</p>
                         <p>Клуб НПК "В ДУХЕ ВРЕМЕНИ"</p>
-                        <p>Email: ${payment.merchantEmail}</p>
-                        <p>Дата печати: ${new Date().toLocaleString('ru-RU')}</p>
+                        <p>Email для связи: ${payment.merchantEmail}</p>
+                        <p style="margin-top: 20px; color: #bdbdbd;">Дата печати: ${new Date().toLocaleString('ru-RU')}</p>
                     </div>
                     
-                    <div class="no-print" style="margin-top: 30px; text-align: center;">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            Печатать
+                    <div class="no-print" style="margin-top: 40px; text-align: center; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button onclick="window.print()" style="padding: 12px 30px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                            🖨️ Печатать
                         </button>
-                        <button onclick="window.close()" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                        <button onclick="window.close()" style="padding: 12px 30px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                             Закрыть
                         </button>
                     </div>
@@ -224,53 +290,31 @@
                 </html>
             `;
             
-            const printWindow = window.open('', '_blank');
+            const printWindow = window.open('', '_blank', 'width=800,height=900');
             printWindow.document.write(receiptContent);
             printWindow.document.close();
             
-            // Автоматическая печать через 500мс
             setTimeout(() => {
+                printWindow.focus();
                 printWindow.print();
-            }, 500);
+            }, 300);
         }
         
-        // Таймер обратного отсчета
-        function startCountdown() {
-            let seconds = 5;
-            const countdownEl = document.getElementById('countdown');
-            
-            const timer = setInterval(() => {
-                seconds--;
-                countdownEl.textContent = seconds;
-                
-                if (seconds <= 0) {
-                    clearInterval(timer);
-                    window.location.href = 'https://npkvdv.ru/auth';
-                }
-            }, 1000);
-            
-            // Останавливаем таймер при клике на кнопку
-            document.querySelector('a[href="https://npkvdv.ru/auth"]').addEventListener('click', () => {
-                clearInterval(timer);
-            });
-        }
-        
-        // Запускаем все при загрузке страницы
+        // Запускаем при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             displayPaymentInfo();
-            startCountdown();
+            
+            // Добавляем анимацию пульсации
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+                    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(76, 175, 80, 0); }
+                    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+                }
+            `;
+            document.head.appendChild(style);
         });
-        
-        // Анимация пульсации для иконки
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
