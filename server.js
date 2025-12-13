@@ -312,12 +312,8 @@ app.get('/dashboard', (req, res) => {
 });
 
 
-const path = require('path');
-
 app.get('/payment/success', async (req, res) => {
 
-  const memberNumber = req.query.member; 
-  
   try {
     // 1. Получаем все параметры из URL
     const {
@@ -348,7 +344,7 @@ app.get('/payment/success', async (req, res) => {
 
     // 3. НАЙТИ ПОЛЬЗОВАТЕЛЯ ПО OrderId (ваш номер участника)
     // OrderId = 1765650016961 - это ваш memberNumber
-    const memberNumber = OrderId;
+    const memberNumber = req.query.member; 
     
     const user = await User.findByMemberNumber(memberNumber);
     if (!user) {
