@@ -337,7 +337,7 @@
                     <div
                         style="padding: 25px; background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%); border-radius: 12px; margin-bottom: 25px; border: 1px solid #c8e6c9;">
                         <p style="margin: 0; color: #2d5016; font-size: 16px; font-weight: 500;">
-                            🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос
+                            🏗️ Для завершения регистрации и начала участия оплатите вступительный взнос 10 рублей
                         </p>
                     </div>
                     <button id="payment-btn">
@@ -534,7 +534,7 @@
                 const result = await response.json();
                 
                 if (result.success && result.paymentUrl) {
-                    alert('Платеж создан успешно! Перенаправление...');
+                    // alert('Платеж создан успешно! Перенаправление...');
                     setTimeout(() => {
                         window.location.href = result.paymentUrl;
                     }, 1000);
