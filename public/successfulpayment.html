@@ -40,7 +40,7 @@
                 <!-- Заполняется JavaScript -->
             </div>
             
-            <!-- Информация о слотах -->
+            <!-- Информация о слотах (ТОЛЬКО для покупки слотов) -->
             <div id="slotsInfo" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #c8e6c9;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
                     <div style="width: 40px; height: 40px; background: #ff9800; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px;">
@@ -95,40 +95,10 @@
     </div>
 
     <script>
-        // Конфигурация типов платежей
-        const PAYMENT_TYPES = {
-            ENTRANCE_FEE: {
-                id: 'entrance_fee',
-                title: 'Вступительный взнос оплачен!',
-                description: 'Добро пожаловать в клуб НПК ВДВ! Ваш вступительный взнос успешно оплачен.',
-                infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
-                isSlotPurchase: false
-            },
-            SLOT_PURCHASE: {
-                id: 'slot_purchase', 
-                title: 'Покупка слотов',
-                description: 'Слоты успешно приобретены.',
-                infoText: 'Приобретенные слоты активированы. Вы можете участвовать в розыгрышах.',
-                isSlotPurchase: true
-            }
-        };
-
-        // Цены слотов в копейках (рубли * 100)
-        const SLOT_PRICES_KOPECKS = {
-            100000: 1,   // 1000 рублей = 1 слот
-            300000: 3,   // 3000 рублей = 3 слота
-            500000: 5,   // 5000 рублей = 5 слотов
-            1500000: 15  // 15000 рублей = 15 слотов
-        };
-
-        // Цены слотов в рублях
-        const SLOT_PRICES_RUBLES = {
-            1000: 1,   // 1 слот
-            3000: 3,   // 3 слота
-            5000: 5,   // 5 слотов
-            15000: 15  // 15 слотов
-        };
-
+        // ПРОСТАЯ И ЧЕТКАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ ПЛАТЕЖА
+        const ENTRANCE_FEE_KOPECKS = 1000; // 10 рублей в копейках
+        const SLOT_PRICE_KOPECKS = 100000; // 1000 рублей в копейках = 1 слот
+        
         // Получаем все параметры из URL
         function getAllUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -140,51 +110,59 @@
             
             return params;
         }
-
-        // Определяем тип платежа
+        
+        // ОПРЕДЕЛЯЕМ ТИП ПЛАТЕЖА (ГЛАВНАЯ ЛОГИКА)
         function determinePaymentType(amountInRubles) {
+            // Конвертируем рубли в копейки для точного сравнения
             const amountInKopecks = amountInRubles * 100;
             
-            // Если сумма 10 рублей (1000 копеек) - это вступительный взнос
-            if (amountInKopecks === 1000) {
-                return PAYMENT_TYPES.ENTRANCE_FEE;
+            // ЕСЛИ сумма 10 рублей (1000 копеек) → ВСТУПИТЕЛЬНЫЙ ВЗНОС
+            if (amountInKopecks === ENTRANCE_FEE_KOPECKS) {
+                return {
+                    type: 'entrance_fee',
+                    isEntranceFee: true,
+                    isSlotPurchase: false,
+                    title: 'Вступительный взнос оплачен!',
+                    description: 'Добро пожаловать в клуб НПК ВДВ! Ваш вступительный взнос успешно оплачен.',
+                    infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
+                    amountText: '10 ₽'
+                };
             }
             
-            // Если сумма соответствует ценам слотов
-            if (SLOT_PRICES_RUBLES[amountInRubles]) {
-                return PAYMENT_TYPES.SLOT_PURCHASE;
-            }
-            
-            // Если сумма кратна 1000 и больше 1000 - покупка слотов
-            if (amountInRubles >= 1000 && amountInRubles % 1000 === 0) {
-                return PAYMENT_TYPES.SLOT_PURCHASE;
-            }
-            
-            // По умолчанию - вступительный взнос
-            return PAYMENT_TYPES.ENTRANCE_FEE;
+            // ВСЕ ОСТАЛЬНЫЕ СУММЫ → ПОКУПКА СЛОТОВ
+            return {
+                type: 'slot_purchase',
+                isEntranceFee: false,
+                isSlotPurchase: true,
+                title: 'Покупка слотов',
+                description: 'Слоты успешно приобретены для участия в розыгрышах.',
+                infoText: 'Приобретенные слоты активированы. Вы можете участвовать в розыгрышах.',
+                amountText: `${amountInRubles.toLocaleString('ru-RU')} ₽`
+            };
         }
-
-        // Получаем количество слотов из суммы
-        function getSlotCountFromAmount(amountInRubles) {
-            // Проверяем стандартные цены
-            if (SLOT_PRICES_RUBLES[amountInRubles]) {
-                return SLOT_PRICES_RUBLES[amountInRubles];
-            }
+        
+        // РАССЧИТЫВАЕМ КОЛИЧЕСТВО СЛОТОВ (только для покупки слотов)
+        function calculateSlotCount(amountInRubles) {
+            // Стоимость одного слота в рублях = 1000
+            const SLOT_PRICE_RUBLES = 1000;
             
-            // Рассчитываем по формуле: количество слотов = сумма / 1000
-            if (amountInRubles >= 1000 && amountInRubles % 1000 === 0) {
-                return amountInRubles / 1000;
-            }
-            
-            return null;
+            // Количество слотов = сумма / 1000 (округляем вниз)
+            return Math.floor(amountInRubles / SLOT_PRICE_RUBLES);
         }
-
-        // Получаем информацию о платеже
+        
+        // Получаем полную информацию о платеже
         function getPaymentInfo() {
             const params = getAllUrlParams();
             const amountInRubles = parseInt(params.Amount) || 1000;
+            
+            // Определяем тип платежа
             const paymentType = determinePaymentType(amountInRubles);
-            const slotCount = paymentType.isSlotPurchase ? getSlotCountFromAmount(amountInRubles) : null;
+            
+            // Для покупки слотов рассчитываем количество
+            let slotCount = null;
+            if (paymentType.isSlotPurchase) {
+                slotCount = calculateSlotCount(amountInRubles);
+            }
             
             return {
                 // Основные данные
@@ -194,8 +172,8 @@
                 // Определенные параметры
                 paymentType: paymentType,
                 slotCount: slotCount,
-                isEntranceFee: paymentType.id === 'entrance_fee',
-                isSlotPurchase: paymentType.id === 'slot_purchase',
+                isEntranceFee: paymentType.isEntranceFee,
+                isSlotPurchase: paymentType.isSlotPurchase,
                 
                 // Оригинальные данные из URL
                 amount: amountInRubles,
@@ -212,19 +190,16 @@
                 
                 // Вспомогательные
                 paymentDate: new Date().toLocaleDateString('ru-RU'),
-                paymentTime: new Date().toLocaleTimeString('ru-RU')
+                paymentTime: new Date().toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })
             };
         }
-
-        // Форматируем сумму в рублях
-        function formatCurrency(amount) {
-            const num = parseInt(amount);
-            return isNaN(num) ? '0 ₽' : num.toLocaleString('ru-RU') + ' ₽';
-        }
-
+        
         // Склонение слова "слот"
         function getSlotWord(count) {
-            if (!count) return 'слотов';
+            if (!count || count === 0) return 'слотов';
             
             if (count % 10 === 1 && count % 100 !== 11) {
                 return 'слот';
@@ -234,46 +209,39 @@
                 return 'слотов';
             }
         }
-
+        
         // Отображаем данные на странице
         function displayPaymentInfo() {
             const payment = getPaymentInfo();
             
-            // 1. Обновляем заголовки
-            if (payment.isEntranceFee) {
-                document.getElementById('pageTitle').textContent = PAYMENT_TYPES.ENTRANCE_FEE.title;
-                document.getElementById('pageDescription').textContent = PAYMENT_TYPES.ENTRANCE_FEE.description;
-                document.getElementById('infoText').textContent = PAYMENT_TYPES.ENTRANCE_FEE.infoText;
-            } else {
-                document.getElementById('pageTitle').textContent = payment.slotCount ? 
-                    `Приобретено ${payment.slotCount} ${getSlotWord(payment.slotCount)}` : 
-                    'Покупка слотов';
-                document.getElementById('pageDescription').textContent = payment.slotCount ? 
-                    `Вы успешно приобрели ${payment.slotCount} ${getSlotWord(payment.slotCount)} для участия в розыгрышах.` : 
-                    'Слоты успешно приобретены.';
-                document.getElementById('infoText').textContent = PAYMENT_TYPES.SLOT_PURCHASE.infoText;
-            }
+            // 1. Обновляем заголовки и описания
+            document.getElementById('pageTitle').textContent = payment.paymentType.title;
+            document.getElementById('pageDescription').textContent = payment.paymentType.description;
+            document.getElementById('infoText').textContent = payment.paymentType.infoText;
             
             // 2. Заполняем детали платежа
             const paymentDetails = document.getElementById('paymentDetails');
             paymentDetails.innerHTML = '';
             
-            // Сумма
+            // Строка с суммой (разный формат для разных типов)
             const amountRow = document.createElement('div');
             amountRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
             
-            let amountDisplay = '';
+            let amountDisplay = payment.paymentType.amountText;
+            let amountColor = '#2E7D32';
+            let amountSize = '18px';
+            
             if (payment.isEntranceFee) {
-                amountDisplay = '10 ₽'; // Фиксированная сумма вступительного взноса
-            } else if (payment.slotCount) {
-                amountDisplay = `${formatCurrency(payment.amount)} (${payment.slotCount} × 1 000 ₽)`;
-            } else {
-                amountDisplay = formatCurrency(payment.amount);
+                amountColor = '#388e3c';
+                amountSize = '24px';
+            } else if (payment.slotCount > 0) {
+                // Для покупки слотов показываем детализацию
+                amountDisplay += ` (${payment.slotCount} × 1 000 ₽)`;
             }
             
             amountRow.innerHTML = `
                 <span style="color: #558b2f; font-weight: 600;">Сумма:</span>
-                <span style="color: #2E7D32; font-weight: 700; font-size: ${payment.isEntranceFee ? '24px' : '18px'}; text-align: right;">
+                <span style="color: ${amountColor}; font-weight: 700; font-size: ${amountSize}; text-align: right;">
                     ${amountDisplay}
                 </span>
             `;
@@ -301,18 +269,7 @@
             `;
             paymentDetails.appendChild(orderIdRow);
             
-            // 3. Показываем информацию о слотах
-            if (payment.isSlotPurchase && payment.slotCount) {
-                document.getElementById('slotsInfo').style.display = 'block';
-                document.getElementById('slotCount').textContent = payment.slotCount;
-                document.getElementById('slotWordEnding').textContent = getSlotWord(payment.slotCount);
-                document.getElementById('detailsTitle').textContent = 'Детали покупки';
-            } else {
-                document.getElementById('slotsInfo').style.display = 'none';
-                document.getElementById('detailsTitle').textContent = 'Детали платежа';
-            }
-            
-            // 4. Добавляем информацию о типе платежа
+            // Тип платежа
             const typeRow = document.createElement('div');
             typeRow.style.cssText = 'margin-top: 15px; padding-top: 15px; border-top: 1px dashed #c8e6c9;';
             typeRow.innerHTML = `
@@ -325,16 +282,37 @@
             `;
             paymentDetails.appendChild(typeRow);
             
-            // 5. Сохраняем данные
+            // 3. Для покупки слотов показываем информацию о количестве
+            if (payment.isSlotPurchase && payment.slotCount > 0) {
+                document.getElementById('slotsInfo').style.display = 'block';
+                document.getElementById('slotCount').textContent = payment.slotCount;
+                document.getElementById('slotWordEnding').textContent = getSlotWord(payment.slotCount);
+                document.getElementById('detailsTitle').textContent = 'Детали покупки';
+                
+                // Добавляем строку с количеством слотов
+                const slotsRow = document.createElement('div');
+                slotsRow.style.cssText = 'margin-top: 15px; padding: 12px; background: #fff8e1; border-radius: 8px; border: 1px solid #ffcc80;';
+                slotsRow.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #ff8f00; font-weight: 600;">Приобретено слотов:</span>
+                        <span style="color: #ff8f00; font-weight: 700; font-size: 18px;">
+                            ${payment.slotCount} ${getSlotWord(payment.slotCount)}
+                        </span>
+                    </div>
+                `;
+                paymentDetails.appendChild(slotsRow);
+            } else {
+                document.getElementById('slotsInfo').style.display = 'none';
+                document.getElementById('detailsTitle').textContent = 'Детали платежа';
+            }
+            
+            // 4. Сохраняем данные для автозаполнения
             if (payment.orderId && payment.orderId !== 'Не указан') {
                 localStorage.setItem('suggested_login', payment.orderId);
                 sessionStorage.setItem('current_member', payment.orderId);
             }
             
-            // 6. Сохраняем в историю
-            savePaymentToHistory(payment);
-            
-            // 7. Если платеж не успешен
+            // 5. Если платеж не успешен
             if (!payment.success) {
                 document.getElementById('pageTitle').textContent = 'Проблема с платежом';
                 document.getElementById('pageTitle').style.color = '#d32f2f';
@@ -344,15 +322,18 @@
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                     </svg>`;
             }
+            
+            // 6. Сохраняем в историю
+            savePaymentToHistory(payment);
         }
-
+        
         // Сохраняем платеж в историю
         function savePaymentToHistory(payment) {
             try {
                 const paymentRecord = {
                     ...payment,
                     timestamp: new Date().toISOString(),
-                    paymentType: payment.paymentType.id
+                    paymentType: payment.paymentType.type
                 };
                 
                 let history = JSON.parse(localStorage.getItem('paymentHistory') || '[]');
@@ -368,7 +349,7 @@
                 console.log('Не удалось сохранить историю платежей');
             }
         }
-
+        
         // Печать квитанции
         function printReceipt() {
             const payment = getPaymentInfo();
@@ -383,14 +364,14 @@
                         .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #4CAF50; }
                         .company { font-size: 22px; font-weight: bold; color: #2E7D32; margin-bottom: 8px; }
                         .title { font-size: 20px; color: #388e3c; margin: 15px 0; }
-                        .slot-count { background: #fff8e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; font-size: 18px; color: #ff8f00; border: 2px dashed #ffcc80; }
+                        .slot-info { background: #fff8e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 2px dashed #ffcc80; }
+                        .entrance-info { background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 2px dashed #81c784; }
                         .details { margin: 30px 0; }
                         .row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0; }
                         .label { color: #558b2f; font-weight: 600; }
                         .value { color: #2E7D32; font-weight: 700; }
                         .total { background: #f8faf8; padding: 25px; border-radius: 10px; margin: 35px 0; text-align: center; border: 2px solid #c8e6c9; }
                         .amount { font-size: 32px; font-weight: bold; color: #2E7D32; margin: 10px 0; }
-                        .entrance-fee { background: #e8f5e8; padding: 10px; border-radius: 8px; text-align: center; margin: 20px 0; color: #2E7D32; font-weight: bold; }
                         .footer { margin-top: 40px; text-align: center; color: #78909c; font-size: 13px; line-height: 1.6; }
                         @media print { 
                             body { padding: 15px; } 
@@ -409,18 +390,18 @@
                     </div>
                     
                     ${payment.isEntranceFee ? `
-                    <div class="entrance-fee">
-                        <div style="font-size: 20px;">✅ Вступительный взнос оплачен</div>
-                        <div style="margin-top: 5px; font-size: 14px;">Добро пожаловать в клуб!</div>
+                    <div class="entrance-info">
+                        <div style="font-size: 20px; color: #2E7D32; font-weight: bold;">✅ Вступительный взнос оплачен</div>
+                        <div style="margin-top: 5px; color: #558b2f;">Добро пожаловать в клуб НПК ВДВ!</div>
                     </div>
                     ` : ''}
                     
-                    ${payment.isSlotPurchase && payment.slotCount ? `
-                    <div class="slot-count">
-                        <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                    ${payment.isSlotPurchase && payment.slotCount > 0 ? `
+                    <div class="slot-info">
+                        <div style="font-size: 24px; color: #ff8f00; font-weight: bold; margin-bottom: 5px;">
                             ${payment.slotCount} ${getSlotWord(payment.slotCount)}
                         </div>
-                        <div>приобретено для участия в розыгрышах</div>
+                        <div style="color: #ff8f00;">приобретено для участия в розыгрышах</div>
                     </div>
                     ` : ''}
                     
@@ -443,22 +424,18 @@
                                 ${payment.isEntranceFee ? 'Вступительный взнос' : 'Покупка слотов'}
                             </span>
                         </div>
-                        ${payment.customerEmail && payment.customerEmail !== 'Не указан' ? `
-                        <div class="row">
-                            <span class="label">Email для чека:</span>
-                            <span class="value" style="word-break: break-all;">${payment.customerEmail}</span>
-                        </div>
-                        ` : ''}
                     </div>
                     
                     <div class="total">
                         <div style="color: #558b2f; font-size: 16px; margin-bottom: 10px;">Сумма оплаты</div>
                         <div class="amount">
-                            ${payment.isEntranceFee ? '10 ₽' : formatCurrency(payment.amount)}
+                            ${payment.isEntranceFee ? '10 ₽' : payment.amount.toLocaleString('ru-RU') + ' ₽'}
                         </div>
-                        ${payment.isSlotPurchase && payment.slotCount ? 
-                          `<div style="color: #78909c; margin-top: 10px; font-size: 14px;">${payment.slotCount} × 1 000 ₽ за слот</div>` : 
-                          `<div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб НПК "В ДУХЕ ВРЕМЕНИ"</div>`
+                        ${payment.isEntranceFee ? 
+                          '<div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб</div>' : 
+                          `<div style="color: #78909c; margin-top: 10px; font-size: 14px;">
+                             ${payment.slotCount > 0 ? payment.slotCount + ' × 1 000 ₽ за слот' : 'Покупка слотов'}
+                           </div>`
                         }
                     </div>
                     
@@ -494,7 +471,7 @@
                 printWindow.print();
             }, 300);
         }
-
+        
         // Запускаем при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             displayPaymentInfo();
