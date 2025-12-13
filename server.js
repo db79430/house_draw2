@@ -4,6 +4,7 @@ import CONFIG from './config/index.js'
 import runMigrations from './database/migrate.js';
 import path from 'path';
 
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -343,135 +344,135 @@ app.post('/test-webhook', (req, res) => {
   res.json({ status: 'success', received: req.body });
 });
 
-// app.get('/get-member-number', async (req, res) => {
-//   try {
-//     const { email, phone } = req.query;
-//     const user = await User.findUserByEmailOrPhone(email, phone);
-
-//     if (user) {
-//       // Пробуем разные варианты названия поля
-//       const memberNumber = user.membership_number
-
-//       console.log('✅ Найден пользователь:', {
-//         email: user.email,
-//         memberNumber: memberNumber,
-//         availableFields: Object.keys(user)
-//       });
-
-//       res.json({
-//         success: true,
-//         memberNumber: memberNumber,
-//         userData: {
-//           name: user.name || user.fullname,
-//           email: user.email,
-//           phone: user.phone,
-//           city: user.city
-//         }
-//       });
-//     } else {
-//       res.json({ success: false, error: 'Пользователь не найден' });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// });
-
 app.get('/get-member-number', async (req, res) => {
-  console.log('🔍 GET MEMBER NUMBER REQUEST:', req.query);
-  
-  // Получаем параметры
-  let { email, phone } = req.query;
-  
-  // ✅ ФИКС: Игнорируем строку 'undefined'
-  if (email === 'undefined') email = undefined;
-  if (phone === 'undefined') phone = undefined;
-  
-  // Если оба параметра undefined, возвращаем ошибку
-  if (!email && !phone) {
-      return res.json({
-          success: false,
-          error: 'Не указаны email или телефон'
-      });
-  }
-  
   try {
-      let user = null;
-      let searchType = '';
-      
-      // 1. Поиск по email
-      if (email && email !== 'undefined') {
-          searchType = 'email';
-          console.log(`🔍 Поиск по ${searchType}:`, email);
-          
-          // Нормализуем email (нижний регистр)
-          const normalizedEmail = email.toLowerCase().trim();
-          user = await pool.query(
-              'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1',
-              [normalizedEmail]
-          ).then(result => result.rows[0]);
-      }
-      
-      // 2. Поиск по телефону
-      if (!user && phone && phone !== 'undefined') {
-          searchType = 'phone';
-          console.log(`🔍 Поиск по ${searchType}:`, phone);
-          
-          // Нормализуем телефон
-          const cleanPhone = phone.replace(/\D/g, '');
-          console.log('📱 Нормализованный телефон:', cleanPhone);
-          
-          // Ищем в нескольких форматах
-          user = await pool.query(`
-              SELECT * FROM users 
-              WHERE 
-                  REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), '(', ''), ')', ''), ' ', '') = $1
-                  OR phone LIKE $2
-                  OR phone LIKE $3
-              LIMIT 1
-          `, [
-              cleanPhone,
-              `%${cleanPhone}%`,
-              `%${cleanPhone.substring(cleanPhone.length - 10)}%`
-          ]).then(result => result.rows[0]);
-      }
-      
-      // 3. Если нашли пользователя
-      if (user) {
-          console.log('✅ Найден пользователь:', {
-              id: user.id,
-              email: user.email,
-              phone: user.phone
-          });
-          
-          return res.json({
-              success: true,
-              memberNumber: user.membership_number || `USER${user.id}`,
-              userData: {
-                  id: user.id,
-                  name: user.fullname,
-                  email: user.email,
-                  phone: user.phone,
-                  city: user.city,
-                  payment_status: user.payment_status
-              }
-          });
-      }
-      
-      // 4. Если не нашли
-      console.log('❌ Пользователь не найден. Параметры:', { email, phone });
-      return res.json({
-          success: false,
-          error: 'Пользователь не найден. Проверьте введенные данные.'
+    const { email, phone } = req.query;
+    const user = await User.findUserByEmailOrPhone(email, phone);
+
+    if (user) {
+      // Пробуем разные варианты названия поля
+      const memberNumber = user.membership_number
+
+      console.log('✅ Найден пользователь:', {
+        email: user.email,
+        memberNumber: memberNumber,
+        availableFields: Object.keys(user)
       });
-      
+
+      res.json({
+        success: true,
+        memberNumber: memberNumber,
+        userData: {
+          name: user.name || user.fullname,
+          email: user.email,
+          phone: user.phone,
+          city: user.city
+        }
+      });
+    } else {
+      res.json({ success: false, error: 'Пользователь не найден' });
+    }
   } catch (error) {
-      console.error('❌ Ошибка сервера:', error);
-      return res.status(500).json({
-          success: false,
-          error: 'Внутренняя ошибка сервера'
-      });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// app.get('/get-member-number', async (req, res) => {
+//   console.log('🔍 GET MEMBER NUMBER REQUEST:', req.query);
+  
+//   // Получаем параметры
+//   let { email, phone } = req.query;
+  
+//   // ✅ ФИКС: Игнорируем строку 'undefined'
+//   if (email === 'undefined') email = undefined;
+//   if (phone === 'undefined') phone = undefined;
+  
+//   // Если оба параметра undefined, возвращаем ошибку
+//   if (!email && !phone) {
+//       return res.json({
+//           success: false,
+//           error: 'Не указаны email или телефон'
+//       });
+//   }
+  
+//   try {
+//       let user = null;
+//       let searchType = '';
+      
+//       // 1. Поиск по email
+//       if (email && email !== 'undefined') {
+//           searchType = 'email';
+//           console.log(`🔍 Поиск по ${searchType}:`, email);
+          
+//           // Нормализуем email (нижний регистр)
+//           const normalizedEmail = email.toLowerCase().trim();
+//           user = await pool.query(
+//               'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1',
+//               [normalizedEmail]
+//           ).then(result => result.rows[0]);
+//       }
+      
+//       // 2. Поиск по телефону
+//       if (!user && phone && phone !== 'undefined') {
+//           searchType = 'phone';
+//           console.log(`🔍 Поиск по ${searchType}:`, phone);
+          
+//           // Нормализуем телефон
+//           const cleanPhone = phone.replace(/\D/g, '');
+//           console.log('📱 Нормализованный телефон:', cleanPhone);
+          
+//           // Ищем в нескольких форматах
+//           user = await pool.query(`
+//               SELECT * FROM users 
+//               WHERE 
+//                   REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), '(', ''), ')', ''), ' ', '') = $1
+//                   OR phone LIKE $2
+//                   OR phone LIKE $3
+//               LIMIT 1
+//           `, [
+//               cleanPhone,
+//               `%${cleanPhone}%`,
+//               `%${cleanPhone.substring(cleanPhone.length - 10)}%`
+//           ]).then(result => result.rows[0]);
+//       }
+      
+//       // 3. Если нашли пользователя
+//       if (user) {
+//           console.log('✅ Найден пользователь:', {
+//               id: user.id,
+//               email: user.email,
+//               phone: user.phone
+//           });
+          
+//           return res.json({
+//               success: true,
+//               memberNumber: user.membership_number || `USER${user.id}`,
+//               userData: {
+//                   id: user.id,
+//                   name: user.fullname,
+//                   email: user.email,
+//                   phone: user.phone,
+//                   city: user.city,
+//                   payment_status: user.payment_status
+//               }
+//           });
+//       }
+      
+//       // 4. Если не нашли
+//       console.log('❌ Пользователь не найден. Параметры:', { email, phone });
+//       return res.json({
+//           success: false,
+//           error: 'Пользователь не найден. Проверьте введенные данные.'
+//       });
+      
+//   } catch (error) {
+//       console.error('❌ Ошибка сервера:', error);
+//       return res.status(500).json({
+//           success: false,
+//           error: 'Внутренняя ошибка сервера'
+//       });
+//   }
+// });
 
 // Tilda routes
 app.post('/tilda-validate', tildaAuthMiddleware, (req, res) => tildaController.validateForm(req, res));
