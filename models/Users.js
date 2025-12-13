@@ -222,6 +222,7 @@ class User {
           email,
           phone,
           city,
+          yeardate,
           login,
           membership_number,
           membership_status,
@@ -233,7 +234,7 @@ class User {
       const user = await db.oneOrNone(query, [userId]);
 
       if (user) {
-        console.log('✅ User found by ID:', { id: user.id, email: user.email });
+        console.log('✅ User found by ID:', { id: user.id, email: user.email, city: user.city, yeardate: user.yeardate});
       } else {
         console.log('❌ User not found with ID:', userId);
       }

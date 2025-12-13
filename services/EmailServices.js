@@ -647,19 +647,24 @@ class EmailService {
       console.log('📧 Отправка данных для входа:', {
         email: fullUser.email,
         name: fullUser.fullname,
-        memberNumber: fullUser.membership_number
+        memberNumber: fullUser.membership_number,
+        city: fullUser.city,
+        yeardate: fullUser.yeardate,
+        phone: fullUser.phone
       });
 
       // Готовим данные для шаблона
       const userData = {
         name: fullUser.fullname || fullUser.name || '',
-        phone: fullUser.phone || '',
-        city: fullUser.City || '',
-        email: fullUser.email || '',
+        phone: fullUser.phone,
+        city: fullUser.city,
+        email: fullUser.email,
         yeardate: fullUser.yeardate
       };
 
-      const login = fullUser.email || fullUser.phone || fullUser.membership_number;
+      console.log ('UserData', userData)
+
+      const login = fullUser.email || fullUser.phone;
 
       // Генерируем HTML контент письма
       const htmlContent = await this.getFallbackCredentialsTemplate(
@@ -883,7 +888,7 @@ class EmailService {
               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваш профиль</h3>
               <p><strong>ФИО:</strong> ${userData.name}</p>
               <p><strong>Телефон:</strong> ${userData.phone}</p>
-              <p><strong>Город:</strong> ${userData.City}</p>
+              <p><strong>Город:</strong> ${userData.city}</p>
               <p><strong>Номер члена клуба:</strong> ${memberNumber}</p>
             </div>
             
@@ -902,11 +907,6 @@ class EmailService {
 
             <!-- Вставляем сгенерированное заявление -->
             ${statementHtml}
-            
-            <div class="security-note">
-              <p style="margin: 0; color: #856404;">
-              </p>
-            </div>
             
             <p style="text-align: center; margin-top: 40px;">
               <a href="${appUrl}/auth" class="button">Войти в личный кабинет</a>
