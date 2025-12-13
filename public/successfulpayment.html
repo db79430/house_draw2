@@ -4,94 +4,273 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оплата прошла успешно</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' blob:; script-src 'self' 'unsafe-inline';">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background: #f0f9ff;
-        }
-        .success {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .success-icon {
-            color: #4CAF50;
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-        h1 {
-            color: #2E7D32;
-        }
-        .redirect {
-            margin: 30px 0;
-            color: #666;
-        }
-        .btn {
-            background: #2196F3;
-            color: white;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            display: inline-block;
-            margin-top: 20px;
-        }
-    </style>
+    <!-- УДАЛИТЕ meta CSP - проблема в серверных заголовках -->
 </head>
-<body>
-    <div class="success">
-        <div class="success-icon">✓</div>
-        <h1>Оплата прошла успешно!</h1>
+<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f9ff; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); max-width: 500px; width: 100%;">
+        <div style="color: #4CAF50; font-size: 60px; margin-bottom: 20px; animation: pulse 2s infinite;">✓</div>
+        <h1 style="color: #2E7D32; margin-bottom: 20px;">Оплата прошла успешно!</h1>
         
-        <!-- ДОБАВЬТЕ ЭТИ СТРОКИ -->
-        <div class="payment-details" style="margin: 20px 0; text-align: left; background: #f5f5f5; padding: 15px; border-radius: 5px;">
-            <p><strong>Сумма:</strong> <span id="amount">1000</span> ₽</p>
-            <p><strong>Номер платежа:</strong> <span id="paymentId">7550253306</span></p>
-            <p><strong>Ваш номер участника:</strong> <span id="memberNumber">1765650016961</span></p>
+        <!-- Детали платежа (заполняются JavaScript) -->
+        <div style="margin: 25px 0; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+            <p style="margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee;">
+                <strong>Сумма:</strong> 
+                <span id="amount" style="float: right; color: #2E7D32; font-weight: bold;">Загрузка...</span>
+            </p>
+            <p style="margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee;">
+                <strong>Номер платежа:</strong> 
+                <span id="paymentId" style="float: right; font-family: monospace; color: #2196F3;">Загрузка...</span>
+            </p>
+            <p style="margin: 10px 0; padding: 8px 0;">
+                <strong>Ваш номер участника:</strong> 
+                <span id="memberNumber" style="float: right; font-weight: bold; color: #ff9800;">Загрузка...</span>
+            </p>
         </div>
         
-        <p>Ваш платеж был успешно обработан. Данные для входа будут отправлены на ваш email.</p>
-        
-        <div class="redirect">
-            Перенаправление на страницу авторизации через <span id="countdown">5</span> секунд...
+        <!-- Дополнительная информация из платежа -->
+        <div id="additionalInfo" style="display: none; margin: 20px 0; font-size: 14px; color: #666; text-align: left; background: #e8f5e8; padding: 15px; border-radius: 5px; border: 1px solid #c8e6c9;">
+            <p style="margin: 5px 0;"><strong>Дата:</strong> <span id="paymentDate">-</span></p>
+            <p style="margin: 5px 0;"><strong>Статус:</strong> <span id="paymentStatus">-</span></p>
+            <p style="margin: 5px 0;"><strong>Email для чека:</strong> <span id="customerEmail">-</span></p>
         </div>
-        <a href="https://npkvdv.ru/auth" class="btn">Войти в личный кабинет</a>
+        
+        <p style="margin: 25px 0; color: #555; line-height: 1.5;">
+            ✅ Ваш вступительный взнос успешно оплачен.<br>
+            Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.
+        </p>
+        
+        <div style="margin: 30px 0; padding: 15px; background: #e3f2fd; border-radius: 8px; color: #1565c0;">
+            ⏳ Перенаправление на страницу авторизации через 
+            <span id="countdown" style="font-weight: bold; font-size: 18px;">5</span> секунд...
+        </div>
+        
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+            <a href="https://npkvdv.ru/auth" style="background: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; transition: all 0.3s;">
+                Войти в личный кабинет
+            </a>
+            <button onclick="printReceipt()" style="background: #f5f5f5; color: #333; padding: 15px 30px; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; transition: all 0.3s;">
+                Сохранить квитанцию
+            </button>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 15px;">
+            По вопросам обращайтесь: <a href="mailto:domdarom2025@gmail.com" style="color: #2196F3;">domdarom2025@gmail.com</a>
+        </div>
     </div>
 
     <script>
-        // Получаем параметры из URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const amount = urlParams.get('Amount') || '1000';
-        const paymentId = urlParams.get('PaymentId') || '';
-        const orderId = urlParams.get('OrderId') || '';
-        
-        // Отображаем данные на странице
-        document.getElementById('amount').textContent = amount;
-        document.getElementById('paymentId').textContent = paymentId;
-        document.getElementById('memberNumber').textContent = orderId;
-        
-        // Сохраняем номер для автозаполнения при входе
-        if (orderId) {
-            localStorage.setItem('suggested_login', orderId);
+        // Получаем ВСЕ параметры из URL
+        function getAllUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = {};
+            
+            // Собираем все параметры в объект
+            for (const [key, value] of urlParams.entries()) {
+                params[key] = value;
+            }
+            
+            return params;
         }
         
-        let seconds = 5;
-        const countdown = document.getElementById('countdown');
-        
-        const timer = setInterval(() => {
-            seconds--;
-            countdown.textContent = seconds;
+        // Основные параметры платежа
+        function getPaymentInfo() {
+            const params = getAllUrlParams();
             
-            if (seconds <= 0) {
-                clearInterval(timer);
-                window.location.href = 'https://npkvdv.ru/auth';
+            return {
+                amount: params.Amount || '1000',
+                paymentId: params.PaymentId || 'Не указан',
+                orderId: params.OrderId || 'Не указан',
+                merchantEmail: params.MerchantEmail || 'domdarom2025@gmail.com',
+                customerEmail: params.EmailReq || 'Не указан',
+                customerPhone: params.PhonesReq || 'Не указан',
+                success: params.Success === 'true',
+                errorCode: params.ErrorCode || '0',
+                merchantName: params.MerchantName || 'NPK VDV',
+                backUrl: params.BackUrl || 'https://npkvdv.ru',
+                companyName: params.CompanyName || 'НПК "В ДУХЕ ВРЕМЕНИ"'
+            };
+        }
+        
+        // Отображаем данные на странице
+        function displayPaymentInfo() {
+            const payment = getPaymentInfo();
+            
+            // Основные данные
+            document.getElementById('amount').textContent = formatCurrency(payment.amount);
+            document.getElementById('paymentId').textContent = payment.paymentId;
+            document.getElementById('memberNumber').textContent = payment.orderId;
+            
+            // Дополнительная информация
+            document.getElementById('paymentDate').textContent = new Date().toLocaleDateString('ru-RU');
+            document.getElementById('paymentStatus').textContent = payment.success ? '✅ Успешно' : '❌ Ошибка';
+            document.getElementById('customerEmail').textContent = payment.customerEmail;
+            
+            // Показываем блок с дополнительной информацией
+            if (payment.customerEmail && payment.customerEmail !== 'Не указан') {
+                document.getElementById('additionalInfo').style.display = 'block';
             }
-        }, 1000);
+            
+            // Сохраняем данные для автозаполнения при входе
+            if (payment.orderId && payment.orderId !== 'Не указан') {
+                localStorage.setItem('suggested_login', payment.orderId);
+            }
+            
+            // Сохраняем данные платежа в историю
+            savePaymentToHistory(payment);
+            
+            // Меняем заголовок если платеж не успешен
+            if (!payment.success) {
+                document.querySelector('h1').textContent = 'Проблема с платежом';
+                document.querySelector('h1').style.color = '#f44336';
+                document.querySelector('.success-icon').textContent = '✗';
+                document.querySelector('.success-icon').style.color = '#f44336';
+            }
+        }
+        
+        // Форматируем сумму в рублях
+        function formatCurrency(amount) {
+            const num = parseInt(amount);
+            return isNaN(num) ? '0 ₽' : num.toLocaleString('ru-RU') + ' ₽';
+        }
+        
+        // Сохраняем платеж в localStorage для истории
+        function savePaymentToHistory(payment) {
+            try {
+                const paymentRecord = {
+                    ...payment,
+                    timestamp: new Date().toISOString(),
+                    pageUrl: window.location.href
+                };
+                
+                let history = JSON.parse(localStorage.getItem('paymentHistory') || '[]');
+                history.unshift(paymentRecord);
+                
+                // Сохраняем только последние 10 платежей
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+                
+                localStorage.setItem('paymentHistory', JSON.stringify(history));
+            } catch (e) {
+                console.log('Не удалось сохранить историю платежей');
+            }
+        }
+        
+        // Печать квитанции
+        function printReceipt() {
+            const payment = getPaymentInfo();
+            
+            const receiptContent = `
+                <html>
+                <head><title>Квитанция об оплате</title>
+                <style>
+                    body { font-family: Arial; padding: 20px; max-width: 500px; margin: 0 auto; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+                    .company { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+                    .title { font-size: 24px; font-weight: bold; margin: 20px 0; }
+                    .details { margin: 25px 0; }
+                    .row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+                    .total { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 30px 0; text-align: center; }
+                    .amount { font-size: 28px; font-weight: bold; color: #2d5016; }
+                    .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
+                    @media print { body { padding: 0; } .no-print { display: none; } }
+                </style></head>
+                <body>
+                    <div class="header">
+                        <div class="company">${payment.companyName}</div>
+                        <div>Квитанция об оплате вступительного взноса</div>
+                    </div>
+                    
+                    <div class="details">
+                        <div class="row">
+                            <span>Номер участника:</span>
+                            <strong>${payment.orderId}</strong>
+                        </div>
+                        <div class="row">
+                            <span>Номер платежа:</span>
+                            <strong>${payment.paymentId}</strong>
+                        </div>
+                        <div class="row">
+                            <span>Дата оплаты:</span>
+                            <strong>${new Date().toLocaleDateString('ru-RU')}</strong>
+                        </div>
+                        <div class="row">
+                            <span>Время:</span>
+                            <strong>${new Date().toLocaleTimeString('ru-RU')}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="total">
+                        <div>Сумма оплаты:</div>
+                        <div class="amount">${formatCurrency(payment.amount)}</div>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Данный документ является подтверждением оплаты</p>
+                        <p>Клуб НПК "В ДУХЕ ВРЕМЕНИ"</p>
+                        <p>Email: ${payment.merchantEmail}</p>
+                        <p>Дата печати: ${new Date().toLocaleString('ru-RU')}</p>
+                    </div>
+                    
+                    <div class="no-print" style="margin-top: 30px; text-align: center;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Печатать
+                        </button>
+                        <button onclick="window.close()" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                            Закрыть
+                        </button>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(receiptContent);
+            printWindow.document.close();
+            
+            // Автоматическая печать через 500мс
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+        
+        // Таймер обратного отсчета
+        function startCountdown() {
+            let seconds = 5;
+            const countdownEl = document.getElementById('countdown');
+            
+            const timer = setInterval(() => {
+                seconds--;
+                countdownEl.textContent = seconds;
+                
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    window.location.href = 'https://npkvdv.ru/auth';
+                }
+            }, 1000);
+            
+            // Останавливаем таймер при клике на кнопку
+            document.querySelector('a[href="https://npkvdv.ru/auth"]').addEventListener('click', () => {
+                clearInterval(timer);
+            });
+        }
+        
+        // Запускаем все при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            displayPaymentInfo();
+            startCountdown();
+        });
+        
+        // Анимация пульсации для иконки
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
