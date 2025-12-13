@@ -40,7 +40,7 @@
                 <!-- Заполняется JavaScript -->
             </div>
             
-            <!-- Информация о слотах (ТОЛЬКО для покупки слотов) -->
+            <!-- Информация о слотах -->
             <div id="slotsInfo" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #c8e6c9;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
                     <div style="width: 40px; height: 40px; background: #ff9800; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px;">
@@ -95,9 +95,9 @@
     </div>
 
     <script>
-        // ПРОСТАЯ И ЧЕТКАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ ПЛАТЕЖА
-        const ENTRANCE_FEE_KOPECKS = 1000; // 10 рублей в копейках
-        const SLOT_PRICE_KOPECKS = 100000; // 1000 рублей в копейках = 1 слот
+        // КОНСТАНТЫ (в копейках)
+        const ENTRANCE_FEE_KOPECKS = 1000;     // 10 рублей = 1000 копеек
+        const SLOT_PRICE_KOPECKS = 100000;     // 1000 рублей = 100000 копеек
         
         // Получаем все параметры из URL
         function getAllUrlParams() {
@@ -111,13 +111,13 @@
             return params;
         }
         
-        // ОПРЕДЕЛЯЕМ ТИП ПЛАТЕЖА (ГЛАВНАЯ ЛОГИКА)
-        function determinePaymentType(amountInRubles) {
-            // Конвертируем рубли в копейки для точного сравнения
-            const amountInKopecks = amountInRubles * 100;
+        // ★★★ ВАЖНО: Amount из URL приходит В КОПЕЙКАХ! ★★★
+        function determinePaymentType(amountInKopecks) {
+            console.log('💳 Amount из URL (копейки):', amountInKopecks);
             
-            // ЕСЛИ сумма 10 рублей (1000 копеек) → ВСТУПИТЕЛЬНЫЙ ВЗНОС
+            // ЕСЛИ 1000 копеек → ВСТУПИТЕЛЬНЫЙ ВЗНОС (10 рублей)
             if (amountInKopecks === ENTRANCE_FEE_KOPECKS) {
+                console.log('🎯 Определен тип: Вступительный взнос (10 руб)');
                 return {
                     type: 'entrance_fee',
                     isEntranceFee: true,
@@ -125,11 +125,12 @@
                     title: 'Вступительный взнос оплачен!',
                     description: 'Добро пожаловать в клуб НПК ВДВ! Ваш вступительный взнос успешно оплачен.',
                     infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
-                    amountText: '10 ₽'
+                    amountInRubles: amountInKopecks / 100
                 };
             }
             
-            // ВСЕ ОСТАЛЬНЫЕ СУММЫ → ПОКУПКА СЛОТОВ
+            // ВСЕ остальные суммы → ПОКУПКА СЛОТОВ
+            console.log('🎰 Определен тип: Покупка слотов');
             return {
                 type: 'slot_purchase',
                 isEntranceFee: false,
@@ -137,37 +138,44 @@
                 title: 'Покупка слотов',
                 description: 'Слоты успешно приобретены для участия в розыгрышах.',
                 infoText: 'Приобретенные слоты активированы. Вы можете участвовать в розыгрышах.',
-                amountText: `${amountInRubles.toLocaleString('ru-RU')} ₽`
+                amountInRubles: amountInKopecks / 100
             };
         }
         
-        // РАССЧИТЫВАЕМ КОЛИЧЕСТВО СЛОТОВ (только для покупки слотов)
-        function calculateSlotCount(amountInRubles) {
-            // Стоимость одного слота в рублях = 1000
-            const SLOT_PRICE_RUBLES = 1000;
-            
-            // Количество слотов = сумма / 1000 (округляем вниз)
-            return Math.floor(amountInRubles / SLOT_PRICE_RUBLES);
+        // Рассчитываем количество слотов (только для покупки слотов)
+        function calculateSlotCount(amountInKopecks) {
+            // Количество слотов = сумма в копейках / 100000
+            return Math.floor(amountInKopecks / SLOT_PRICE_KOPECKS);
         }
         
-        // Получаем полную информацию о платеже
+        // Получаем информацию о платеже
         function getPaymentInfo() {
             const params = getAllUrlParams();
-            const amountInRubles = parseInt(params.Amount) || 1000;
+            
+            // ★★★ Amount из URL уже в копейках! ★★★
+            const amountInKopecks = parseInt(params.Amount) || 100000; // По умолчанию 1000 руб
+            
+            console.log('📊 Данные из URL:', {
+                Amount: params.Amount,
+                amountInKopecks: amountInKopecks,
+                PaymentId: params.PaymentId,
+                OrderId: params.OrderId
+            });
             
             // Определяем тип платежа
-            const paymentType = determinePaymentType(amountInRubles);
+            const paymentType = determinePaymentType(amountInKopecks);
             
             // Для покупки слотов рассчитываем количество
             let slotCount = null;
             if (paymentType.isSlotPurchase) {
-                slotCount = calculateSlotCount(amountInRubles);
+                slotCount = calculateSlotCount(amountInKopecks);
+                console.log('🧮 Рассчитано слотов:', slotCount);
             }
             
             return {
-                // Основные данные
-                amountInRubles: amountInRubles,
-                amountInKopecks: amountInRubles * 100,
+                // Основные данные (храним в копейках для точности)
+                amountInKopecks: amountInKopecks,
+                amountInRubles: amountInKopecks / 100,
                 
                 // Определенные параметры
                 paymentType: paymentType,
@@ -176,17 +184,14 @@
                 isSlotPurchase: paymentType.isSlotPurchase,
                 
                 // Оригинальные данные из URL
-                amount: amountInRubles,
                 paymentId: params.PaymentId || 'Не указан',
                 orderId: params.OrderId || 'Не указан',
-                merchantEmail: params.MerchantEmail || 'domdarom2025@gmail.com',
                 customerEmail: params.EmailReq || 'Не указан',
-                customerPhone: params.PhonesReq || 'Не указан',
                 success: params.Success === 'true',
                 errorCode: params.ErrorCode || '0',
                 merchantName: params.MerchantName || 'NPK VDV',
-                backUrl: params.BackUrl || 'https://npkvdv.ru',
                 companyName: params.CompanyName || 'НПК "В ДУХЕ ВРЕМЕНИ"',
+                merchantEmail: params.MerchantEmail || 'domdarom2025@gmail.com',
                 
                 // Вспомогательные
                 paymentDate: new Date().toLocaleDateString('ru-RU'),
@@ -195,6 +200,12 @@
                     minute: '2-digit' 
                 })
             };
+        }
+        
+        // Форматируем сумму в рублях
+        function formatCurrency(amount) {
+            const num = parseFloat(amount);
+            return isNaN(num) ? '0 ₽' : num.toLocaleString('ru-RU') + ' ₽';
         }
         
         // Склонение слова "слот"
@@ -214,6 +225,13 @@
         function displayPaymentInfo() {
             const payment = getPaymentInfo();
             
+            console.log('📱 Отображаем платеж:', {
+                type: payment.paymentType.type,
+                amountInRubles: payment.amountInRubles,
+                slotCount: payment.slotCount,
+                isEntranceFee: payment.isEntranceFee
+            });
+            
             // 1. Обновляем заголовки и описания
             document.getElementById('pageTitle').textContent = payment.paymentType.title;
             document.getElementById('pageDescription').textContent = payment.paymentType.description;
@@ -223,20 +241,25 @@
             const paymentDetails = document.getElementById('paymentDetails');
             paymentDetails.innerHTML = '';
             
-            // Строка с суммой (разный формат для разных типов)
+            // Строка с суммой
             const amountRow = document.createElement('div');
             amountRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
             
-            let amountDisplay = payment.paymentType.amountText;
-            let amountColor = '#2E7D32';
-            let amountSize = '18px';
+            let amountDisplay, amountColor, amountSize;
             
             if (payment.isEntranceFee) {
+                // Вступительный взнос: показываем 10 рублей
+                amountDisplay = '10 ₽';
                 amountColor = '#388e3c';
                 amountSize = '24px';
-            } else if (payment.slotCount > 0) {
-                // Для покупки слотов показываем детализацию
-                amountDisplay += ` (${payment.slotCount} × 1 000 ₽)`;
+            } else {
+                // Покупка слотов: показываем сумму и детализацию
+                amountDisplay = formatCurrency(payment.amountInRubles);
+                if (payment.slotCount > 0) {
+                    amountDisplay += ` (${payment.slotCount} × 1 000 ₽)`;
+                }
+                amountColor = '#2E7D32';
+                amountSize = '18px';
             }
             
             amountRow.innerHTML = `
@@ -301,12 +324,14 @@
                     </div>
                 `;
                 paymentDetails.appendChild(slotsRow);
+                
+                console.log('✅ Отображена информация о слотах:', payment.slotCount);
             } else {
                 document.getElementById('slotsInfo').style.display = 'none';
                 document.getElementById('detailsTitle').textContent = 'Детали платежа';
             }
             
-            // 4. Сохраняем данные для автозаполнения
+            // 4. Сохраняем данные
             if (payment.orderId && payment.orderId !== 'Не указан') {
                 localStorage.setItem('suggested_login', payment.orderId);
                 sessionStorage.setItem('current_member', payment.orderId);
@@ -363,7 +388,6 @@
                         body { font-family: Arial, sans-serif; padding: 25px; max-width: 500px; margin: 0 auto; background: white; }
                         .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #4CAF50; }
                         .company { font-size: 22px; font-weight: bold; color: #2E7D32; margin-bottom: 8px; }
-                        .title { font-size: 20px; color: #388e3c; margin: 15px 0; }
                         .slot-info { background: #fff8e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 2px dashed #ffcc80; }
                         .entrance-info { background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 2px dashed #81c784; }
                         .details { margin: 30px 0; }
@@ -373,11 +397,7 @@
                         .total { background: #f8faf8; padding: 25px; border-radius: 10px; margin: 35px 0; text-align: center; border: 2px solid #c8e6c9; }
                         .amount { font-size: 32px; font-weight: bold; color: #2E7D32; margin: 10px 0; }
                         .footer { margin-top: 40px; text-align: center; color: #78909c; font-size: 13px; line-height: 1.6; }
-                        @media print { 
-                            body { padding: 15px; } 
-                            .no-print { display: none; } 
-                            @page { margin: 0.5cm; }
-                        }
+                        @media print { body { padding: 15px; } .no-print { display: none; } }
                     </style>
                 </head>
                 <body>
@@ -429,7 +449,7 @@
                     <div class="total">
                         <div style="color: #558b2f; font-size: 16px; margin-bottom: 10px;">Сумма оплаты</div>
                         <div class="amount">
-                            ${payment.isEntranceFee ? '10 ₽' : payment.amount.toLocaleString('ru-RU') + ' ₽'}
+                            ${payment.isEntranceFee ? '10 ₽' : formatCurrency(payment.amountInRubles)}
                         </div>
                         ${payment.isEntranceFee ? 
                           '<div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб</div>' : 
