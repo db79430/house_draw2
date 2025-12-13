@@ -46,14 +46,39 @@
     <div class="success">
         <div class="success-icon">✓</div>
         <h1>Оплата прошла успешно!</h1>
-        <p>Ваш платеж был успешно обработан.</p>
+        
+        <!-- ДОБАВЬТЕ ЭТИ СТРОКИ -->
+        <div class="payment-details" style="margin: 20px 0; text-align: left; background: #f5f5f5; padding: 15px; border-radius: 5px;">
+            <p><strong>Сумма:</strong> <span id="amount">1000</span> ₽</p>
+            <p><strong>Номер платежа:</strong> <span id="paymentId">7550253306</span></p>
+            <p><strong>Ваш номер участника:</strong> <span id="memberNumber">1765650016961</span></p>
+        </div>
+        
+        <p>Ваш платеж был успешно обработан. Данные для входа будут отправлены на ваш email.</p>
+        
         <div class="redirect">
             Перенаправление на страницу авторизации через <span id="countdown">5</span> секунд...
         </div>
-        <a href="https://npkvdv.ru/auth" class="btn">Войти в систему</a>
+        <a href="https://npkvdv.ru/auth" class="btn">Войти в личный кабинет</a>
     </div>
 
     <script>
+        // Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const amount = urlParams.get('Amount') || '1000';
+        const paymentId = urlParams.get('PaymentId') || '';
+        const orderId = urlParams.get('OrderId') || '';
+        
+        // Отображаем данные на странице
+        document.getElementById('amount').textContent = amount;
+        document.getElementById('paymentId').textContent = paymentId;
+        document.getElementById('memberNumber').textContent = orderId;
+        
+        // Сохраняем номер для автозаполнения при входе
+        if (orderId) {
+            localStorage.setItem('suggested_login', orderId);
+        }
+        
         let seconds = 5;
         const countdown = document.getElementById('countdown');
         
