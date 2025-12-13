@@ -312,76 +312,111 @@ app.get('/dashboard', (req, res) => {
 });
 
 
-app.get('/payment/success', async (req, res) => {
+// app.get('/payment/success', async (req, res) => {
 
+//   try {
+//     // 1. Получаем все параметры из URL
+//     const {
+//       Success,
+//       ErrorCode,
+//       OrderId,
+//       PaymentId,
+//       Amount,
+//       EmailReq,
+//       PhonesReq,
+//       BackUrl
+//     } = req.query;
+
+//     console.log('✅ Получен успешный платеж:', {
+//       OrderId,
+//       PaymentId,
+//       Amount,
+//       Email: EmailReq,
+//       Phone: PhonesReq
+//     });
+
+//     // 2. Проверяем, что платеж действительно успешен
+//     if (Success !== 'true' || ErrorCode !== '0') {
+//       console.error('⚠️ Платеж не успешен:', req.query);
+//       // Можно перенаправить на страницу ошибки
+//       return res.redirect('/payment/error');
+//     }
+
+//     // 3. НАЙТИ ПОЛЬЗОВАТЕЛЯ ПО OrderId (ваш номер участника)
+//     // OrderId = 1765650016961 - это ваш memberNumber
+//     const memberNumber = req.query.member; 
+    
+//     const user = await User.findByMemberNumber(memberNumber);
+//     if (!user) {
+//       console.error('❌ Пользователь не найден:', memberNumber);
+//       // Все равно показываем успех, но логируем ошибку
+//     } else {
+//       // 4. ОБНОВИТЬ СТАТУС ПОЛЬЗОВАТЕЛЯ
+//       await User.updatePaymentStatus(user.id, 'paid');
+//       await User.updateMembershipStatus(user.id, 'active');
+      
+//       // 5. СОХРАНИТЬ ДАННЫЕ ПЛАТЕЖА В БАЗУ
+//       await Payment.create({
+//         user_id: user.id,
+//         payment_id: PaymentId,
+//         order_id: OrderId,
+//         amount: Amount,
+//         status: 'success',
+//         email: EmailReq,
+//         phone: PhonesReq,
+//         raw_data: JSON.stringify(req.query) // Сохраняем все параметры
+//       });
+      
+//       console.log('💰 Статус пользователя обновлен:', user.email);
+//     }
+
+//     // 6. Отдать красивую страницу с параметрами
+//     // Вместо sendFile лучше использовать шаблонизатор (EJS/Pug),
+//     // но можно и так, передав данные через query параметры
+    
+//     res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
+    
+//     // // ИЛИ лучше сразу редирект на страницу успеха с параметрами
+//     // res.redirect(`/successfulpayment?member=${OrderId}&amount=${Amount}&payment_id=${PaymentId}`);
+    
+//   } catch (error) {
+//     console.error('❌ Ошибка обработки платежа:', error);
+//     // Даже при ошибке показываем страницу успеха
+//     res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
+//   }
+// });
+
+app.get('/successfulpayment', async (req, res) => {
   try {
-    // 1. Получаем все параметры из URL
+    // ★★★ УСТАНАВЛИВАЕМ ПРАВИЛЬНЫЙ CSP ★★★
+    res.setHeader('Content-Security-Policy', 
+      "default-src 'self' data: blob:; " +
+      "style-src 'self' 'unsafe-inline' blob:; " +
+      "script-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: blob:; " +
+      "font-src 'self' data:;"
+    );
+    
+    // Ваша логика обработки платежа...
     const {
-      Success,
-      ErrorCode,
-      OrderId,
-      PaymentId,
-      Amount,
-      EmailReq,
-      PhonesReq,
-      BackUrl
-    } = req.query;
-
-    console.log('✅ Получен успешный платеж:', {
-      OrderId,
-      PaymentId,
-      Amount,
-      Email: EmailReq,
-      Phone: PhonesReq
-    });
-
-    // 2. Проверяем, что платеж действительно успешен
-    if (Success !== 'true' || ErrorCode !== '0') {
-      console.error('⚠️ Платеж не успешен:', req.query);
-      // Можно перенаправить на страницу ошибки
-      return res.redirect('/payment/error');
-    }
-
-    // 3. НАЙТИ ПОЛЬЗОВАТЕЛЯ ПО OrderId (ваш номер участника)
-    // OrderId = 1765650016961 - это ваш memberNumber
-    const memberNumber = req.query.member; 
+            Success,
+            ErrorCode,
+            OrderId,
+            PaymentId,
+            Amount,
+            EmailReq,
+            PhonesReq,
+            BackUrl
+          } = req.query;
     
-    const user = await User.findByMemberNumber(memberNumber);
-    if (!user) {
-      console.error('❌ Пользователь не найден:', memberNumber);
-      // Все равно показываем успех, но логируем ошибку
-    } else {
-      // 4. ОБНОВИТЬ СТАТУС ПОЛЬЗОВАТЕЛЯ
-      await User.updatePaymentStatus(user.id, 'paid');
-      await User.updateMembershipStatus(user.id, 'active');
-      
-      // 5. СОХРАНИТЬ ДАННЫЕ ПЛАТЕЖА В БАЗУ
-      await Payment.create({
-        user_id: user.id,
-        payment_id: PaymentId,
-        order_id: OrderId,
-        amount: Amount,
-        status: 'success',
-        email: EmailReq,
-        phone: PhonesReq,
-        raw_data: JSON.stringify(req.query) // Сохраняем все параметры
-      });
-      
-      console.log('💰 Статус пользователя обновлен:', user.email);
-    }
-
-    // 6. Отдать красивую страницу с параметрами
-    // Вместо sendFile лучше использовать шаблонизатор (EJS/Pug),
-    // но можно и так, передав данные через query параметры
-    
-    // res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
-    
-    // // ИЛИ лучше сразу редирект на страницу успеха с параметрами
-    res.redirect(`/successfulpayment?member=${OrderId}&amount=${Amount}&payment_id=${PaymentId}`);
+    // Отправляем HTML
+    return res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
     
   } catch (error) {
-    console.error('❌ Ошибка обработки платежа:', error);
-    // Даже при ошибке показываем страницу успеха
+    // Даже при ошибке отправляем страницу с правильным CSP
+    res.setHeader('Content-Security-Policy', 
+      "default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' blob:; script-src 'self' 'unsafe-inline';"
+    );
     res.sendFile(path.join(__dirname, 'public', 'successfulpayment.html'));
   }
 });
