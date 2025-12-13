@@ -7,22 +7,23 @@
 </head>
 <body style="font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
 
-    <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15); max-width: 500px; width: 90%; margin: 20px; border: 2px solid #e8f5e9;">
+    <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15); max-width: 550px; width: 90%; margin: 20px; border: 2px solid #e8f5e9;">
         
-        <!-- Зеленая иконка успеха -->
-        <div style="width: 80px; height: 80px; background: #4CAF50; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+        <!-- Иконка успеха -->
+        <div id="successIcon" style="width: 80px; height: 80px; background: #4CAF50; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
             </svg>
         </div>
         
         <!-- Заголовок -->
-        <h1 style="color: #2E7D32; text-align: center; margin-bottom: 10px; font-size: 28px; font-weight: 700;">
+        <h1 id="pageTitle" style="color: #2E7D32; text-align: center; margin-bottom: 10px; font-size: 28px; font-weight: 700;">
             Оплата прошла успешно!
         </h1>
         
-        <p style="color: #558b2f; text-align: center; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
-            Ваш вступительный взнос успешно оплачен. Данные для входа будут отправлены на ваш email.
+        <!-- Описание -->
+        <p id="pageDescription" style="color: #558b2f; text-align: center; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
+            Оплата успешно обработана.
         </p>
         
         <!-- Детали платежа -->
@@ -31,53 +32,37 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#388e3c">
                     <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
                 </svg>
-                Детали платежа
+                <span id="detailsTitle">Детали платежа</span>
             </h2>
             
-            <div style="display: grid; gap: 15px;">
-                <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;">
-                    <span style="color: #558b2f; font-weight: 600;">Сумма:</span>
-                    <span id="amount" style="color: #2E7D32; font-weight: 700; font-size: 18px;">Загрузка...</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;">
-                    <span style="color: #558b2f; font-weight: 600;">Номер платежа:</span>
-                    <span id="paymentId" style="color: #1565c0; font-family: monospace; font-weight: 600;">Загрузка...</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #558b2f; font-weight: 600;">Ваш номер участника:</span>
-                    <span id="memberNumber" style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px;">Загрузка...</span>
-                </div>
+            <!-- Основная информация -->
+            <div id="paymentDetails" style="display: grid; gap: 15px;">
+                <!-- Заполняется JavaScript -->
             </div>
-        </div>
-        
-        <!-- Дополнительная информация -->
-        <div id="additionalInfo" style="display: none; background: #e8f5e8; border-radius: 10px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #66bb6a;">
-            <h3 style="color: #388e3c; margin-top: 0; margin-bottom: 15px; font-size: 16px;">Дополнительная информация</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div>
-                    <div style="color: #558b2f; font-size: 14px;">Дата:</div>
-                    <div id="paymentDate" style="color: #2E7D32; font-weight: 600;">-</div>
+            
+            <!-- Информация о слотах -->
+            <div id="slotsInfo" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #c8e6c9;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                    <div style="width: 40px; height: 40px; background: #ff9800; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px;">
+                        <span id="slotCount">1</span>
+                    </div>
+                    <div style="font-size: 18px; color: #ff9800; font-weight: bold;">
+                        слот<span id="slotWordEnding">ов</span> приобретено
+                    </div>
                 </div>
-                <div>
-                    <div style="color: #558b2f; font-size: 14px;">Статус:</div>
-                    <div id="paymentStatus" style="color: #2E7D32; font-weight: 600;">-</div>
-                </div>
-                <div style="grid-column: span 2;">
-                    <div style="color: #558b2f; font-size: 14px;">Email для чека:</div>
-                    <div id="customerEmail" style="color: #2E7D32; font-weight: 600; word-break: break-all;">-</div>
-                </div>
+                <p style="color: #558b2f; text-align: center; font-size: 14px; margin: 0;">
+                    Каждый слот дает право на участие в розыгрыше
+                </p>
             </div>
         </div>
         
         <!-- Информационное сообщение -->
-        <div style="background: #e8f5e8; border-radius: 10px; padding: 18px; margin-bottom: 30px; text-align: center;">
+        <div id="infoMessage" style="background: #e8f5e8; border-radius: 10px; padding: 18px; margin-bottom: 30px; text-align: center;">
             <div style="display: inline-flex; align-items: center; gap: 10px; color: #2E7D32;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#2E7D32">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
-                <span style="font-weight: 600;">Данные для входа будут отправлены в течение 10-15 минут</span>
+                <span id="infoText">Данные для входа будут отправлены в течение 10-15 минут</span>
             </div>
         </div>
         
@@ -110,6 +95,40 @@
     </div>
 
     <script>
+        // Конфигурация типов платежей
+        const PAYMENT_TYPES = {
+            ENTRANCE_FEE: {
+                id: 'entrance_fee',
+                title: 'Вступительный взнос оплачен!',
+                description: 'Добро пожаловать в клуб НПК ВДВ! Ваш вступительный взнос успешно оплачен.',
+                infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
+                isSlotPurchase: false
+            },
+            SLOT_PURCHASE: {
+                id: 'slot_purchase', 
+                title: 'Покупка слотов',
+                description: 'Слоты успешно приобретены.',
+                infoText: 'Приобретенные слоты активированы. Вы можете участвовать в розыгрышах.',
+                isSlotPurchase: true
+            }
+        };
+
+        // Цены слотов в копейках (рубли * 100)
+        const SLOT_PRICES_KOPECKS = {
+            100000: 1,   // 1000 рублей = 1 слот
+            300000: 3,   // 3000 рублей = 3 слота
+            500000: 5,   // 5000 рублей = 5 слотов
+            1500000: 15  // 15000 рублей = 15 слотов
+        };
+
+        // Цены слотов в рублях
+        const SLOT_PRICES_RUBLES = {
+            1000: 1,   // 1 слот
+            3000: 3,   // 3 слота
+            5000: 5,   // 5 слотов
+            15000: 15  // 15 слотов
+        };
+
         // Получаем все параметры из URL
         function getAllUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -121,13 +140,65 @@
             
             return params;
         }
-        
+
+        // Определяем тип платежа
+        function determinePaymentType(amountInRubles) {
+            const amountInKopecks = amountInRubles * 100;
+            
+            // Если сумма 10 рублей (1000 копеек) - это вступительный взнос
+            if (amountInKopecks === 1000) {
+                return PAYMENT_TYPES.ENTRANCE_FEE;
+            }
+            
+            // Если сумма соответствует ценам слотов
+            if (SLOT_PRICES_RUBLES[amountInRubles]) {
+                return PAYMENT_TYPES.SLOT_PURCHASE;
+            }
+            
+            // Если сумма кратна 1000 и больше 1000 - покупка слотов
+            if (amountInRubles >= 1000 && amountInRubles % 1000 === 0) {
+                return PAYMENT_TYPES.SLOT_PURCHASE;
+            }
+            
+            // По умолчанию - вступительный взнос
+            return PAYMENT_TYPES.ENTRANCE_FEE;
+        }
+
+        // Получаем количество слотов из суммы
+        function getSlotCountFromAmount(amountInRubles) {
+            // Проверяем стандартные цены
+            if (SLOT_PRICES_RUBLES[amountInRubles]) {
+                return SLOT_PRICES_RUBLES[amountInRubles];
+            }
+            
+            // Рассчитываем по формуле: количество слотов = сумма / 1000
+            if (amountInRubles >= 1000 && amountInRubles % 1000 === 0) {
+                return amountInRubles / 1000;
+            }
+            
+            return null;
+        }
+
         // Получаем информацию о платеже
         function getPaymentInfo() {
             const params = getAllUrlParams();
+            const amountInRubles = parseInt(params.Amount) || 1000;
+            const paymentType = determinePaymentType(amountInRubles);
+            const slotCount = paymentType.isSlotPurchase ? getSlotCountFromAmount(amountInRubles) : null;
             
             return {
-                amount: params.Amount || '1000',
+                // Основные данные
+                amountInRubles: amountInRubles,
+                amountInKopecks: amountInRubles * 100,
+                
+                // Определенные параметры
+                paymentType: paymentType,
+                slotCount: slotCount,
+                isEntranceFee: paymentType.id === 'entrance_fee',
+                isSlotPurchase: paymentType.id === 'slot_purchase',
+                
+                // Оригинальные данные из URL
+                amount: amountInRubles,
                 paymentId: params.PaymentId || 'Не указан',
                 orderId: params.OrderId || 'Не указан',
                 merchantEmail: params.MerchantEmail || 'domdarom2025@gmail.com',
@@ -137,68 +208,158 @@
                 errorCode: params.ErrorCode || '0',
                 merchantName: params.MerchantName || 'NPK VDV',
                 backUrl: params.BackUrl || 'https://npkvdv.ru',
-                companyName: params.CompanyName || 'НПК "В ДУХЕ ВРЕМЕНИ"'
+                companyName: params.CompanyName || 'НПК "В ДУХЕ ВРЕМЕНИ"',
+                
+                // Вспомогательные
+                paymentDate: new Date().toLocaleDateString('ru-RU'),
+                paymentTime: new Date().toLocaleTimeString('ru-RU')
             };
         }
-        
-        // Отображаем данные на странице
-        function displayPaymentInfo() {
-            const payment = getPaymentInfo();
-            
-            // Основные данные
-            document.getElementById('amount').textContent = formatCurrency(payment.amount);
-            document.getElementById('paymentId').textContent = payment.paymentId;
-            document.getElementById('memberNumber').textContent = payment.orderId;
-            
-            // Дополнительная информация
-            document.getElementById('paymentDate').textContent = new Date().toLocaleDateString('ru-RU');
-            document.getElementById('paymentStatus').textContent = payment.success ? '✅ Успешно' : '❌ Ошибка';
-            document.getElementById('customerEmail').textContent = payment.customerEmail;
-            
-            // Показываем блок с дополнительной информацией
-            if (payment.customerEmail && payment.customerEmail !== 'Не указан') {
-                document.getElementById('additionalInfo').style.display = 'block';
-            }
-            
-            // Сохраняем номер участника для автозаполнения
-            if (payment.orderId && payment.orderId !== 'Не указан') {
-                localStorage.setItem('suggested_login', payment.orderId);
-                // Также можно добавить в sessionStorage для текущей сессии
-                sessionStorage.setItem('current_member', payment.orderId);
-            }
-            
-            // Если платеж не успешен, меняем оформление
-            if (!payment.success) {
-                document.querySelector('h1').textContent = 'Проблема с платежом';
-                document.querySelector('h1').style.color = '#d32f2f';
-                document.querySelector('.success-icon').style.background = '#d32f2f';
-                document.querySelector('.success-icon svg').innerHTML = '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>';
-            }
-            
-            // Сохраняем в историю
-            savePaymentToHistory(payment);
-        }
-        
+
         // Форматируем сумму в рублях
         function formatCurrency(amount) {
             const num = parseInt(amount);
             return isNaN(num) ? '0 ₽' : num.toLocaleString('ru-RU') + ' ₽';
         }
-        
+
+        // Склонение слова "слот"
+        function getSlotWord(count) {
+            if (!count) return 'слотов';
+            
+            if (count % 10 === 1 && count % 100 !== 11) {
+                return 'слот';
+            } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+                return 'слота';
+            } else {
+                return 'слотов';
+            }
+        }
+
+        // Отображаем данные на странице
+        function displayPaymentInfo() {
+            const payment = getPaymentInfo();
+            
+            // 1. Обновляем заголовки
+            if (payment.isEntranceFee) {
+                document.getElementById('pageTitle').textContent = PAYMENT_TYPES.ENTRANCE_FEE.title;
+                document.getElementById('pageDescription').textContent = PAYMENT_TYPES.ENTRANCE_FEE.description;
+                document.getElementById('infoText').textContent = PAYMENT_TYPES.ENTRANCE_FEE.infoText;
+            } else {
+                document.getElementById('pageTitle').textContent = payment.slotCount ? 
+                    `Приобретено ${payment.slotCount} ${getSlotWord(payment.slotCount)}` : 
+                    'Покупка слотов';
+                document.getElementById('pageDescription').textContent = payment.slotCount ? 
+                    `Вы успешно приобрели ${payment.slotCount} ${getSlotWord(payment.slotCount)} для участия в розыгрышах.` : 
+                    'Слоты успешно приобретены.';
+                document.getElementById('infoText').textContent = PAYMENT_TYPES.SLOT_PURCHASE.infoText;
+            }
+            
+            // 2. Заполняем детали платежа
+            const paymentDetails = document.getElementById('paymentDetails');
+            paymentDetails.innerHTML = '';
+            
+            // Сумма
+            const amountRow = document.createElement('div');
+            amountRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
+            
+            let amountDisplay = '';
+            if (payment.isEntranceFee) {
+                amountDisplay = '10 ₽'; // Фиксированная сумма вступительного взноса
+            } else if (payment.slotCount) {
+                amountDisplay = `${formatCurrency(payment.amount)} (${payment.slotCount} × 1 000 ₽)`;
+            } else {
+                amountDisplay = formatCurrency(payment.amount);
+            }
+            
+            amountRow.innerHTML = `
+                <span style="color: #558b2f; font-weight: 600;">Сумма:</span>
+                <span style="color: #2E7D32; font-weight: 700; font-size: ${payment.isEntranceFee ? '24px' : '18px'}; text-align: right;">
+                    ${amountDisplay}
+                </span>
+            `;
+            paymentDetails.appendChild(amountRow);
+            
+            // Номер платежа
+            const paymentIdRow = document.createElement('div');
+            paymentIdRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
+            paymentIdRow.innerHTML = `
+                <span style="color: #558b2f; font-weight: 600;">Номер платежа:</span>
+                <span style="color: #1565c0; font-family: monospace; font-weight: 600; word-break: break-all; text-align: right;">
+                    ${payment.paymentId}
+                </span>
+            `;
+            paymentDetails.appendChild(paymentIdRow);
+            
+            // Номер участника/заказа
+            const orderIdRow = document.createElement('div');
+            orderIdRow.style.cssText = 'display: flex; justify-content: space-between;';
+            orderIdRow.innerHTML = `
+                <span style="color: #558b2f; font-weight: 600;">${payment.isEntranceFee ? 'Номер участника:' : 'Номер заказа:'}</span>
+                <span style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px; word-break: break-all; text-align: center;">
+                    ${payment.orderId}
+                </span>
+            `;
+            paymentDetails.appendChild(orderIdRow);
+            
+            // 3. Показываем информацию о слотах
+            if (payment.isSlotPurchase && payment.slotCount) {
+                document.getElementById('slotsInfo').style.display = 'block';
+                document.getElementById('slotCount').textContent = payment.slotCount;
+                document.getElementById('slotWordEnding').textContent = getSlotWord(payment.slotCount);
+                document.getElementById('detailsTitle').textContent = 'Детали покупки';
+            } else {
+                document.getElementById('slotsInfo').style.display = 'none';
+                document.getElementById('detailsTitle').textContent = 'Детали платежа';
+            }
+            
+            // 4. Добавляем информацию о типе платежа
+            const typeRow = document.createElement('div');
+            typeRow.style.cssText = 'margin-top: 15px; padding-top: 15px; border-top: 1px dashed #c8e6c9;';
+            typeRow.innerHTML = `
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #558b2f; font-weight: 600;">Тип оплаты:</span>
+                    <span style="color: #388e3c; font-weight: 600; padding: 4px 12px; background: ${payment.isEntranceFee ? '#e8f5e8' : '#fff8e1'}; border-radius: 20px;">
+                        ${payment.isEntranceFee ? 'Вступительный взнос' : 'Покупка слотов'}
+                    </span>
+                </div>
+            `;
+            paymentDetails.appendChild(typeRow);
+            
+            // 5. Сохраняем данные
+            if (payment.orderId && payment.orderId !== 'Не указан') {
+                localStorage.setItem('suggested_login', payment.orderId);
+                sessionStorage.setItem('current_member', payment.orderId);
+            }
+            
+            // 6. Сохраняем в историю
+            savePaymentToHistory(payment);
+            
+            // 7. Если платеж не успешен
+            if (!payment.success) {
+                document.getElementById('pageTitle').textContent = 'Проблема с платежом';
+                document.getElementById('pageTitle').style.color = '#d32f2f';
+                document.getElementById('successIcon').style.background = '#d32f2f';
+                document.getElementById('successIcon').innerHTML = `
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>`;
+            }
+        }
+
         // Сохраняем платеж в историю
         function savePaymentToHistory(payment) {
             try {
                 const paymentRecord = {
                     ...payment,
                     timestamp: new Date().toISOString(),
-                    memberNumber: payment.orderId // Явно сохраняем номер участника
+                    paymentType: payment.paymentType.id
                 };
                 
                 let history = JSON.parse(localStorage.getItem('paymentHistory') || '[]');
                 history.unshift(paymentRecord);
                 
-                if (history.length > 10) {
-                    history = history.slice(0, 10);
+                if (history.length > 20) {
+                    history = history.slice(0, 20);
                 }
                 
                 localStorage.setItem('paymentHistory', JSON.stringify(history));
@@ -207,7 +368,7 @@
                 console.log('Не удалось сохранить историю платежей');
             }
         }
-        
+
         // Печать квитанции
         function printReceipt() {
             const payment = getPaymentInfo();
@@ -222,49 +383,83 @@
                         .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #4CAF50; }
                         .company { font-size: 22px; font-weight: bold; color: #2E7D32; margin-bottom: 8px; }
                         .title { font-size: 20px; color: #388e3c; margin: 15px 0; }
+                        .slot-count { background: #fff8e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; font-size: 18px; color: #ff8f00; border: 2px dashed #ffcc80; }
                         .details { margin: 30px 0; }
                         .row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0; }
                         .label { color: #558b2f; font-weight: 600; }
                         .value { color: #2E7D32; font-weight: 700; }
                         .total { background: #f8faf8; padding: 25px; border-radius: 10px; margin: 35px 0; text-align: center; border: 2px solid #c8e6c9; }
                         .amount { font-size: 32px; font-weight: bold; color: #2E7D32; margin: 10px 0; }
-                        .member-number { background: #fff8e1; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; }
+                        .entrance-fee { background: #e8f5e8; padding: 10px; border-radius: 8px; text-align: center; margin: 20px 0; color: #2E7D32; font-weight: bold; }
                         .footer { margin-top: 40px; text-align: center; color: #78909c; font-size: 13px; line-height: 1.6; }
-                        @media print { body { padding: 15px; } .no-print { display: none; } }
+                        @media print { 
+                            body { padding: 15px; } 
+                            .no-print { display: none; } 
+                            @page { margin: 0.5cm; }
+                        }
                     </style>
                 </head>
                 <body>
                     <div class="header">
                         <div class="company">${payment.companyName}</div>
-                        <div style="color: #558b2f;">Квитанция об оплате вступительного взноса</div>
+                        <div style="color: #558b2f; font-size: 18px;">
+                            ${payment.isEntranceFee ? 'Квитанция об оплате вступительного взноса' : 'Квитанция о покупке слотов'}
+                        </div>
                         <div style="margin-top: 10px; color: #78909c; font-size: 14px;">№ ${payment.paymentId}</div>
                     </div>
                     
+                    ${payment.isEntranceFee ? `
+                    <div class="entrance-fee">
+                        <div style="font-size: 20px;">✅ Вступительный взнос оплачен</div>
+                        <div style="margin-top: 5px; font-size: 14px;">Добро пожаловать в клуб!</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${payment.isSlotPurchase && payment.slotCount ? `
+                    <div class="slot-count">
+                        <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                            ${payment.slotCount} ${getSlotWord(payment.slotCount)}
+                        </div>
+                        <div>приобретено для участия в розыгрышах</div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="details">
                         <div class="row">
-                            <span class="label">Номер участника:</span>
-                            <span class="value">
-                                <span class="member-number">${payment.orderId}</span>
-                            </span>
+                            <span class="label">${payment.isEntranceFee ? 'Номер участника:' : 'Номер заказа:'}</span>
+                            <span class="value">${payment.orderId}</span>
                         </div>
                         <div class="row">
                             <span class="label">Дата оплаты:</span>
-                            <span class="value">${new Date().toLocaleDateString('ru-RU')}</span>
+                            <span class="value">${payment.paymentDate}</span>
                         </div>
                         <div class="row">
                             <span class="label">Время оплаты:</span>
-                            <span class="value">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span class="value">${payment.paymentTime}</span>
                         </div>
                         <div class="row">
-                            <span class="label">Получатель:</span>
-                            <span class="value">${payment.merchantName}</span>
+                            <span class="label">Тип оплаты:</span>
+                            <span class="value">
+                                ${payment.isEntranceFee ? 'Вступительный взнос' : 'Покупка слотов'}
+                            </span>
                         </div>
+                        ${payment.customerEmail && payment.customerEmail !== 'Не указан' ? `
+                        <div class="row">
+                            <span class="label">Email для чека:</span>
+                            <span class="value" style="word-break: break-all;">${payment.customerEmail}</span>
+                        </div>
+                        ` : ''}
                     </div>
                     
                     <div class="total">
                         <div style="color: #558b2f; font-size: 16px; margin-bottom: 10px;">Сумма оплаты</div>
-                        <div class="amount">${formatCurrency(payment.amount)}</div>
-                        <div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб</div>
+                        <div class="amount">
+                            ${payment.isEntranceFee ? '10 ₽' : formatCurrency(payment.amount)}
+                        </div>
+                        ${payment.isSlotPurchase && payment.slotCount ? 
+                          `<div style="color: #78909c; margin-top: 10px; font-size: 14px;">${payment.slotCount} × 1 000 ₽ за слот</div>` : 
+                          `<div style="color: #78909c; margin-top: 10px; font-size: 14px;">Вступительный взнос в клуб НПК "В ДУХЕ ВРЕМЕНИ"</div>`
+                        }
                     </div>
                     
                     <div style="text-align: center; margin: 25px 0; padding: 15px; background: #e8f5e8; border-radius: 8px; color: #2E7D32;">
@@ -272,7 +467,7 @@
                     </div>
                     
                     <div class="footer">
-                        <p>Данный документ является подтверждением оплаты вступительного взноса</p>
+                        <p>Данный документ является подтверждением оплаты</p>
                         <p>Клуб НПК "В ДУХЕ ВРЕМЕНИ"</p>
                         <p>Email для связи: ${payment.merchantEmail}</p>
                         <p style="margin-top: 20px; color: #bdbdbd;">Дата печати: ${new Date().toLocaleString('ru-RU')}</p>
@@ -299,7 +494,7 @@
                 printWindow.print();
             }, 300);
         }
-        
+
         // Запускаем при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             displayPaymentInfo();
