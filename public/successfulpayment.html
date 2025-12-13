@@ -123,7 +123,7 @@
                     isEntranceFee: true,
                     isSlotPurchase: false,
                     title: 'Вступительный взнос оплачен!',
-                    description: 'Добро пожаловать в клуб НПК ВДВ! Ваш вступительный взнос успешно оплачен.',
+                    description: 'Ваш вступительный (паевый) взнос успешно оплачен.',
                     infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
                     amountInRubles: amountInKopecks / 100
                 };
@@ -136,8 +136,8 @@
                 isEntranceFee: false,
                 isSlotPurchase: true,
                 title: 'Покупка слотов',
-                description: 'Слоты успешно приобретены для участия в розыгрышах.',
-                infoText: 'Приобретенные слоты активированы. Вы можете участвовать в розыгрышах.',
+                description: 'Слоты успешно приобретены для участия',
+                infoText: 'Приобретенные слоты активированы.',
                 amountInRubles: amountInKopecks / 100
             };
         }
@@ -282,15 +282,15 @@
             paymentDetails.appendChild(paymentIdRow);
             
             // Номер участника/заказа
-            const orderIdRow = document.createElement('div');
-            orderIdRow.style.cssText = 'display: flex; justify-content: space-between;';
-            orderIdRow.innerHTML = `
-                <span style="color: #558b2f; font-weight: 600;">${payment.isEntranceFee ? 'Номер участника:' : 'Номер заказа:'}</span>
-                <span style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px; word-break: break-all; text-align: center;">
-                    ${payment.orderId}
-                </span>
-            `;
-            paymentDetails.appendChild(orderIdRow);
+            // const orderIdRow = document.createElement('div');
+            // orderIdRow.style.cssText = 'display: flex; justify-content: space-between;';
+            // orderIdRow.innerHTML = `
+            //     <span style="color: #558b2f; font-weight: 600;">${payment.isEntranceFee ? 'Номер участника:' : 'Номер заказа:'}</span>
+            //     <span style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px; word-break: break-all; text-align: center;">
+            //         ${payment.orderId}
+            //     </span>
+            // `;
+            // paymentDetails.appendChild(orderIdRow);
             
             // Тип платежа
             const typeRow = document.createElement('div');
@@ -299,7 +299,7 @@
                 <div style="display: flex; justify-content: space-between;">
                     <span style="color: #558b2f; font-weight: 600;">Тип оплаты:</span>
                     <span style="color: #388e3c; font-weight: 600; padding: 4px 12px; background: ${payment.isEntranceFee ? '#e8f5e8' : '#fff8e1'}; border-radius: 20px;">
-                        ${payment.isEntranceFee ? 'Вступительный взнос' : 'Покупка слотов'}
+                        ${payment.isEntranceFee ? 'Внесение минимального паевого взноса в паевой фонд' : 'Покупка слотов'}
                     </span>
                 </div>
             `;
