@@ -5,13 +5,195 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оплата прошла успешно</title>
     <link rel="icon" href="../utils//img/Untitled_logo_1_free-file.jpg" type="image/jpg">
+    
+    <!-- Адаптивные стили -->
+    <style>
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px !important;
+                margin: 10px !important;
+                border-radius: 12px !important;
+            }
+            
+            .success-icon {
+                width: 60px !important;
+                height: 60px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .success-icon svg {
+                width: 30px !important;
+                height: 30px !important;
+            }
+            
+            h1 {
+                font-size: 22px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .description {
+                font-size: 14px !important;
+                margin-bottom: 25px !important;
+            }
+            
+            .details-container {
+                padding: 15px !important;
+                margin-bottom: 25px !important;
+            }
+            
+            .details-title {
+                font-size: 16px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .details-title svg {
+                width: 18px !important;
+                height: 18px !important;
+            }
+            
+            .payment-details {
+                gap: 12px !important;
+            }
+            
+            .info-message {
+                padding: 15px !important;
+                margin-bottom: 25px !important;
+            }
+            
+            .info-message svg {
+                width: 18px !important;
+                height: 18px !important;
+            }
+            
+            .buttons-container {
+                gap: 12px !important;
+            }
+            
+            .btn {
+                padding: 16px !important;
+                font-size: 15px !important;
+            }
+            
+            .btn svg {
+                width: 18px !important;
+                height: 18px !important;
+            }
+            
+            .contact-info {
+                margin-top: 25px !important;
+                padding-top: 15px !important;
+                font-size: 13px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px !important;
+                width: 95% !important;
+            }
+            
+            h1 {
+                font-size: 20px !important;
+            }
+            
+            .description {
+                font-size: 13px !important;
+                line-height: 1.4 !important;
+            }
+            
+            .details-container {
+                padding: 12px !important;
+            }
+            
+            .payment-details-row {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 5px !important;
+                padding-bottom: 10px !important;
+            }
+            
+            .payment-details-label {
+                width: 100% !important;
+                margin-bottom: 2px !important;
+            }
+            
+            .payment-details-value {
+                width: 100% !important;
+                text-align: left !important;
+                word-break: break-word !important;
+            }
+            
+            .btn {
+                padding: 14px !important;
+                font-size: 14px !important;
+            }
+            
+            .contact-info {
+                font-size: 12px !important;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .container {
+                padding: 12px !important;
+            }
+            
+            h1 {
+                font-size: 18px !important;
+            }
+            
+            .btn {
+                padding: 12px !important;
+                font-size: 13px !important;
+            }
+        }
+        
+        /* Для очень высоких экранов */
+        @media (min-height: 800px) and (max-width: 768px) {
+            .container {
+                margin-top: 50px !important;
+                margin-bottom: 50px !important;
+            }
+        }
+        
+        /* Портретная ориентация на мобильных */
+        @media (orientation: portrait) and (max-width: 768px) {
+            .container {
+                max-width: 450px !important;
+            }
+        }
+        
+        /* Ландшафтная ориентация на мобильных */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .container {
+                padding: 20px !important;
+                margin: 10px !important;
+            }
+            
+            .success-icon {
+                width: 50px !important;
+                height: 50px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            h1 {
+                font-size: 18px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .description {
+                margin-bottom: 15px !important;
+                font-size: 13px !important;
+            }
+        }
+    </style>
 </head>
-<body style="font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+<body style="font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
 
-    <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15); max-width: 550px; width: 90%; margin: 20px; border: 2px solid #e8f5e9;">
+    <div class="container" style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15); max-width: 550px; width: 90%; margin: 20px; border: 2px solid #e8f5e9;">
         
         <!-- Иконка успеха -->
-        <div id="successIcon" style="width: 80px; height: 80px; background: #4CAF50; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+        <div id="successIcon" class="success-icon" style="width: 80px; height: 80px; background: #4CAF50; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
             </svg>
@@ -23,13 +205,13 @@
         </h1>
         
         <!-- Описание -->
-        <p id="pageDescription" style="color: #558b2f; text-align: center; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
+        <p id="pageDescription" class="description" style="color: #558b2f; text-align: center; margin-bottom: 30px; font-size: 16px; line-height: 1.5;">
             Оплата успешно обработана.
         </p>
         
         <!-- Детали платежа -->
-        <div style="background: #f8faf8; border-radius: 12px; padding: 25px; margin-bottom: 30px; border: 2px solid #e0f2e1;">
-            <h2 style="color: #388e3c; margin-top: 0; margin-bottom: 20px; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+        <div class="details-container" style="background: #f8faf8; border-radius: 12px; padding: 25px; margin-bottom: 30px; border: 2px solid #e0f2e1;">
+            <h2 class="details-title" style="color: #388e3c; margin-top: 0; margin-bottom: 20px; font-size: 18px; display: flex; align-items: center; gap: 10px;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#388e3c">
                     <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
                 </svg>
@@ -37,7 +219,7 @@
             </h2>
             
             <!-- Основная информация -->
-            <div id="paymentDetails" style="display: grid; gap: 15px;">
+            <div id="paymentDetails" class="payment-details" style="display: grid; gap: 15px;">
                 <!-- Заполняется JavaScript -->
             </div>
             
@@ -54,11 +236,11 @@
                 <p style="color: #558b2f; text-align: center; font-size: 14px; margin: 0;">
                     Каждый слот дает право на участие в розыгрыше
                 </p>
-            </div>
-        </div> -->
+            </div> -->
+        </div>
         
         <!-- Информационное сообщение -->
-        <div id="infoMessage" style="background: #e8f5e8; border-radius: 10px; padding: 18px; margin-bottom: 30px; text-align: center;">
+        <div id="infoMessage" class="info-message" style="background: #e8f5e8; border-radius: 10px; padding: 18px; margin-bottom: 30px; text-align: center;">
             <div style="display: inline-flex; align-items: center; gap: 10px; color: #2E7D32;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#2E7D32">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -68,8 +250,8 @@
         </div>
         
         <!-- Кнопки действий -->
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-            <a href="https://npkvdv.ru/auth" style="background: linear-gradient(135deg, #4CAF50 0%, #388e3c 100%); color: white; padding: 18px; text-decoration: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 16px; border: none; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);">
+        <div class="buttons-container" style="display: flex; flex-direction: column; gap: 15px;">
+            <a href="https://npkvdv.ru/auth" class="btn" style="background: linear-gradient(135deg, #4CAF50 0%, #388e3c 100%); color: white; padding: 18px; text-decoration: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 16px; border: none; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);">
                 <div style="display: inline-flex; align-items: center; gap: 10px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                         <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
@@ -78,7 +260,7 @@
                 </div>
             </a>
             
-            <button onclick="printReceipt()" style="background: white; color: #388e3c; padding: 16px; border: 2px solid #c8e6c9; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <button onclick="printReceipt()" class="btn" style="background: white; color: #388e3c; padding: 16px; border: 2px solid #c8e6c9; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#388e3c">
                     <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/>
                 </svg>
@@ -87,7 +269,7 @@
         </div>
         
         <!-- Контактная информация -->
-        <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #e0f2e1; text-align: center; color: #78909c; font-size: 14px;">
+        <div class="contact-info" style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #e0f2e1; text-align: center; color: #78909c; font-size: 14px;">
             <p style="margin: 5px 0;">По вопросам обращайтесь:</p>
             <a href="mailto:domdarom2025@gmail.com" style="color: #388e3c; font-weight: 600; text-decoration: none;">
                 domdarom2025@gmail.com
@@ -123,7 +305,7 @@
                     type: 'entrance_fee',
                     isEntranceFee: true,
                     isSlotPurchase: false,
-                    title: 'Вступительный взнос оплачен!',
+                    title: 'Оплата прошла успешно!',
                     description: 'Ваш вступительный (паевый) взнос успешно оплачен.',
                     infoText: 'Данные для входа в личный кабинет будут отправлены на ваш email в течение 10-15 минут.',
                     amountInRubles: amountInKopecks / 100
@@ -136,7 +318,7 @@
                 type: 'slot_purchase',
                 isEntranceFee: false,
                 isSlotPurchase: true,
-                title: 'Покупка слотов',
+                title: 'Оплата прошла успешно!',
                 description: 'Слоты успешно приобретены для участия',
                 infoText: 'Приобретенные слоты активированы.',
                 amountInRubles: amountInKopecks / 100
@@ -244,6 +426,7 @@
             
             // Строка с суммой
             const amountRow = document.createElement('div');
+            amountRow.className = 'payment-details-row';
             amountRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
             
             let amountDisplay, amountColor, amountSize;
@@ -252,20 +435,20 @@
                 // Вступительный взнос: показываем 10 рублей
                 amountDisplay = '10 ₽';
                 amountColor = '#388e3c';
-                amountSize = '24px';
+                amountSize = window.innerWidth <= 480 ? '20px' : '24px';
             } else {
                 // Покупка слотов: показываем сумму и детализацию
                 amountDisplay = formatCurrency(payment.amountInRubles);
                 if (payment.slotCount > 0) {
-                    amountDisplay += ` (${payment.slotCount} × 1 000 ₽)`;
+                    amountDisplay += window.innerWidth <= 480 ? `<br><small>(${payment.slotCount} × 1 000 ₽)</small>` : ` (${payment.slotCount} × 1 000 ₽)`;
                 }
                 amountColor = '#2E7D32';
-                amountSize = '18px';
+                amountSize = window.innerWidth <= 480 ? '18px' : '20px';
             }
             
             amountRow.innerHTML = `
-                <span style="color: #558b2f; font-weight: 600;">Сумма:</span>
-                <span style="color: ${amountColor}; font-weight: 700; font-size: ${amountSize}; text-align: right;">
+                <span class="payment-details-label" style="color: #558b2f; font-weight: 600;">Сумма:</span>
+                <span class="payment-details-value" style="color: ${amountColor}; font-weight: 700; font-size: ${amountSize}; text-align: right;">
                     ${amountDisplay}
                 </span>
             `;
@@ -273,34 +456,35 @@
             
             // Номер платежа
             const paymentIdRow = document.createElement('div');
+            paymentIdRow.className = 'payment-details-row';
             paymentIdRow.style.cssText = 'display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e0f2e1;';
             paymentIdRow.innerHTML = `
-                <span style="color: #558b2f; font-weight: 600;">Номер платежа:</span>
-                <span style="color: #1565c0; font-family: monospace; font-weight: 600; word-break: break-all; text-align: right;">
+                <span class="payment-details-label" style="color: #558b2f; font-weight: 600;">Номер платежа:</span>
+                <span class="payment-details-value" style="color: #1565c0; font-family: monospace; font-weight: 600; word-break: break-all; text-align: right; font-size: ${window.innerWidth <= 480 ? '14px' : '16px'};">
                     ${payment.paymentId}
                 </span>
             `;
             paymentDetails.appendChild(paymentIdRow);
             
-            // Номер участника/заказа
-            // const orderIdRow = document.createElement('div');
-            // orderIdRow.style.cssText = 'display: flex; justify-content: space-between;';
-            // orderIdRow.innerHTML = `
-            //     <span style="color: #558b2f; font-weight: 600;">${payment.isEntranceFee ? 'Номер участника:' : 'Номер заказа:'}</span>
-            //     <span style="color: #ff8f00; font-weight: 700; font-size: 16px; background: #fff8e1; padding: 4px 12px; border-radius: 20px; word-break: break-all; text-align: center;">
-            //         ${payment.orderId}
-            //     </span>
-            // `;
-            // paymentDetails.appendChild(orderIdRow);
-            
             // Тип платежа
             const typeRow = document.createElement('div');
+            typeRow.className = 'payment-details-row';
             typeRow.style.cssText = 'margin-top: 15px; padding-top: 15px; border-top: 1px dashed #c8e6c9;';
+            
+            const typeText = payment.isEntranceFee ? 
+                'Внесение минимального паевого взноса в паевой фонд' : 
+                'Покупка слотов';
+            
+            // На маленьких экранах сокращаем текст
+            const displayTypeText = window.innerWidth <= 480 ? 
+                (payment.isEntranceFee ? 'Паевой взнос' : 'Покупка слотов') : 
+                typeText;
+            
             typeRow.innerHTML = `
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #558b2f; font-weight: 600;">Тип оплаты:</span>
-                    <span style="color: #388e3c; font-weight: 600; padding: 4px 12px; background: ${payment.isEntranceFee ? '#e8f5e8' : '#fff8e1'}; border-radius: 20px;">
-                        ${payment.isEntranceFee ? 'Внесение минимального паевого взноса в паевой фонд' : 'Покупка слотов'}
+                <div style="display: flex; justify-content: space-between; align-items: ${window.innerWidth <= 480 ? 'flex-start' : 'center'}; flex-direction: ${window.innerWidth <= 480 ? 'column' : 'row'}; gap: ${window.innerWidth <= 480 ? '8px' : '0'};">
+                    <span style="color: #558b2f; font-weight: 600; ${window.innerWidth <= 480 ? 'width: 100%;' : ''}">Тип оплаты:</span>
+                    <span style="color: #388e3c; font-weight: 600; padding: 4px 12px; background: ${payment.isEntranceFee ? '#e8f5e8' : '#fff8e1'}; border-radius: 20px; ${window.innerWidth <= 480 ? 'width: 100%; text-align: center;' : ''}; font-size: ${window.innerWidth <= 480 ? '14px' : '16px'}; word-break: break-word;">
+                        ${displayTypeText}
                     </span>
                 </div>
             `;
@@ -317,9 +501,9 @@
                 const slotsRow = document.createElement('div');
                 slotsRow.style.cssText = 'margin-top: 15px; padding: 12px; background: #fff8e1; border-radius: 8px; border: 1px solid #ffcc80;';
                 slotsRow.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #ff8f00; font-weight: 600;">Приобретено слотов:</span>
-                        <span style="color: #ff8f00; font-weight: 700; font-size: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-direction: ${window.innerWidth <= 480 ? 'column' : 'row'}; gap: ${window.innerWidth <= 480 ? '8px' : '0'};">
+                        <span style="color: #ff8f00; font-weight: 600; ${window.innerWidth <= 480 ? 'width: 100%; text-align: center;' : ''}">Приобретено слотов:</span>
+                        <span style="color: #ff8f00; font-weight: 700; font-size: ${window.innerWidth <= 480 ? '20px' : '18px'}; ${window.innerWidth <= 480 ? 'width: 100%; text-align: center;' : ''}">
                             ${payment.slotCount} ${getSlotWord(payment.slotCount)}
                         </span>
                     </div>
@@ -432,7 +616,7 @@
                             <span class="value">${payment.orderId}</span>
                         </div>
                         <div class="row">
-                            <span class="label">Дата оплаты:</span>
+                            <span class="label">Дата оплата:</span>
                             <span class="value">${payment.paymentDate}</span>
                         </div>
                         <div class="row">
@@ -507,6 +691,12 @@
                 }
             `;
             document.head.appendChild(style);
+            
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', () => {
+                // При изменении размера окна обновляем отображение
+                setTimeout(displayPaymentInfo, 100);
+            });
         });
     </script>
 </body>
