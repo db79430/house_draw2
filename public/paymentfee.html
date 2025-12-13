@@ -279,9 +279,10 @@
             <!-- Блок поиска -->
             <div id="search-section" class="section search-section active">
                 <div class="house-icon">🏡</div>
-                <h3 style="color: #2d5016; margin-bottom: 15px;">Найдите ваш номер члена клуба</h3>
+                <h3 style="color: #2d5016; margin-bottom: 15px;">Чтобы найти индивидуальный номер пайщика</h3>
                 <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
-                    регистрации. Для ввода по номеру телефона начинать ввод +7</p>
+                    регистрации. </p>
+                <p>Для ввода по номеру телефона, введите номер, начиная +7, без скобочек и тире</p></p>
 
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
@@ -502,7 +503,6 @@
         // Создание платежа
         async function createPayment() {
             if (!AppState.currentMemberNumber) {
-                alert('Сначала найдите пользователя');
                 return;
             }
             
@@ -534,7 +534,6 @@
                 const result = await response.json();
                 
                 if (result.success && result.paymentUrl) {
-                    // alert('Платеж создан успешно! Перенаправление...');
                     setTimeout(() => {
                         window.location.href = result.paymentUrl;
                     }, 1000);

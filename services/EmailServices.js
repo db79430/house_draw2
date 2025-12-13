@@ -213,7 +213,7 @@ class EmailService {
     try {
       console.log(`🎯 Подготовка приветственного письма для: ${userData.email}`);
 
-      const subject = 'Добро пожаловать в клуб! Ваш номер члена клуба 🎉';
+      const subject = 'Добро пожаловать в клуб! Ваш индивидуальный номер пайщика 🎉';
       const htmlContent = await EmailService.generateWelcomeTemplate(userData, memberNumber);
 
       const emailStatus = EmailService.getEmailStatus();
@@ -305,7 +305,7 @@ class EmailService {
             <p>Благодарим вас за регистрацию в нашем клубе. Ваша заявка успешно принята, и мы рады приветствовать вас в нашем сообществе.</p>
             
             <div class="member-card">
-                <h3 style="color: #2d5016; margin-top: 0;">🎫 Ваш номер члена клуба</h3>
+                <h3 style="color: #2d5016; margin-top: 0;">🎫 Ваш индивидуальный номер пайщика</h3>
                 <div style="font-size: 32px; font-weight: bold; color: #2E7D32; margin: 15px 0;">${memberNumber}</div>
                 <p style="color: #666; margin: 0;">Сохраните этот номер для дальнейшего взаимодействия с клубом</p>
             </div>
@@ -418,7 +418,7 @@ class EmailService {
               <p><strong>Количество слотов:</strong> ${slots.length}</p>
               <p><strong>Сумма:</strong> ${purchaseData.amount / 100} руб.</p>
               <p><strong>Номера слотов:</strong> ${slotNumbers}</p>
-              ${user.membership_number ? `<p><strong>Ваш номер члена клуба:</strong> ${user.membership_number}</p>` : ''}
+              ${user.membership_number ? `<p><strong>Ваш номер индивидуальный номер:</strong> ${user.membership_number}</p>` : ''}
             </div>
             
             <p>Спасибо за вашу покупку! Ваши слоты уже активны в вашем личном кабинете.</p>
@@ -878,20 +878,20 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0 0 20px 0; font-size: 36px;">Данные для входа в личный кабинет</h1>
+            <h1 style="margin: 0 0 20px 0; font-size: 36px;">Данные для входа </h1>
           </div>
           
           <div class="content">
             <h2 style="color: #2d5016; margin-bottom: 25px;">Уважаемый(ая) ${userData.name}!</h2>
             
-            <p style="font-size: 16px; line-height: 1.7;">Благодарим вас за регистрацию в нашем клубе и успешную оплату паевого взноса.</p>
+            <p style="font-size: 16px; line-height: 1.7;">Благодарим Вас за регистрацию в нашем клубе и успешную оплату паевого взноса.</p>
             
             <div class="user-card">
               <h3 style="color: #2d5016; margin-top: 0;">📋 Ваш профиль</h3>
               <p><strong>ФИО:</strong> ${userData.name}</p>
               <p><strong>Телефон:</strong> ${userData.phone}</p>
               <p><strong>Город:</strong> ${userData.city}</p>
-              <p><strong>Номер члена клуба:</strong> ${memberNumber}</p>
+              <p><strong>Индивидуальный номер:</strong> ${memberNumber}</p>
             </div>
             
             <div class="credentials">
