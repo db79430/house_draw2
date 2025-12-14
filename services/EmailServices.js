@@ -666,6 +666,7 @@ class EmailService {
 
       const login = fullUser.email || fullUser.phone;
 
+
       // Генерируем HTML контент письма
       const htmlContent = await this.getFallbackCredentialsTemplate(
         userData,
@@ -911,7 +912,7 @@ class EmailService {
             ${statementHtml}
             
             <p style="text-align: center; margin-top: 40px;">
-              <a href="${appUrl}/auth" class="button">Войти в личный кабинет</a>
+              <a href="https://npkvdv.ru/auth" class="button">Войти в личный кабинет</a>
             </p>
           </div>
           
