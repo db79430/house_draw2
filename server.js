@@ -7,6 +7,7 @@ import path from 'path';
 import { createClient } from 'redis';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 
 dotenv.config();
 
@@ -115,7 +116,7 @@ app.use((req, res, next) => {
 
 // Session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
+  secret: process.env.SESSION_SECRET || randomBytes(64).toString('hex'),
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
@@ -164,8 +165,13 @@ app.use((req, res, next) => {
 
 // Инициализация сессии
 app.use((req, res, next) => {
+  if (!req.session.initialized) {
+    req.session.initialized = true;
+    req.session.createdAt = new Date().toISOString();
+  }
+  
   if (!req.session.csrfToken) {
-    req.session.csrfToken = crypto.randomBytes(32).toString('hex'); // Исправьте здесь
+    req.session.csrfToken = randomBytes(32).toString('hex');
   }
   
   res.locals.csrfToken = req.session.csrfToken;
