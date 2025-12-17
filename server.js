@@ -115,7 +115,7 @@ app.use((req, res, next) => {
 
 // Session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
