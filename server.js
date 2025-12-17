@@ -164,15 +164,10 @@ app.use((req, res, next) => {
 
 // Инициализация сессии
 app.use((req, res, next) => {
-  if (!req.session.initialized) {
-    req.session.initialized = true;
-    req.session.createdAt = new Date().toISOString();
-  }
-
   if (!req.session.csrfToken) {
-    req.session.csrfToken = require('crypto').randomBytes(32).toString('hex');
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex'); // Исправьте здесь
   }
-
+  
   res.locals.csrfToken = req.session.csrfToken;
   next();
 });
