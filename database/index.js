@@ -2,48 +2,40 @@
 import pgp from 'pg-promise';
 import CONFIG from '../config/index.js';
 
-// Initialize pg-promise без дополнительных опций
-const pgpInstance = pgp({
-  // Опции pg-promise
-  capSQL: true,
-  noWarnings: false,
+// Минимальная инициализация pg-promise
+const initOptions = {
+  // Отключаем предупреждения для development
+  noWarnings: process.env.NODE_ENV === 'production',
   
-  // Обработчики событий
+  // Обработка ошибок
   error: (err, e) => {
+    // Игнорируем ошибку отсутствия таблицы session - она создастся автоматически
+    if (err.message && err.message.includes('relation "session" does not exist')) {
+      console.log('ℹ️ Session table does not exist yet - will be created automatically');
+      return;
+    }
+    
     console.error('❌ Database error:', err.message);
     
-    if (e.cn) {
-      console.error('🔌 Connection error context:', {
+    // Логируем только в development
+    if (process.env.NODE_ENV === 'development' && e.cn) {
+      console.log('🔌 Connection:', {
         host: e.cn.host,
         database: e.cn.database,
         user: e.cn.user
       });
     }
-  },
-  
-  // Логирование запросов в development
-  query: (e) => {
-    if (process.env.NODE_ENV === 'development' && process.env.DEBUG_SQL === 'true') {
-      console.log(`📝 SQL [${e.client.connection.processID}]:`, e.query);
-    }
-  },
-  
-  // Обработка таймаутов
-  receive: (data, result, e) => {
-    if (process.env.DEBUG_SQL === 'true') {
-      console.log(`📊 Received ${result?.rows?.length || 0} rows`);
-    }
   }
-});
+};
 
-// Конфигурация подключения для pg-promise
+const pgpInstance = pgp(initOptions);
+
+// Конфигурация подключения
 let connectionConfig;
 
 if (CONFIG.DATABASE.URL) {
-  // Используем DATABASE_URL
   connectionConfig = CONFIG.DATABASE.URL;
 } else {
-  // Создаем объект конфигурации для pg-promise
   connectionConfig = {
     host: CONFIG.DATABASE.HOST || 'localhost',
     port: CONFIG.DATABASE.PORT || 5432,
@@ -51,68 +43,82 @@ if (CONFIG.DATABASE.URL) {
     user: CONFIG.DATABASE.USER,
     password: CONFIG.DATABASE.PASSWORD,
     ssl: CONFIG.DATABASE.SSL ? { rejectUnauthorized: false } : false,
-    
-    // ⚠️ Обратите внимание: настройки пула указываются здесь
     max: CONFIG.DATABASE.MAX_CONNECTIONS || 20,
     idleTimeoutMillis: CONFIG.DATABASE.IDLE_TIMEOUT || 30000,
-    connectionTimeoutMillis: CONFIG.DATABASE.CONNECTION_TIMEOUT || 5000,
-    allowExitOnIdle: false
+    connectionTimeoutMillis: CONFIG.DATABASE.CONNECTION_TIMEOUT || 2000
   };
 }
 
 console.log('🔧 Database configuration:', {
   host: connectionConfig.host || 'from URL',
   database: connectionConfig.database || 'from URL',
-  user: connectionConfig.user || 'from URL',
-  maxConnections: connectionConfig.max,
-  ssl: connectionConfig.ssl ? 'enabled' : 'disabled'
+  maxConnections: connectionConfig.max
 });
 
 // Создаем экземпляр базы данных
 const db = pgpInstance(connectionConfig);
 
-// Функция тестирования подключения
+// 🔥 ИСПРАВЛЕНИЕ: Улучшенная функция тестирования подключения
 async function testConnection() {
   try {
-    const result = await db.one('SELECT version() as version');
+    // Простая проверка подключения
+    const result = await db.one('SELECT version() as version, current_timestamp as time');
+    
     console.log('✅ PostgreSQL connected successfully');
     console.log('🐘 Version:', result.version.split(',')[0]);
+    console.log('🕒 Server time:', result.time);
     
-    // Проверяем доступность таблицы users
     try {
-      const usersCount = await db.one('SELECT COUNT(*) as count FROM users');
-      console.log(`📊 Total users in database: ${usersCount.count}`);
+      // Проверяем основные таблицы
+      const tables = await db.manyOrNone(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name IN ('users', 'payments', 'slots', 'webhook_logs')
+      `);
+      
+      console.log('📋 Found tables:', tables.map(t => t.table_name).join(', ') || 'none');
+      
+      if (tables.length > 0) {
+        // Проверяем количество записей в users
+        const usersCount = await db.one('SELECT COUNT(*) as count FROM users');
+        console.log(`👥 Total users: ${usersCount.count}`);
+      }
+      
     } catch (tableError) {
-      console.log('📋 Table "users" not found yet - migrations will create it');
-    }
-    
-    // Проверяем сессионную таблицу
-    try {
-      await db.one('SELECT 1 FROM session LIMIT 1');
-      console.log('✅ Session table exists');
-    } catch (sessionError) {
-      console.log('📝 Session table will be created automatically');
+      // Игнорируем ошибки таблиц - миграции создадут их
+      console.log('📝 Tables not found yet - migrations will create them');
     }
     
   } catch (error) {
+    // 🔥 ОСОБЕННОСТЬ: Игнорируем ошибку таблицы session
+    if (error.message && error.message.includes('relation "session" does not exist')) {
+      console.log('ℹ️ Session table does not exist - this is expected');
+      console.log('✅ PostgreSQL connection is working');
+      return;
+    }
+    
     console.error('❌ PostgreSQL connection error:', error.message);
+    
+    // Подробная диагностика
+    if (error.code === '28P01') {
+      console.error('🔐 Authentication failed - check DB_USER/DB_PASSWORD');
+    } else if (error.code === 'ENOTFOUND') {
+      console.error('🌐 Host not found - check DB_HOST');
+    } else if (error.code === 'ECONNREFUSED') {
+      console.error('🚫 Connection refused - check DB_PORT and if PostgreSQL is running');
+      console.error('   Run: sudo service postgresql start (Linux/Mac)');
+    } else if (error.code === '3D000') {
+      console.error('📁 Database does not exist - check DB_NAME');
+    }
+    
     console.error('🔧 Connection details:', {
       host: CONFIG.DATABASE.HOST,
       port: CONFIG.DATABASE.PORT,
       database: CONFIG.DATABASE.NAME,
       user: CONFIG.DATABASE.USER,
-      hasURL: !!CONFIG.DATABASE.URL,
-      errorCode: error.code
+      hasURL: !!CONFIG.DATABASE.URL
     });
-    
-    // Более подробная диагностика
-    if (error.code === '28P01') {
-      console.error('🔐 Authentication failed - check username/password');
-    } else if (error.code === 'ENOTFOUND') {
-      console.error('🌐 Host not found - check DB_HOST');
-    } else if (error.code === 'ECONNREFUSED') {
-      console.error('🚫 Connection refused - check DB_PORT and if PostgreSQL is running');
-    }
     
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
