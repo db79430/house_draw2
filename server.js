@@ -8,6 +8,8 @@ import { createClient } from 'redis';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
+import crypto from 'crypto';
+import connectPgSimple from 'connect-pg-simple';
 
 dotenv.config();
 
@@ -29,14 +31,27 @@ import authenticateToken from './middlewares/auth.js';
 import Payment from './models/Payment.js';
 import Slot from './models/Slots.js';
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+
+const PostgresSessionStore = connectPgSimple(session);
+
+const sessionStore = new PostgresSessionStore({
+  conString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+  createTableIfMissing: true,
+  tableName: 'user_sessions',
+  schemaName: 'public',
+  pruneSessionInterval: 60 * 15, // Чистка каждые 15 минут
+  errorLog: console.error
+});
 
 const app = express();
 
 // Redis клиент для сессий
 let redisClient = null;
-let sessionStore = null;
+
 
 const initializeRedis = async () => {
   try {
@@ -78,47 +93,62 @@ const initializeRedis = async () => {
 
 // CORS настройки
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-
+  origin: function(origin, callback) {
+    // Разрешаем все origins в development
+    if (!origin || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+      return;
+    }
+    
+    // Разрешенные домены в production
     const allowedOrigins = [
       'https://npkvdv.ru',
       'https://www.npkvdv.ru',
-      'https://npk-vdv.ru',
-      'http://localhost:3000',
-      'http://localhost:8080'
+      'https://tilda.cc',
+      'https://*.tilda.ws'
     ];
-
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('tilda.ws')) {
+    
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.warn(`🚫 CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
+
 app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    // Разрешаем все CORS preflight запросы
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  // Разрешаем кросс-доменные запросы с куками
+  const origin = req.headers.origin;
+
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400'); // 24 часа
+
+    // Для Tilda
+    if (origin.includes('tilda')) {
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, X-Tilda-Auth');
+    }
+  }
+
+  // Предзапросы OPTIONS
+  if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
+
   next();
 });
 
 // Session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || randomBytes(64).toString('hex'),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: false, // ⚠️ Важно: false вместо true
   store: sessionStore,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
@@ -127,9 +157,10 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000
   },
   name: 'npkvdv.sid',
-  rolling: true,
+  rolling: false, // ⚠️ Лучше false для производительности
   unset: 'destroy'
 }));
+
 
 // Парсинг данных
 app.use(express.json({
@@ -169,11 +200,11 @@ app.use((req, res, next) => {
     req.session.initialized = true;
     req.session.createdAt = new Date().toISOString();
   }
-  
+
   if (!req.session.csrfToken) {
     req.session.csrfToken = randomBytes(32).toString('hex');
   }
-  
+
   res.locals.csrfToken = req.session.csrfToken;
   next();
 });
@@ -188,9 +219,21 @@ const slotController = new SlotController();
 // API роуты
 app.get('/api/health', async (req, res) => {
   try {
-    await db.one('SELECT 1 as test');
+    // Проверяем БД
+    const dbResult = await db.one('SELECT 1 as test');
+    console.log('✅ Database connection successful');
 
-    const redisStatus = redisClient?.isReady ? 'connected' : 'disconnected';
+    // Проверяем Redis
+    let redisStatus = 'disconnected';
+    if (redisClient && redisClient.isReady) {
+      await redisClient.ping();
+      redisStatus = 'connected';
+      console.log('✅ Redis connection successful');
+    }
+
+    // Проверяем таблицы
+    const userCount = await db.one('SELECT COUNT(*) as count FROM users')
+      .catch(() => ({ count: 0 }));
 
     res.json({
       status: 'OK',
@@ -199,15 +242,15 @@ app.get('/api/health', async (req, res) => {
         database: 'connected',
         redis: redisStatus
       },
+      data: {
+        users_count: userCount.count
+      },
       message: 'Сервер работает корректно'
     });
   } catch (error) {
+    console.error('❌ Health check error:', error);
     res.status(500).json({
       status: 'ERROR',
-      services: {
-        database: 'disconnected',
-        redis: redisClient?.isReady ? 'connected' : 'disconnected'
-      },
       error: error.message,
       timestamp: new Date().toISOString()
     });

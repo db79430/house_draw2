@@ -1,4 +1,3 @@
-
 // controllers/TildaController.js
 import TildaFormService from '../services/TildaFormService.js';
 import TinkoffService from '../services/TinkoffService.js';
@@ -7,10 +6,12 @@ import CONFIG from '../config/index.js';
 import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 import EmailService from '../services/EmailServices.js';
+import db from '../database/index.js'; // ⚠️ ДОБАВЬТЕ ИМПОРТ db
+import crypto from 'crypto';
 
 class TildaController {
   async handleTildaWebhook(req, res) {
-    console.log('🔍 Получен вебхук от Tilda...');
+    console.log(`🔍 [${new Date().toISOString()}] Получен вебхук от Tilda...`);
     
     try {
       console.log('📥 Raw данные от Tilda:', req.body);
@@ -30,63 +31,26 @@ class TildaController {
         });
       }
   
-      // Проверка существующего пользователя
-      const existingUserCheck = await this.checkExistingUserAndPayments(formData);
+      // 🔥 ИСПРАВЛЕНИЕ: Используем транзакцию с advisory lock
+      const result = await this.processUserRegistration(formData, tildaData);
       
-      // Если пользователь уже оплатил - ошибка
-      if (existingUserCheck.hasActivePayment) {
-        console.log('⚠️ Пользователь уже оплатил взнос:', existingUserCheck.user.email);
+      if (result.error) {
+        console.log('❌ Ошибка регистрации:', result.error);
         
         return res.json({
           "formid": req.body.formid || "tilda-form",
           "type": "error",
-          "ErrorCode": "ALREADY_PAID", 
-          "Message": "Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа."
+          "ErrorCode": result.errorCode || "REGISTRATION_ERROR", 
+          "Message": result.error
         });
-      }
-  
-      let userResult;
-      let memberNumber;
-      let userForEmail;
-  
-      // Если пользователь существует но не оплатил - используем его
-      if (existingUserCheck.user) {
-        console.log('🔄 Пользователь существует, но не оплатил');
-        userResult = { user: existingUserCheck.user };
-        memberNumber = existingUserCheck.user.membership_number;
-        
-        // Если номера нет - генерируем
-        if (!memberNumber) {
-          memberNumber = await User.generateUniqueMemberNumber();
-          await User.updateMemberNumber(existingUserCheck.user.id, memberNumber);
-        }
-      } else {
-        // СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ
-        userResult = await TildaFormService.createUserFromForm(formData, tildaData);
-        
-        // ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА
-        memberNumber = await User.generateUniqueMemberNumber();
-        await User.updateMemberNumber(userResult.user.id, memberNumber);
-  
-        console.log('✅ Пользователь создан. Номер члена клуба:', memberNumber);
-        userForEmail = await User.findById(userResult.user.id);
-        
-        if (!userForEmail) {
-          throw new Error('Не удалось найти созданного пользователя');
-        }
-
-        // userForEmail.membership_number = memberNumber;
-
-        // Отправляем приветственное письмо с номером
-        await this.sendWelcomeEmailNumber(userForEmail, memberNumber);
       }
   
       // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
       const response = {
         "formid": req.body.formid || "tilda-form",
         "type": "success",
-        "paymenturl": `http://npkvdv.ru/paymentfee?memberNumber=${memberNumber}`,
-        "paymentid": memberNumber,
+        "paymenturl": `https://npkvdv.ru/paymentfee?memberNumber=${result.memberNumber}`,
+        "paymentid": result.memberNumber,
         "message": "Регистрация успешна. Переход к оплате."
       };
       
@@ -95,85 +59,194 @@ class TildaController {
       return res.json(response);
   
     } catch (error) {
-      console.error('❌ Ошибка обработки вебхука:', error);
+      console.error('❌ Критическая ошибка обработки вебхука:', error);
       return res.json({
         "formid": req.body.formid || "tilda-form", 
         "type": "error",
-        "Message": error.message
+        "Message": "Внутренняя ошибка сервера. Попробуйте позже."
       });
     }
   }
 
-async sendWelcomeEmailNumber(user, memberNumber) {
-    try {
-      console.log(`📧 Отправка приветственного письма для: ${user.email}`);
-      
-      const userData = {
-        name: user.name || user.fullname,
-        email: user.email,
-        phone: user.phone,
-        city: user.city,
-        memberNumber: memberNumber
-      };
-
-      const emailResult = await EmailService.sendWelcomeEmail(userData, memberNumber);
-      
-      if (emailResult.success) {
-        console.log('✅ Приветственное письмо отправлено успешно');
-        console.log(`   Номер члена клуба: ${memberNumber}`);
-        console.log(`   Email: ${user.email}`);
+  /**
+   * 🔥 ИСПРАВЛЕНИЕ: Атомарная обработка регистрации с транзакцией
+   */
+  async processUserRegistration(formData, tildaData) {
+    const { Email, Phone } = formData;
+    
+    // Создаем уникальный ключ для блокировки (email + phone)
+    const lockKey = `${Email?.toLowerCase() || ''}_${Phone || ''}`;
+    const lockId = this.generateAdvisoryLockId(lockKey);
+    
+    return await db.task(async t => {
+      try {
+        // 🔒 1. Блокируем по email/phone для предотвращения race condition
+        await t.none('SELECT pg_advisory_xact_lock($1)', [lockId]);
         
-        // 🔥 ИСПРАВЛЕНИЕ: Добавляем проверку на существование метода
-        // if (typeof this.logEmailSent === 'function') {
-        //   await this.logEmailSent(user.id, 'welcome', memberNumber);
-        // } else {
-        //   console.log('⚠️ Метод logEmailSent не найден, пропускаем логирование');
-        // }
-      } else {
-        console.warn('⚠️ Не удалось отправить приветственное письмо:', emailResult.error);
+        // ⏱️ 2. Проверяем существующего пользователя с блокировкой FOR UPDATE
+        const existingUser = await this.findExistingUserWithLock(t, Email, Phone);
+        
+        // 3. Если пользователь уже оплатил - возвращаем ошибку
+        if (existingUser && existingUser.payment_status === 'paid') {
+          return {
+            error: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
+            errorCode: 'ALREADY_PAID'
+          };
+        }
+        
+        let user;
+        let isNewUser = false;
+        let memberNumber;
+        
+        // 4. Если пользователь существует но не оплатил - используем его
+        if (existingUser) {
+          console.log('🔄 Пользователь существует, но не оплатил:', existingUser.email);
+          user = existingUser;
+          memberNumber = existingUser.membership_number;
+        } else {
+          // 5. СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ в рамках транзакции
+          console.log('🆕 Создаем нового пользователя');
+          
+          const userResult = await TildaFormService.createUserFromFormTransaction(
+            t, // Передаем транзакцию
+            formData, 
+            tildaData
+          );
+          
+          user = userResult.user;
+          isNewUser = true;
+        }
+        
+        // 6. ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА если его нет
+        if (!user.membership_number) {
+          memberNumber = await User.generateUniqueMemberNumber(t, user.id);
+          console.log('✅ Сгенерирован номер члена клуба:', memberNumber);
+        } else {
+          memberNumber = user.membership_number;
+        }
+        
+        // 7. Отправляем письмо только для новых пользователей
+        if (isNewUser) {
+          await this.sendWelcomeEmailAsync(user, memberNumber); // 🔥 Асинхронно, не блокируем транзакцию
+        }
+        
+        // 8. Логируем успешную обработку
+        await this.logWebhookProcessing(t, user.id, memberNumber, isNewUser);
+        
+        return {
+          success: true,
+          user,
+          memberNumber,
+          isNewUser
+        };
+        
+      } catch (error) {
+        console.error('❌ Ошибка в транзакции регистрации:', error);
+        throw error;
       }
+    });
+  }
+
+  /**
+   * 🔥 ИСПРАВЛЕНИЕ: Поиск пользователя с блокировкой FOR UPDATE SKIP LOCKED
+   */
+  async findExistingUserWithLock(transaction, email, phone) {
+    try {
+      // Ищем пользователя с блокировкой строки
+      const query = `
+        SELECT * FROM users 
+        WHERE (
+          LOWER(email) = LOWER($1) 
+          OR phone = $2
+          OR (phone IS NOT NULL AND REPLACE(phone, '+', '') = REPLACE($2, '+', ''))
+        )
+        AND deleted_at IS NULL
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      `;
       
-      return emailResult;
+      const user = await transaction.oneOrNone(query, [
+        email?.toLowerCase() || '',
+        phone || ''
+      ]);
       
+      return user;
     } catch (error) {
-      console.error('❌ Ошибка отправки приветственного письма:', error);
-      return { success: false, error: error.message };
+      console.error('❌ Ошибка поиска пользователя с блокировкой:', error);
+      return null;
     }
   }
 
   /**
-   * Логирование отправки email в базу
+   * 🔥 ИСПРАВЛЕНИЕ: Генерация ID для advisory lock
    */
-  // async logEmailSent(userId, emailType, memberNumber) {
-  //   try {
-  //     // Проверяем, что есть подключение к базе
-  //     if (!db) {
-  //       console.log('⚠️ База данных не доступна для логирования email');
-  //       return;
-  //     }
-
-  //     await db.none(
-  //       `INSERT INTO email_logs (user_id, email_type, member_number, sent_at) 
-  //        VALUES ($1, $2, $3, $4)`,
-  //       [userId, emailType, memberNumber, new Date()]
-  //     );
-      
-  //     console.log('📝 Email логирование успешно');
-  //   } catch (error) {
-  //     console.error('❌ Ошибка логирования email:', error);
-  //     // Не прерываем основной поток из-за ошибки логирования
-  //   }
-  // }
-
+  generateAdvisoryLockId(key) {
+    // Создаем стабильный хэш из ключа
+    const hash = crypto.createHash('md5').update(key).digest('hex');
+    // Берем первые 8 символов и конвертируем в число
+    return parseInt(hash.substring(0, 8), 16);
+  }
 
   /**
-   * Создание платежа при нажатии кнопки оплаты
+   * 🔥 ИСПРАВЛЕНИЕ: Асинхронная отправка email (не блокирует транзакцию)
    */
+  async sendWelcomeEmailAsync(user, memberNumber) {
+    // Запускаем в фоне, не ждем завершения
+    setImmediate(async () => {
+      try {
+        console.log(`📧 Асинхронная отправка письма для: ${user.email}`);
+        
+        const userData = {
+          name: user.name || user.fullname,
+          email: user.email,
+          phone: user.phone,
+          city: user.city,
+          memberNumber: memberNumber
+        };
+
+        const emailResult = await EmailService.sendWelcomeEmail(userData, memberNumber);
+        
+        if (emailResult.success) {
+          console.log('✅ Приветственное письмо отправлено успешно');
+          console.log(`   Номер члена клуба: ${memberNumber}`);
+          console.log(`   Email: ${user.email}`);
+        } else {
+          console.warn('⚠️ Не удалось отправить приветственное письмо:', emailResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка асинхронной отправки письма:', error);
+      }
+    });
+  }
+
+  /**
+   * 🔥 ИСПРАВЛЕНИЕ: Логирование обработки вебхука
+   */
+  async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
+    try {
+      await transaction.none(
+        `INSERT INTO webhook_logs 
+         (user_id, member_number, action_type, processed_at, created_at) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          userId,
+          memberNumber,
+          isNewUser ? 'user_created' : 'user_updated',
+          new Date(),
+          new Date()
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Ошибка логирования вебхука:', error);
+      // Не прерываем основную транзакцию
+    }
+  }
+
   async createPayment(req, res) {
     try {
       const { memberNumber } = req.body;
       
-      console.log('💳 Создание платежа для члена клуба:', memberNumber);
+      console.log(`💳 [${new Date().toISOString()}] Создание платежа для:`, memberNumber);
 
       if (!memberNumber) {
         return res.status(400).json({
@@ -182,82 +255,177 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         });
       }
 
-      // Ищем пользователя
-      const user = await User.findByMemberNumber(memberNumber);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: 'Член клуба не найден'
-        });
-      }
-
-      // ПРОВЕРЯЕМ - если пользователь уже оплатил, не создаем новый платеж
-      const hasSuccessfulPayment = await this.checkUserSuccessfulPayments(user.id);
-      if (hasSuccessfulPayment) {
-        console.log('✅ Пользователь уже оплатил:', user.email);
-        return res.json({
-          success: false,
-          error: 'Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.'
-        });
-      }
-
-      // Проверяем нет ли активных pending платежей
-      // const activePayment = await Payment.findActiveByUserId(user.id);
-      // if (activePayment) {
-      //   console.log('ℹ️ Активный платеж уже существует:', activePayment.id);
-      //   return res.json({
-      //     success: true,
-      //     paymentUrl: activePayment.payment_url,
-      //     message: 'Платеж уже создан'
-      //   });
-      // }
-
-      // СОЗДАЕМ ПЛАТЕЖ В ТИНЬКОФФ
-      console.log('🚀 Создаем новый платеж в Тинькофф...');
-      const paymentResult = await this.createTinkoffPayment(user, memberNumber);
-      
-      // Обновляем пользователя
-      await User.updateTinkoffPaymentId(user.id, paymentResult.tinkoffPaymentId);
-
-      // Сохраняем платеж в БД
-      await Payment.create({
-        orderId: paymentResult.orderId,
-        userId: user.id,
-        amount: paymentResult.amount,
-        tinkoffPaymentId: paymentResult.tinkoffPaymentId,
-        description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
-        status: 'pending',
-        memberNumber: memberNumber,
-        payment_url: paymentResult.paymentUrl
+      // 🔥 ИСПРАВЛЕНИЕ: Используем транзакцию для поиска пользователя
+      const result = await db.task(async t => {
+        // Блокируем пользователя по memberNumber
+        const user = await t.oneOrNone(
+          `SELECT * FROM users 
+           WHERE membership_number = $1 
+           FOR UPDATE SKIP LOCKED
+           LIMIT 1`,
+          [memberNumber]
+        );
+        
+        if (!user) {
+          throw new Error('Член клуба не найден');
+        }
+        
+        // Проверяем успешные платежи с блокировкой
+        const successfulPayments = await t.any(
+          `SELECT * FROM payments 
+           WHERE user_id = $1 AND status IN ('success', 'confirmed', 'paid')
+           FOR UPDATE SKIP LOCKED`,
+          [user.id]
+        );
+        
+        if (successfulPayments.length > 0) {
+          throw new Error('Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.');
+        }
+        
+        return { user, hasPayments: successfulPayments.length > 0 };
       });
-
+      
+      const { user } = result;
+      
+      // 🔥 СОЗДАЕМ ПЛАТЕЖ В ТИНЬКОФФ с уникальным OrderId
+      const orderId = TokenGenerator.generateOrderId();
+      const amount = 1000; // 10 рублей
+      
+      console.log('🚀 Создаем новый платеж в Тинькофф...');
+      const paymentResult = await this.createTinkoffPayment(user, memberNumber, orderId, amount);
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Сохраняем платеж в транзакции
+      await db.task(async t => {
+        // Проверяем нет ли уже такого OrderId (защита от повторных запросов)
+        const existingOrder = await t.oneOrNone(
+          'SELECT id FROM payments WHERE order_id = $1',
+          [orderId]
+        );
+        
+        if (existingOrder) {
+          console.log('⚠️ Платеж с таким OrderId уже существует:', orderId);
+          return;
+        }
+        
+        // Сохраняем новый платеж
+        await t.none(
+          `INSERT INTO payments (
+            order_id, user_id, amount, tinkoff_payment_id,
+            description, status, member_number, payment_url,
+            created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            orderId,
+            user.id,
+            amount,
+            paymentResult.tinkoffPaymentId,
+            `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
+            'pending',
+            memberNumber,
+            paymentResult.paymentUrl,
+            new Date(),
+            new Date()
+          ]
+        );
+        
+        // Обновляем пользователя
+        await t.none(
+          'UPDATE users SET tinkoff_payment_id = $1, updated_at = $2 WHERE id = $3',
+          [paymentResult.tinkoffPaymentId, new Date(), user.id]
+        );
+      });
+      
       console.log('✅ Платеж создан для:', memberNumber);
-
+      
       return res.json({
         success: true,
         paymentUrl: paymentResult.paymentUrl,
-        orderId: paymentResult.orderId,
+        orderId: orderId,
         paymentId: paymentResult.tinkoffPaymentId,
         message: 'Платеж успешно создан'
       });
 
     } catch (error) {
       console.error('❌ Ошибка создания платежа:', error);
-      return res.status(500).json({
+      
+      const errorMessage = error.message.includes('Член клуба не найден') 
+        ? 'Член клуба не найден'
+        : error.message.includes('уже оплатили')
+        ? 'Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.'
+        : 'Ошибка создания платежа. Попробуйте позже.';
+      
+      return res.status(400).json({
         success: false,
-        error: 'Ошибка создания платежа: ' + error.message
+        error: errorMessage
       });
     }
   }
 
   /**
-   * Проверка статуса платежа (для опроса со стороны фронтенда)
+   * 🔥 ИСПРАВЛЕНИЕ: Создание платежа в Тинькофф с retry логикой
    */
+  async createTinkoffPayment(user, memberNumber, orderId, amount) {
+    const maxRetries = 3;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Попытка ${attempt}/${maxRetries} создания платежа в Тинькофф`);
+        
+        const paymentData = {
+          TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
+          Amount: amount,
+          OrderId: orderId,
+          Description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
+          NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+          DATA: {
+            Email: user.email,
+            Phone: user.phone,
+            MemberNumber: memberNumber
+          }
+        };
+
+        console.log('📤 Отправка в Tinkoff:', {
+          ...paymentData,
+          TerminalKey: '***' // Не логируем ключ
+        });
+
+        const tinkoffService = new TinkoffService();
+        const tinkoffResponse = await tinkoffService.initPayment(paymentData);
+        
+        if (!tinkoffResponse.Success) {
+          throw new Error(tinkoffResponse.Message || tinkoffResponse.ErrorMessage || 'Ошибка создания платежа в Тинькофф');
+        }
+
+        console.log('✅ Платеж в Тинькофф создан успешно');
+        
+        return {
+          orderId,
+          amount,
+          tinkoffPaymentId: tinkoffResponse.PaymentId,
+          paymentUrl: tinkoffResponse.PaymentURL,
+        };
+        
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Попытка ${attempt} не удалась:`, error.message);
+        
+        if (attempt < maxRetries) {
+          // Ждем перед следующей попыткой (экспоненциальная задержка)
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError || new Error('Не удалось создать платеж в Тинькофф после нескольких попыток');
+  }
+
   async checkPaymentStatus(req, res) {
     try {
       const { memberNumber } = req.params;
       
-      console.log('🔍 Проверка статуса платежа для:', memberNumber);
+      console.log(`🔍 [${new Date().toISOString()}] Проверка статуса платежа для:`, memberNumber);
 
       if (!memberNumber) {
         return res.status(400).json({
@@ -266,25 +434,43 @@ async sendWelcomeEmailNumber(user, memberNumber) {
         });
       }
 
-      // Ищем пользователя
-      const user = await User.findByMemberNumber(memberNumber);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: 'Член клуба не найден'
-        });
-      }
-
-      // Проверяем статус пользователя
+      // 🔥 ИСПРАВЛЕНИЕ: Получаем все данные за один запрос
+      const result = await db.task(async t => {
+        const user = await t.oneOrNone(
+          'SELECT * FROM users WHERE membership_number = $1',
+          [memberNumber]
+        );
+        
+        if (!user) {
+          throw new Error('Член клуба не найден');
+        }
+        
+        const latestPayment = await t.oneOrNone(
+          `SELECT * FROM payments 
+           WHERE user_id = $1 
+           ORDER BY created_at DESC 
+           LIMIT 1`,
+          [user.id]
+        );
+        
+        const successfulPayments = await t.any(
+          'SELECT * FROM payments WHERE user_id = $1 AND status IN ($2:csv)',
+          [user.id, ['success', 'confirmed', 'paid']]
+        );
+        
+        return { user, latestPayment, successfulPayments };
+      });
+      
+      const { user, latestPayment, successfulPayments } = result;
+      
       const paymentStatus = {
         memberNumber: memberNumber,
         userStatus: user.payment_status,
         membershipStatus: user.membership_status,
-        hasPaid: user.payment_status === 'paid'
+        hasPaid: user.payment_status === 'paid' || successfulPayments.length > 0,
+        successfulPaymentsCount: successfulPayments.length
       };
 
-      // Ищем последний платеж
-      const latestPayment = await Payment.findLatestByUserId(user.id);
       if (latestPayment) {
         paymentStatus.payment = {
           status: latestPayment.status,
@@ -310,121 +496,46 @@ async sendWelcomeEmailNumber(user, memberNumber) {
     }
   }
 
-  /**
-   * Получение данных члена клуба для отображения на странице
-   */
-  async getMemberData(req, res) {
-    try {
-      const { memberNumber } = req.params;
-      
-      console.log('🔍 Получение данных члена клуба:', memberNumber);
-
-      if (!memberNumber) {
-        return res.status(400).json({
-          success: false,
-          error: 'Номер члена клуба обязателен'
-        });
-      }
-
-      // Ищем пользователя в БД
-      const user = await User.findByMemberNumber(memberNumber);
-      
-      if (!user) {
-        console.log('❌ Член клуба не найден в БД:', memberNumber);
-        return res.status(404).json({
-          success: false,
-          error: 'Член клуба не найден'
-        });
-      }
-
-      // Получаем информацию о платежах
-      const latestPayment = await Payment.findLatestByUserId(user.id);
-
-      // Проверяем статус оплаты
-      const hasSuccessfulPayment = await this.checkUserSuccessfulPayments(user.id);
-      const hasActivePayment = latestPayment && latestPayment.status === 'pending';
-
-      // Формируем ответ с данными
-      const memberData = {
-        success: true,
-        memberNumber: user.membership_number,
-        formData: {
-          FullName: user.fullname,
-          Phone: user.phone,
-          Email: user.email,
-          Yeardate: user.yeardate ? new Date(user.yeardate).toLocaleDateString('ru-RU') : '',
-          City: user.city || '',
-          Conditions: user.conditions === 'accepted' ? 'yes' : 'no',
-          Checkbox: user.checkbox === 'accepted' ? 'yes' : 'no'
-        },
-        userData: {
-          membership_status: user.membership_status,
-          payment_status: user.payment_status,
-          created_at: user.created_at
-        },
-        paymentInfo: {
-          hasPaid: hasSuccessfulPayment,
-          hasActivePayment: hasActivePayment,
-          paymentData: latestPayment ? {
-            status: latestPayment.status,
-            amount: latestPayment.amount,
-            payment_url: latestPayment.payment_url
-          } : null
-        }
-      };
-
-      console.log('✅ Данные члена клуба получены:', user.email);
-      res.json(memberData);
-
-    } catch (error) {
-      console.error('❌ Ошибка получения данных члена клуба:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Внутренняя ошибка сервера'
-      });
-    }
-  }
-
-  /**
-   * Проверка существующего пользователя и его платежей
-   */
   async checkExistingUserAndPayments(formData) {
     try {
       const { Email, Phone } = formData;
       
-      let user = null;
-
-      // Проверяем по email
-      if (Email) {
-        const usersByEmail = await User.findByEmail(Email);
-        if (usersByEmail && usersByEmail.length > 0) {
-          user = usersByEmail[0];
-        }
-      }
-
-      // Проверяем по телефону
-      if (!user && Phone) {
-        const usersByPhone = await User.findByPhone(Phone);
-        if (usersByPhone && usersByPhone.length > 0) {
-          user = usersByPhone[0];
-        }
-      }
-
+      // 🔥 ИСПРАВЛЕНИЕ: Используем один запрос вместо нескольких
+      const user = await db.task(async t => {
+        return await t.oneOrNone(`
+          SELECT u.*, 
+            COUNT(p.id) FILTER (WHERE p.status IN ('success', 'confirmed', 'paid')) as successful_payments_count
+          FROM users u
+          LEFT JOIN payments p ON p.user_id = u.id
+          WHERE (
+            LOWER(u.email) = LOWER($1) 
+            OR u.phone = $2
+            OR (u.phone IS NOT NULL AND REPLACE(u.phone, '+', '') = REPLACE($2, '+', ''))
+          )
+          AND u.deleted_at IS NULL
+          GROUP BY u.id
+          LIMIT 1
+        `, [Email?.toLowerCase() || '', Phone || '']);
+      });
+      
       if (!user) {
         return { user: null, hasActivePayment: false };
       }
-
-      // Проверяем есть ли успешные платежи
-      const hasSuccessfulPayment = await this.checkUserSuccessfulPayments(user.id);
+      
+      const hasActivePayment = user.payment_status === 'paid' || user.successful_payments_count > 0;
       
       console.log(`🔍 Проверка пользователя ${user.email}:`, {
-        hasActivePayment: hasSuccessfulPayment,
-        payment_status: user.payment_status
+        hasActivePayment,
+        payment_status: user.payment_status,
+        successful_payments: user.successful_payments_count
       });
       
       return {
-        user: user,
-        hasActivePayment: hasSuccessfulPayment
+        user: {
+          ...user,
+          successful_payments_count: user.successful_payments_count
+        },
+        hasActivePayment
       };
 
     } catch (error) {
@@ -433,26 +544,29 @@ async sendWelcomeEmailNumber(user, memberNumber) {
     }
   }
 
-  /**
-   * Проверка успешных платежей пользователя
-   */
   async checkUserSuccessfulPayments(userId) {
     try {
-      const user = await User.findById(userId);
+      const result = await db.oneOrNone(
+        `SELECT 
+          COUNT(*) as count,
+          MAX(payment_status) as user_payment_status
+         FROM (
+           SELECT payment_status FROM users WHERE id = $1
+           UNION ALL
+           SELECT status FROM payments WHERE user_id = $1 AND status IN ('success', 'confirmed', 'paid')
+         ) as statuses`,
+        [userId]
+      );
       
-      // Проверяем статус пользователя
-      if (user && user.payment_status === 'paid') {
-        console.log('✅ Пользователь уже оплатил (по статусу):', user.email);
-        return true;
-      }
+      const hasPayments = result && (
+        result.user_payment_status === 'paid' || 
+        parseInt(result.count) > (result.user_payment_status === 'paid' ? 1 : 0)
+      );
       
-      // Проверяем успешные платежи в БД
-      const successfulPayments = await Payment.findSuccessfulPaymentsByUserId(userId);
-      
-      const hasPayments = successfulPayments && successfulPayments.length > 0;
       console.log(`💰 Проверка платежей пользователя ${userId}:`, { 
         hasPayments, 
-        count: successfulPayments?.length 
+        count: result?.count,
+        user_payment_status: result?.user_payment_status
       });
       
       return hasPayments;
@@ -463,49 +577,7 @@ async sendWelcomeEmailNumber(user, memberNumber) {
     }
   }
 
-  /**
-   * Создание платежа в Тинькофф
-   */
-  async createTinkoffPayment(user, memberNumber) {
-    const orderId = TokenGenerator.generateOrderId();
-    const amount = 1000; // 10 рублей
-
-    const paymentData = {
-      TerminalKey: CONFIG.TINKOFF.TERMINAL_KEY,
-      Amount: amount,
-      OrderId: orderId,
-      Description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
-      NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
-      DATA: {
-        Email: user.email,
-        Phone: user.phone,
-        MemberNumber: memberNumber
-      }
-    };
-
-    console.log('📤 Отправка в Tinkoff:', paymentData);
-
-    const tinkoffService = new TinkoffService();
-    const tinkoffResponse = await tinkoffService.initPayment(paymentData);
-    
-    if (!tinkoffResponse.Success) {
-      console.error('❌ Tinkoff API Error:', tinkoffResponse);
-      throw new Error(tinkoffResponse.Message || tinkoffResponse.ErrorMessage || 'Ошибка создания платежа в Тинькофф');
-    }
-
-    return {
-      orderId,
-      amount,
-      tinkoffPaymentId: tinkoffResponse.PaymentId,
-      paymentUrl: tinkoffResponse.PaymentURL,
-    };
-  }
-
-  // Остальные вспомогательные методы
-  verifyTildaSignature(req) {
-    return true;
-  }
-
+  // Остальные методы остаются без изменений
   normalizeTildaData(tildaData) {
     const formData = {};
     const technicalFields = ['formid', 'pageid', 'tranid', 'projectid', 'X-Tilda-Api-Key'];

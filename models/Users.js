@@ -114,15 +114,15 @@ class User {
   static async findOne(credentials) {
     try {
       const { email, phone, membership_number } = credentials;
-  
+
       // Проверяем что передан хотя бы один идентификатор
       if (!email && !phone && !membership_number) {
         throw new Error('Email, phone or membership_number is required');
       }
-  
+
       let query;
       let params;
-  
+
       // Поиск по membership_number (приоритет)
       if (membership_number) {
         query = `
@@ -188,9 +188,9 @@ class User {
         `;
         params = [phone];
       }
-  
+
       const user = await db.oneOrNone(query, params);
-  
+
       if (user) {
         console.log('✅ User found:', {
           id: user.id,
@@ -202,14 +202,14 @@ class User {
       } else {
         console.log('❌ User not found with credentials:', credentials);
       }
-  
+
       return user;
     } catch (error) {
       console.error('❌ Error finding user:', error);
       throw error;
     }
   }
-  
+
   /**
   * Поиск пользователя по ID
   */
@@ -234,7 +234,7 @@ class User {
       const user = await db.oneOrNone(query, [userId]);
 
       if (user) {
-        console.log('✅ User found by ID:', { id: user.id, email: user.email, city: user.city, yeardate: user.yeardate});
+        console.log('✅ User found by ID:', { id: user.id, email: user.email, city: user.city, yeardate: user.yeardate });
       } else {
         console.log('❌ User not found with ID:', userId);
       }
@@ -662,7 +662,52 @@ class User {
 
   // Метод для генерации уникального номера члена клуба
   static async generateUniqueMemberNumber() {
-    return `M${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    try {
+      // Получаем количество пользователей для следующего номера
+      const countResult = await db.oneOrNone(
+        'SELECT COUNT(*) as count FROM users WHERE membership_number IS NOT NULL'
+      );
+
+      const userCount = parseInt(countResult?.count || 0);
+      const nextNumber = 100000 + userCount + 1; // Начинаем с 100001
+
+      const memberNumber = `MBR${nextNumber}`;
+
+      // Проверяем уникальность (на случай удаленных пользователей)
+      const existing = await db.oneOrNone(
+        'SELECT id FROM users WHERE membership_number = $1',
+        [memberNumber]
+      );
+
+      if (!existing) {
+        return memberNumber;
+      }
+
+      // Если номер занят, ищем следующий свободный
+      let attemptNumber = nextNumber + 1;
+      while (true) {
+        const candidate = `MBR${attemptNumber}`;
+        const check = await db.oneOrNone(
+          'SELECT id FROM users WHERE membership_number = $1',
+          [candidate]
+        );
+
+        if (!check) {
+          return candidate;
+        }
+
+        attemptNumber++;
+
+        // Защита от бесконечного цикла
+        if (attemptNumber > nextNumber + 1000) {
+          throw new Error('Не удалось сгенерировать уникальный номер');
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Ошибка генерации номера:', error);
+      throw error;
+    }
     // let attempts = 0;
     // const maxAttempts = 5;
 
