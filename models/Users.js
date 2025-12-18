@@ -740,6 +740,48 @@ class User {
     }
   }
 
+  static async createUserFromFormInTransaction(transaction, formData, tildaData) {
+    const { 
+      FullName: name, 
+      Phone: phone, 
+      Email: email,
+      City: city,
+      Checkbox: checkbox,
+      Conditions: conditions 
+    } = formData;
+    
+    try {
+      const user = await transaction.one(
+        `INSERT INTO users (
+          fullname, phone, email, city, 
+          checkbox, conditions, payment_status, membership_status,
+          created_at, updated_at, source
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *`,
+        [
+          name,
+          phone,
+          email.toLowerCase(),
+          city || '',
+          checkbox === 'yes' ? 'accepted' : 'pending',
+          conditions === 'yes' ? 'accepted' : 'pending',
+          'pending',
+          'pending_payment',
+          new Date(),
+          new Date(),
+          'tilda'
+        ]
+      );
+      
+      console.log('✅ Пользователь создан в транзакции:', user.email);
+      return user;
+      
+    } catch (error) {
+      console.error('❌ Ошибка создания пользователя в транзакции:', error);
+      throw error;
+    }
+  }
+
   static async findByLogin(login) {
     try {
       const query = 'SELECT * FROM users WHERE login = $1';

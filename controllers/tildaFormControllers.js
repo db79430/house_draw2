@@ -81,7 +81,8 @@ class TildaController {
     return await db.task(async t => {
       try {
         // 🔒 1. Блокируем по email/phone для предотвращения race condition
-        await t.none('SELECT pg_advisory_xact_lock($1)', [lockId]);
+        // Используем oneOrNone вместо none, так как SELECT возвращает данные
+        await t.oneOrNone('SELECT pg_advisory_xact_lock($1)', [lockId]);
         
         // ⏱️ 2. Проверяем существующего пользователя с блокировкой FOR UPDATE
         const existingUser = await this.findExistingUserWithLock(t, Email, Phone);
@@ -107,20 +108,28 @@ class TildaController {
           // 5. СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ в рамках транзакции
           console.log('🆕 Создаем нового пользователя');
           
-          const userResult = await TildaFormService.createUserFromFormTransaction(
+          const userResult = await User.createUserFromFormInTransaction(
             t, // Передаем транзакцию
             formData, 
             tildaData
           );
           
-          user = userResult.user;
+          user = userResult;
           isNewUser = true;
         }
         
         // 6. ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА если его нет
         if (!user.membership_number) {
-          memberNumber = await User.generateUniqueMemberNumber(t, user.id);
+          memberNumber = await this.generateUniqueMemberNumberInTransaction(t, user.id);
           console.log('✅ Сгенерирован номер члена клуба:', memberNumber);
+          
+          // Обновляем пользователя с новым номером
+          await t.none(
+            'UPDATE users SET membership_number = $1, updated_at = NOW() WHERE id = $2',
+            [memberNumber, user.id]
+          );
+          
+          user.membership_number = memberNumber;
         } else {
           memberNumber = user.membership_number;
         }
@@ -147,35 +156,150 @@ class TildaController {
     });
   }
 
+  async generateUniqueMemberNumberInTransaction(transaction, userId) {
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      try {
+        // Генерация на основе timestamp и случайного числа
+        const timestamp = Date.now().toString().slice(-8); // последние 8 цифр
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const memberNumber = `MBR${timestamp}${random}`;
+        
+        // Проверяем уникальность в транзакции
+        const existing = await transaction.oneOrNone(
+          'SELECT id FROM users WHERE membership_number = $1',
+          [memberNumber]
+        );
+        
+        if (!existing) {
+          return memberNumber;
+        }
+        
+        attempts++;
+        console.log(`🔄 Попытка ${attempts}: номер ${memberNumber} уже существует, генерируем новый...`);
+        
+        // Небольшая задержка перед следующей попыткой
+        await new Promise(resolve => setTimeout(resolve, 10));
+        
+      } catch (error) {
+        attempts++;
+        console.error(`❌ Ошибка генерации номера (попытка ${attempts}):`, error);
+        
+        if (attempts >= maxAttempts) {
+          // Крайний случай: используем timestamp + userId
+          const fallbackNumber = `MBR${Date.now()}${userId}`;
+          console.log(`🆘 Используем fallback номер: ${fallbackNumber}`);
+          return fallbackNumber;
+        }
+      }
+    }
+    
+    // Если все попытки исчерпаны
+    const finalNumber = `MBR${Date.now()}${userId}${Math.floor(Math.random() * 1000)}`;
+    return finalNumber;
+  }
+
+
   /**
    * 🔥 ИСПРАВЛЕНИЕ: Поиск пользователя с блокировкой FOR UPDATE SKIP LOCKED
    */
-  async findExistingUserWithLock(transaction, email, phone) {
-    try {
-      // Ищем пользователя с блокировкой строки
-      const query = `
+/**
+ * 🔥 Вспомогательный метод для проверки существующего пользователя
+ */
+async findExistingUserWithLock(transaction, email, phone) {
+  if (!email && !phone) {
+    return null;
+  }
+  
+  try {
+    let query;
+    let params;
+    
+    if (email && phone) {
+      // Ищем по email ИЛИ phone
+      query = `
         SELECT * FROM users 
         WHERE (
           LOWER(email) = LOWER($1) 
           OR phone = $2
-          OR (phone IS NOT NULL AND REPLACE(phone, '+', '') = REPLACE($2, '+', ''))
+          OR (phone IS NOT NULL AND REPLACE(REPLACE(phone, '+', ''), ' ', '') = REPLACE(REPLACE($2, '+', ''), ' ', ''))
         )
         AND deleted_at IS NULL
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       `;
-      
-      const user = await transaction.oneOrNone(query, [
-        email?.toLowerCase() || '',
-        phone || ''
-      ]);
-      
-      return user;
-    } catch (error) {
-      console.error('❌ Ошибка поиска пользователя с блокировкой:', error);
-      return null;
+      params = [email.toLowerCase(), phone];
+    } else if (email) {
+      // Ищем только по email
+      query = `
+        SELECT * FROM users 
+        WHERE LOWER(email) = LOWER($1)
+        AND deleted_at IS NULL
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      `;
+      params = [email.toLowerCase()];
+    } else {
+      // Ищем только по phone
+      query = `
+        SELECT * FROM users 
+        WHERE phone = $1
+        OR (phone IS NOT NULL AND REPLACE(REPLACE(phone, '+', ''), ' ', '') = REPLACE(REPLACE($1, '+', ''), ' ', ''))
+        AND deleted_at IS NULL
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      `;
+      params = [phone];
     }
+    
+    const user = await transaction.oneOrNone(query, params);
+    return user;
+    
+  } catch (error) {
+    console.error('❌ Ошибка поиска пользователя с блокировкой:', error);
+    return null;
   }
+}
+
+/**
+ * 🔥 Исправленная генерация ID для advisory lock
+ */
+generateAdvisoryLockId(key) {
+  if (!key || key === '_') {
+    // Если нет email и phone, используем случайный ID
+    return Math.floor(Math.random() * 1000000);
+  }
+  
+  // Создаем стабильный хэш из ключа
+  const hash = crypto.createHash('md5').update(key).digest('hex');
+  // Берем первые 6 символов и конвертируем в число
+  return parseInt(hash.substring(0, 6), 16);
+}
+
+/**
+ * 🔥 Исправленное логирование обработки вебхука
+ */
+async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
+  try {
+    // Используем oneOrNone для INSERT...RETURNING или none для простого INSERT
+    await transaction.none(
+      `INSERT INTO webhook_logs 
+       (user_id, member_number, action_type, processed_at) 
+       VALUES ($1, $2, $3, $4)`,
+      [
+        userId,
+        memberNumber,
+        isNewUser ? 'user_created' : 'user_updated',
+        new Date()
+      ]
+    );
+  } catch (error) {
+    console.error('❌ Ошибка логирования вебхука:', error.message);
+    // Не прерываем основную транзакцию
+  }
+}
 
   /**
    * 🔥 ИСПРАВЛЕНИЕ: Генерация ID для advisory lock
@@ -247,14 +371,14 @@ class TildaController {
       const { memberNumber } = req.body;
       
       console.log(`💳 [${new Date().toISOString()}] Создание платежа для:`, memberNumber);
-
+  
       if (!memberNumber) {
         return res.status(400).json({
           success: false,
           error: 'Номер члена клуба обязателен'
         });
       }
-
+  
       // 🔥 ИСПРАВЛЕНИЕ: Используем транзакцию для поиска пользователя
       const result = await db.task(async t => {
         // Блокируем пользователя по memberNumber
@@ -270,22 +394,23 @@ class TildaController {
           throw new Error('Член клуба не найден');
         }
         
-        // Проверяем успешные платежи с блокировкой
-        const successfulPayments = await t.any(
-          `SELECT * FROM payments 
-           WHERE user_id = $1 AND status IN ('success', 'confirmed', 'paid')
-           FOR UPDATE SKIP LOCKED`,
-          [user.id]
-        );
-        
-        if (successfulPayments.length > 0) {
-          throw new Error('Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.');
-        }
-        
-        return { user, hasPayments: successfulPayments.length > 0 };
+        return { user };
       });
       
       const { user } = result;
+      
+      // Проверяем успешные платежи отдельно
+      const successfulPayments = await db.any(
+        'SELECT * FROM payments WHERE user_id = $1 AND status IN ($2:csv)',
+        [user.id, ['success', 'confirmed', 'paid']]
+      );
+      
+      if (successfulPayments.length > 0) {
+        return res.json({
+          success: false,
+          error: 'Вы уже оплатили вступительный взнос. На почту отправлено письмо для авторизации.'
+        });
+      }
       
       // 🔥 СОЗДАЕМ ПЛАТЕЖ В ТИНЬКОФФ с уникальным OrderId
       const orderId = TokenGenerator.generateOrderId();
@@ -344,7 +469,7 @@ class TildaController {
         paymentId: paymentResult.tinkoffPaymentId,
         message: 'Платеж успешно создан'
       });
-
+  
     } catch (error) {
       console.error('❌ Ошибка создания платежа:', error);
       
@@ -577,7 +702,6 @@ class TildaController {
     }
   }
 
-  // Остальные методы остаются без изменений
   normalizeTildaData(tildaData) {
     const formData = {};
     const technicalFields = ['formid', 'pageid', 'tranid', 'projectid', 'X-Tilda-Api-Key'];
