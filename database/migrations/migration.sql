@@ -31,9 +31,19 @@ CREATE TABLE IF NOT EXISTS users (
     tilda_project_id VARCHAR(50),
     tilda_page_id VARCHAR(50),
     membership_number VARCHAR(50),
+    source VARCHAR(50) DEFAULT 'tilda', -- 🔥 ДОБАВЛЕНО
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 🔥 ДОБАВЛЯЕМ КОЛОНКУ source ЕСЛИ ЕЕ НЕТ (для существующих таблиц)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'source') THEN
+        ALTER TABLE users ADD COLUMN source VARCHAR(50) DEFAULT 'tilda';
+    END IF;
+END $$;
 
 -- Create payments table
 CREATE TABLE IF NOT EXISTS payments (
@@ -85,6 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_users_membership_status ON users(membership_statu
 CREATE INDEX IF NOT EXISTS idx_users_payment_id ON users(payment_id);
 CREATE INDEX IF NOT EXISTS idx_users_tilda_transaction_id ON users(tilda_transaction_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
+CREATE INDEX IF NOT EXISTS idx_users_source ON users(source); -- 🔥 ДОБАВЛЕН ИНДЕКС
 
 -- Create indexes for payments
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
@@ -128,5 +139,4 @@ CREATE TRIGGER update_slots_updated_at BEFORE UPDATE ON slots
 CREATE TRIGGER update_webhook_logs_updated_at BEFORE UPDATE ON webhook_logs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Simple success message (без DO $$ блока который вызывает проблемы)
 -- Migration completed successfully!

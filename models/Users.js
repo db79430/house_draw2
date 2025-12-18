@@ -751,33 +751,59 @@ class User {
     } = formData;
     
     try {
-      const user = await transaction.one(
-        `INSERT INTO users (
-          fullname, phone, email, city, 
-          checkbox, conditions, payment_status, membership_status,
-          created_at, updated_at, source
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *`,
-        [
-          name,
-          phone,
-          email.toLowerCase(),
-          city || '',
-          checkbox === 'yes' ? 'accepted' : 'pending',
-          conditions === 'yes' ? 'accepted' : 'pending',
-          'pending',
-          'pending_payment',
-          new Date(),
-          new Date(),
-          'tilda'
-        ]
-      );
+      // 🔥 ПРОВЕРЯЕМ ЕСТЬ ЛИ КОЛОНКА source
+      let columns = [
+        'fullname', 'phone', 'email', 'city', 
+        'checkbox', 'conditions', 'payment_status', 'membership_status',
+        'created_at', 'updated_at'
+      ];
       
-      console.log('✅ Пользователь создан в транзакции:', user.email);
+      let values = [
+        name,
+        phone,
+        email.toLowerCase(),
+        city || '',
+        checkbox === 'yes' ? 'accepted' : 'pending',
+        conditions === 'yes' ? 'accepted' : 'pending',
+        'pending',
+        'pending_payment',
+        new Date(),
+        new Date()
+      ];
+      
+      let placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+      
+      // Проверяем есть ли колонка source в таблице
+      try {
+        const hasSourceColumn = await transaction.oneOrNone(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'users' 
+          AND column_name = 'source'
+        `);
+        
+        if (hasSourceColumn) {
+          columns.push('source');
+          values.push('tilda');
+          placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+        }
+      } catch (sourceError) {
+        console.log('ℹ️ Could not check source column, skipping');
+      }
+      
+      const query = `
+        INSERT INTO users (${columns.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
+      
+      const user = await transaction.one(query, values);
+      
+      console.log('✅ User created in transaction:', user.email);
       return user;
       
     } catch (error) {
-      console.error('❌ Ошибка создания пользователя в транзакции:', error);
+      console.error('❌ Error creating user in transaction:', error);
       throw error;
     }
   }
