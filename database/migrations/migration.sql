@@ -1,11 +1,12 @@
--- Database migration for House Draw application
-
+-- database/migrations/migration.sql
 -- Drop existing triggers to avoid conflicts
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
 DROP TRIGGER IF EXISTS update_slots_updated_at ON slots;
 DROP TRIGGER IF EXISTS update_webhook_logs_updated_at ON webhook_logs;
-DROP FUNCTION IF EXISTS update_updated_at_column;
+
+-- Drop function if exists
+DROP FUNCTION IF EXISTS update_updated_at_column();
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -127,8 +128,5 @@ CREATE TRIGGER update_slots_updated_at BEFORE UPDATE ON slots
 CREATE TRIGGER update_webhook_logs_updated_at BEFORE UPDATE ON webhook_logs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Migration completed
-DO $$
-BEGIN
-    RAISE NOTICE '✅ Database migration completed successfully at %', now();
-END $$;
+-- Simple success message (без DO $$ блока который вызывает проблемы)
+-- Migration completed successfully!

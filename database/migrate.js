@@ -11,108 +11,141 @@ async function runMigrations() {
   console.log('🚀 Starting database migrations...');
   
   try {
-    // 🔥 ИСПРАВЛЕНИЕ: Правильный путь к файлу миграции
-    const possiblePaths = [
-      path.join(__dirname, '..', 'migrations', 'migration.sql'), // ../migrations/migration.sql
-      path.join(process.cwd(), 'database', 'migrations', 'migration.sql'),
-      path.join(process.cwd(), 'migrations', 'migration.sql'),
-      '/database/migrations/migration.sql', // Абсолютный путь в Docker
-      '/app/database/migrations/migration.sql',
-      path.join(__dirname, 'migration.sql') // Старый путь для совместимости
-    ];
+    // Правильный путь к файлу миграции
+    const migrationPath = path.join(__dirname, '..', 'migrations', 'migration.sql');
     
-    let sqlPath = null;
-    let sqlContent = null;
+    let sqlContent;
     
-    console.log('🔍 Looking for migration file...');
-    
-    // Ищем файл по всем возможным путям
-    for (const possiblePath of possiblePaths) {
-      console.log(`   Checking: ${possiblePath}`);
-      
-      if (fs.existsSync(possiblePath)) {
-        sqlPath = possiblePath;
-        console.log(`✅ Found migration file at: ${sqlPath}`);
-        break;
-      }
-    }
-    
-    if (!sqlPath) {
-      console.error('❌ Migration file not found at any of these locations:');
-      possiblePaths.forEach(p => console.log(`   - ${p}`));
-      
-      // 🔥 СОЗДАЕМ МИГРАЦИЮ ПРЯМО В КОДЕ
-      console.log('📝 Creating migration in code...');
-      sqlContent = this.getDefaultMigrationSQL();
-      
+    if (fs.existsSync(migrationPath)) {
+      console.log(`📄 Reading migration file: ${migrationPath}`);
+      sqlContent = fs.readFileSync(migrationPath, 'utf8');
     } else {
-      // Читаем SQL из файла
-      console.log(`📄 Reading migration file: ${sqlPath}`);
-      sqlContent = fs.readFileSync(sqlPath, 'utf8');
+      console.log('📝 Using built-in migration SQL');
+      sqlContent = getDefaultMigrationSQL();
     }
     
     console.log('🔄 Executing migration...');
     
-    // Разделяем SQL на отдельные команды
-    const sqlCommands = sqlContent
-      .split(';')
-      .map(cmd => cmd.trim())
-      .filter(cmd => cmd.length > 0);
+    // 🔥 ИСПРАВЛЕНИЕ: Правильное разделение SQL команд
+    // Разделяем по точке с запятой, но сохраняем конструкции с $$
+    const sqlCommands = [];
+    let currentCommand = '';
+    let inDollarQuote = false;
+    let dollarTag = '';
+    
+    for (let i = 0; i < sqlContent.length; i++) {
+      const char = sqlContent[i];
+      const nextChar = sqlContent[i + 1] || '';
+      
+      // Проверяем начало или конец блока $$
+      if (char === '$' && nextChar === '$') {
+        if (!inDollarQuote) {
+          inDollarQuote = true;
+          // Получаем тег после $$
+          let tag = '';
+          let j = i + 2;
+          while (j < sqlContent.length && sqlContent[j] !== '$') {
+            tag += sqlContent[j];
+            j++;
+          }
+          dollarTag = tag;
+        } else if (sqlContent.substring(i + 2, i + 2 + dollarTag.length) === dollarTag) {
+          // Нашли закрывающий тег
+          i += dollarTag.length + 1; // Пропускаем тег и $
+          inDollarQuote = false;
+          dollarTag = '';
+        }
+      }
+      
+      currentCommand += char;
+      
+      // Если не внутри блока $$ и нашли точку с запятой - завершаем команду
+      if (!inDollarQuote && char === ';') {
+        const trimmed = currentCommand.trim();
+        if (trimmed.length > 0 && !trimmed.startsWith('--')) {
+          sqlCommands.push(trimmed);
+        }
+        currentCommand = '';
+      }
+    }
+    
+    // Добавляем последнюю команду если есть
+    if (currentCommand.trim().length > 0) {
+      sqlCommands.push(currentCommand.trim());
+    }
     
     console.log(`📋 Found ${sqlCommands.length} SQL commands to execute`);
     
-    // Выполняем каждую команду отдельно
+    // Выполняем команды
+    let successCount = 0;
+    let errorCount = 0;
+    let skipCount = 0;
+    
     for (let i = 0; i < sqlCommands.length; i++) {
       const command = sqlCommands[i];
       
-      // Пропускаем комментарии и пустые строки
-      if (command.startsWith('--') || command.length < 5) {
-        console.log(`   Skipping comment/empty line ${i + 1}`);
+      // Пропускаем комментарии
+      if (command.startsWith('--') || command.length < 10) {
+        console.log(`   [${i + 1}] Skipping comment/empty line`);
+        skipCount++;
         continue;
       }
       
       try {
-        console.log(`   Executing command ${i + 1}/${sqlCommands.length}`);
+        console.log(`   [${i + 1}] Executing...`);
         
-        // Добавляем точку с запятой обратно
-        await db.none(command + ';');
+        // Выполняем команду
+        await db.none(command);
         
-        console.log(`   ✅ Command ${i + 1} executed successfully`);
+        console.log(`   [${i + 1}] ✅ Success`);
+        successCount++;
         
       } catch (error) {
-        // 🔥 ИГНОРИРУЕМ ОЖИДАЕМЫЕ ОШИБКИ
         const errorMsg = error.message || '';
         
-        if (errorMsg.includes('session') || errorMsg.includes('relation "session"')) {
-          console.log(`   ℹ️ Ignoring session table error (will be created automatically)`);
-        } else if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
-          console.log(`   ℹ️ Object already exists, skipping`);
-        } else if (errorMsg.includes('does not exist')) {
-          console.log(`   ℹ️ Object doesn't exist yet, skipping DROP`);
-        } else {
-          console.error(`   ❌ Error in command ${i + 1}:`, errorMsg);
-          console.error(`   SQL: ${command.substring(0, 100)}...`);
+        // 🔥 ИГНОРИРУЕМ ОЖИДАЕМЫЕ ОШИБКИ
+        if (errorMsg.includes('session') || 
+            errorMsg.includes('relation "session"') ||
+            errorMsg.includes('does not exist') ||
+            errorMsg.includes('already exists') ||
+            errorMsg.includes('duplicate')) {
           
-          // Для не критичных ошибок продолжаем
+          console.log(`   [${i + 1}] ℹ️ ${errorMsg.substring(0, 80)}...`);
+          skipCount++;
+          
+        } else {
+          console.error(`   [${i + 1}] ❌ Error: ${errorMsg}`);
+          console.error(`       SQL: ${command.substring(0, 100)}...`);
+          errorCount++;
+          
+          // В development останавливаемся на первой реальной ошибке
           if (process.env.NODE_ENV === 'development') {
-            console.error('   ⚠️ Stopping migration due to error in development');
             throw error;
           }
         }
       }
     }
     
-    console.log('✅ Migration completed successfully!');
+    console.log(`\n📊 Migration summary:`);
+    console.log(`   ✅ Success: ${successCount}`);
+    console.log(`   ⚠️  Skipped: ${skipCount}`);
+    console.log(`   ❌ Errors: ${errorCount}`);
+    console.log(`   📋 Total: ${sqlCommands.length}`);
     
-    // 🔥 ПРОВЕРЯЕМ РЕЗУЛЬТАТ
-    await this.verifyMigration();
+    if (errorCount === 0) {
+      console.log('✅ Migration completed successfully!');
+    } else {
+      console.log(`⚠️ Migration completed with ${errorCount} error(s)`);
+    }
+    
+    // Проверяем результат миграции
+    await verifyMigration();
     
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
     
-    // Не падаем в production, просто логируем
     if (process.env.NODE_ENV === 'production') {
-      console.log('⚠️ Continuing despite migration errors in production');
+      console.log('⚠️ Continuing in production mode');
     } else {
       process.exit(1);
     }
@@ -124,10 +157,10 @@ async function runMigrations() {
  */
 async function verifyMigration() {
   try {
-    console.log('🔍 Verifying migration results...');
+    console.log('\n🔍 Verifying migration results...');
     
     const requiredTables = ['users', 'payments', 'slots', 'webhook_logs'];
-    const existingTables = [];
+    const results = [];
     
     for (const table of requiredTables) {
       try {
@@ -140,22 +173,33 @@ async function verifyMigration() {
           [table]
         );
         
-        if (exists && exists.exists) {
-          existingTables.push(table);
-          
-          // Подсчитываем записи
-          const count = await db.one(`SELECT COUNT(*) as count FROM ${table}`);
-          console.log(`   📊 ${table}: ${count.count} records`);
+        const existsFlag = exists && exists.exists;
+        results.push({ table, exists: existsFlag });
+        
+        if (existsFlag) {
+          try {
+            const count = await db.one(`SELECT COUNT(*) as count FROM ${table}`);
+            console.log(`   📊 ${table}: ✅ exists (${count.count} records)`);
+          } catch (countError) {
+            console.log(`   📊 ${table}: ✅ exists (could not count)`);
+          }
+        } else {
+          console.log(`   📊 ${table}: ❌ missing`);
         }
+        
       } catch (error) {
-        console.log(`   ⚠️ Could not check table ${table}:`, error.message);
+        console.log(`   📊 ${table}: ⚠️ error checking`);
+        results.push({ table, exists: false });
       }
     }
     
-    console.log(`✅ Migration verified: ${existingTables.length}/${requiredTables.length} tables exist`);
+    const existingTables = results.filter(r => r.exists).length;
+    console.log(`\n📋 Result: ${existingTables}/${requiredTables.length} tables created`);
     
-    if (existingTables.length < requiredTables.length) {
-      const missing = requiredTables.filter(t => !existingTables.includes(t));
+    if (existingTables === requiredTables.length) {
+      console.log('🎉 All tables created successfully!');
+    } else {
+      const missing = results.filter(r => !r.exists).map(r => r.table);
       console.warn(`⚠️ Missing tables: ${missing.join(', ')}`);
     }
     
@@ -165,11 +209,10 @@ async function verifyMigration() {
 }
 
 /**
- * Возвращает SQL миграции по умолчанию
+ * Возвращает SQL миграции по умолчанию (исправленный)
  */
 function getDefaultMigrationSQL() {
-  return `
--- Default migration SQL
+  return `-- Default migration SQL
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -243,15 +286,47 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_membership_number ON users(membership_number);
+CREATE INDEX IF NOT EXISTS idx_users_payment_status ON users(payment_status);
 
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 
 CREATE INDEX IF NOT EXISTS idx_slots_user_id ON slots(user_id);
+CREATE INDEX IF NOT EXISTS idx_slots_slot_number ON slots(slot_number);
 
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_user_id ON webhook_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_member_number ON webhook_logs(member_number);
-`;
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers
+CREATE TRIGGER update_users_updated_at 
+BEFORE UPDATE ON users
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_payments_updated_at 
+BEFORE UPDATE ON payments
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_slots_updated_at 
+BEFORE UPDATE ON slots
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_webhook_logs_updated_at 
+BEFORE UPDATE ON webhook_logs
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();`;
 }
 
 // Запускаем миграции если файл запущен напрямую
