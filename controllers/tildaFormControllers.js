@@ -226,7 +226,6 @@ async findExistingUserWithLock(transaction, email, phone) {
           OR phone = $2
           OR (phone IS NOT NULL AND REPLACE(REPLACE(phone, '+', ''), ' ', '') = REPLACE(REPLACE($2, '+', ''), ' ', ''))
         )
-        AND deleted_at IS NULL
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       `;
@@ -236,7 +235,6 @@ async findExistingUserWithLock(transaction, email, phone) {
       query = `
         SELECT * FROM users 
         WHERE LOWER(email) = LOWER($1)
-        AND deleted_at IS NULL
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       `;
@@ -247,7 +245,6 @@ async findExistingUserWithLock(transaction, email, phone) {
         SELECT * FROM users 
         WHERE phone = $1
         OR (phone IS NOT NULL AND REPLACE(REPLACE(phone, '+', ''), ' ', '') = REPLACE(REPLACE($1, '+', ''), ' ', ''))
-        AND deleted_at IS NULL
         FOR UPDATE SKIP LOCKED
         LIMIT 1
       `;
@@ -637,7 +634,6 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
             OR u.phone = $2
             OR (u.phone IS NOT NULL AND REPLACE(u.phone, '+', '') = REPLACE($2, '+', ''))
           )
-          AND u.deleted_at IS NULL
           GROUP BY u.id
           LIMIT 1
         `, [Email?.toLowerCase() || '', Phone || '']);
