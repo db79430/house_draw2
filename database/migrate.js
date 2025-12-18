@@ -1,38 +1,50 @@
-import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
+// database/migrate.js
+import fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './index.js';
 
-// Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 async function runMigrations() {
+  console.log('🚀 Starting database migrations...');
+  
   try {
-    console.log('🔄 Running database migrations...');
+    // Читаем SQL файл
+    const sqlPath = path.join(__dirname, 'migration.sql');
+    const sql = fs.readFileSync(sqlPath, 'utf8');
     
-    // Read migration file
-    const migrationPath = join(__dirname, 'migrations', '001_initial_tables.sql');
-    const migrationSQL = await fs.readFile(migrationPath, 'utf8');
+    console.log('📄 Executing migration...');
     
-    // Execute the entire migration as one block
-    console.log('🚀 Executing migration...');
-    await db.none(migrationSQL);
+    // Выполняем SQL
+    await db.none(sql);
     
-    console.log('✅ Database migrations completed successfully');
+    console.log('✅ Migration completed successfully!');
+    
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
     
-    // Ignore "already exists" errors for tables and indexes
-    if (error.code === '42P07' || error.message.includes('already exists')) {
-      console.log('⚠️  Tables/indexes already exist, continuing...');
+    // Более подробная информация об ошибке
+    if (error.message.includes('session')) {
+      console.log('ℹ️ This is expected - session table will be created by connect-pg-simple');
     } else {
+      console.error('🔧 Error details:', {
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint,
+        position: error.position
+      });
+    }
+    
+    // В development выходим с ошибкой
+    if (process.env.NODE_ENV === 'development') {
       process.exit(1);
     }
   }
 }
 
-// ES6 equivalent of require.main === module
+// Запускаем миграции если файл запущен напрямую
 if (import.meta.url === `file://${process.argv[1]}`) {
   runMigrations();
 }
