@@ -120,7 +120,7 @@ class TildaController {
         
         // 6. ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА если его нет
         if (!user.membership_number) {
-          memberNumber = await this.generateUniqueMemberNumberInTransaction(t, user.id);
+          memberNumber = await this. generateUniqueMemberNumberInTransaction(t, user.id);
           console.log('✅ Сгенерирован номер члена клуба:', memberNumber);
           
           // Обновляем пользователя с новым номером

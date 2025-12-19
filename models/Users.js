@@ -743,7 +743,7 @@ class User {
   /**
  * 🔥 ИСПРАВЛЕННЫЙ: Создание пользователя с правильными boolean значениями
  */
-  async createUserFromFormInTransaction(transaction, formData, tildaData) {
+  static async createUserFromFormInTransaction(transaction, formData, tildaData) {
     const { 
       FullName: fullname, 
       Phone: phone, 
