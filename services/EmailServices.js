@@ -296,7 +296,6 @@ class EmailService {
     <div class="container">
         <div class="header">
             <h1 style="margin: 0 0 15px 0;">Добро пожаловать в наш клуб! 🎉</h1>
-            <p style="margin: 0; opacity: 0.9;">Регистрация успешно завершена</p>
         </div>
         
         <div class="content">

@@ -755,6 +755,9 @@ static async createUserFromFormInTransaction(transaction, formData, tildaData) {
   
   try {
     // 🔥 ПРОСТЫЕ BOOLEAN ЗНАЧЕНИЯ
+    const login = email;
+    const password = Helpers.generatePassword();
+
     const checkboxBool = checkbox === 'yes' || checkbox === 'true' || checkbox === true;
     const conditionsBool = conditions === 'yes' || conditions === 'true' || conditions === true;
     
@@ -769,7 +772,7 @@ static async createUserFromFormInTransaction(transaction, formData, tildaData) {
     // 🔥 УПРОЩЕННЫЙ ЗАПРОС
     const user = await transaction.one(
       `INSERT INTO users (
-        fullname, phone, email, city, 
+        fullname, phone, email, city, login,
         checkbox, conditions, payment_status, membership_status,
         created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -783,6 +786,8 @@ static async createUserFromFormInTransaction(transaction, formData, tildaData) {
         conditionsBool,         // BOOLEAN (или можно оставить как текст если нужно)
         'pending',
         'pending_payment',
+        login,
+        password,
         new Date(),
         new Date()
       ]
