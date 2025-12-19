@@ -15,7 +15,7 @@ class TildaFormService {
     const normalizedPhone = Helpers.normalizePhone(formData.Phone || '');
     
     // Генерация логина и пароля
-    const login = formData.Email || `user_${Date.now()}`;
+    const login = formData.Email;
     const password = Helpers.generatePassword();
 
     // Подготовка данных пользователя
@@ -23,7 +23,7 @@ class TildaFormService {
       fullname: formData.FullName || 'Не указано',
       phone: normalizedPhone,
       email: formData.Email || '',
-      login: login,
+      login: formData.Email,
       password: password,
       city: formData.City,
       yeardate: Helpers.parseYeardate(formData.Yeardate),
