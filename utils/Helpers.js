@@ -75,5 +75,17 @@ class Helpers {
       timestamp: new Date().toISOString()
     };
   }
+
+  static parseConditions(value) {
+    if (!value) return 'pending';
+    
+    const val = String(value).toLowerCase().trim();
+    
+    if (val === 'on' || val === 'yes' || val === 'true' || val === '1' || val === 'accepted') {
+      return 'accepted'; // Это VARCHAR поле
+    }
+    
+    return 'pending';
+  }
 }
 export default Helpers;

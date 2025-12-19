@@ -740,73 +740,68 @@ class User {
     }
   }
 
-  static async createUserFromFormInTransaction(transaction, formData, tildaData) {
-    const { 
-      FullName: name, 
-      Phone: phone, 
-      Email: email,
-      City: city,
-      Checkbox: checkbox,
-      Conditions: conditions 
-    } = formData;
+  /**
+ * 🔥 ИСПРАВЛЕННЫЙ: Создание пользователя с правильными boolean значениями
+ */
+async createUserFromFormInTransaction(transaction, formData, tildaData) {
+  const { 
+    FullName: name, 
+    Phone: phone, 
+    Email: email,
+    City: city,
+    Checkbox: checkbox,
+    Conditions: conditions 
+  } = formData;
+  
+  try {
+    // 🔥 ПРОСТЫЕ BOOLEAN ЗНАЧЕНИЯ
+    const checkboxBool = checkbox === 'yes' || checkbox === 'true' || checkbox === true;
+    const conditionsBool = conditions === 'yes' || conditions === 'true' || conditions === true;
     
-    try {
-      // 🔥 ПРОВЕРЯЕМ ЕСТЬ ЛИ КОЛОНКА source
-      let columns = [
-        'fullname', 'phone', 'email', 'city', 
-        'checkbox', 'conditions', 'payment_status', 'membership_status',
-        'created_at', 'updated_at'
-      ];
-      
-      let values = [
+    console.log('📝 Creating user with boolean values:', {
+      email: email,
+      checkbox: checkboxBool,
+      conditions: conditionsBool,
+      rawCheckbox: checkbox,
+      rawConditions: conditions
+    });
+    
+    // 🔥 УПРОЩЕННЫЙ ЗАПРОС
+    const user = await transaction.one(
+      `INSERT INTO users (
+        fullname, phone, email, city, 
+        checkbox, conditions, payment_status, membership_status,
+        created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+      [
         name,
         phone,
         email.toLowerCase(),
         city || '',
-        checkbox === 'yes' ? 'accepted' : 'pending',
-        conditions === 'yes' ? 'accepted' : 'pending',
+        checkboxBool,           // BOOLEAN
+        conditionsBool,         // BOOLEAN (или можно оставить как текст если нужно)
         'pending',
         'pending_payment',
         new Date(),
         new Date()
-      ];
-      
-      let placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-      
-      // Проверяем есть ли колонка source в таблице
-      try {
-        const hasSourceColumn = await transaction.oneOrNone(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' 
-          AND column_name = 'source'
-        `);
-        
-        if (hasSourceColumn) {
-          columns.push('source');
-          values.push('tilda');
-          placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-        }
-      } catch (sourceError) {
-        console.log('ℹ️ Could not check source column, skipping');
-      }
-      
-      const query = `
-        INSERT INTO users (${columns.join(', ')})
-        VALUES (${placeholders})
-        RETURNING *
-      `;
-      
-      const user = await transaction.one(query, values);
-      
-      console.log('✅ User created in transaction:', user.email);
-      return user;
-      
-    } catch (error) {
-      console.error('❌ Error creating user in transaction:', error);
-      throw error;
-    }
+      ]
+    );
+    
+    console.log('✅ User created in transaction:', user.email);
+    return user;
+    
+  } catch (error) {
+    console.error('❌ Error creating user in transaction:', error);
+    console.error('   Form data:', {
+      name: formData.FullName?.substring(0, 20),
+      email: formData.Email,
+      checkbox: formData.Checkbox,
+      conditions: formData.Conditions
+    });
+    throw error;
   }
+}
 
   static async findByLogin(login) {
     try {

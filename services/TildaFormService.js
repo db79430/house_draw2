@@ -27,7 +27,7 @@ class TildaFormService {
       password: password,
       city: formData.City,
       yeardate: Helpers.parseYeardate(formData.Yeardate),
-      conditions: formData.Conditions === 'yes' ? 'accepted' : 'pending',
+      conditions: Helpers.parseConditions(formData.Conditions),
       checkbox: Helpers.parseCheckbox(formData.Checkbox),
       documents: 'pending',
       payment_status: 'pending', 
