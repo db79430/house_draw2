@@ -408,6 +408,7 @@
         }
 
         // Нормализация телефона
+        // Улучшенная функция нормализации телефона
         function normalizePhone(phone) {
             if (!phone) return '';
 
@@ -416,18 +417,21 @@
             // Убираем все нецифровые символы
             let digits = phone.replace(/\D/g, '');
 
-            // Если 11 цифр и начинается с 8 - меняем на 7
-            if (digits.length === 11 && digits.startsWith('8')) {
-                digits = '7' + digits.substring(1);
-            }
+            // Если пусто - возвращаем пустую строку
+            if (digits.length === 0) return '';
 
             // Если 10 цифр - добавляем 7 в начало
             if (digits.length === 10) {
-                digits = '7' + digits;
+                return '7' + digits;
             }
 
-            // Если меньше 10 цифр - возвращаем как есть (сервер разберется)
-            if (digits.length < 10) {
+            // Если 11 цифр и начинается с 8 - меняем на 7
+            if (digits.length === 11 && digits.startsWith('8')) {
+                return '7' + digits.substring(1);
+            }
+
+            // Если 11 цифр и начинается с 7 - оставляем как есть
+            if (digits.length === 11 && digits.startsWith('7')) {
                 return digits;
             }
 
@@ -436,7 +440,7 @@
                 digits = digits.substring(digits.length - 11);
             }
 
-            // Проверяем что номер начинается с 7
+            // Если после всех преобразований номер не начинается с 7 - добавляем
             if (!digits.startsWith('7')) {
                 digits = '7' + digits;
             }
@@ -750,7 +754,7 @@
                     }
                 });
 
-                // // Форматирование телефона
+                // Форматирование телефона
                 // setupPhoneFormatting();
 
                 // Фокус на поле ввода
