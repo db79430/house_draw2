@@ -282,13 +282,20 @@
             <div id="search-section" class="section search-section active">
                 <div class="house-icon">🏡</div>
                 <h3 style="color: #2d5016; margin-bottom: 15px;">Чтобы найти индивидуальный номер пайщика</h3>
-                <p style="color: #4a7c2a; margin-bottom: 25px;">Введите email или телефон, которые вы указывали при
-                    регистрации. </p>
-                <div>
-                    <p style="color: #a3a3a3; margin-bottom: 25px;">Для ввода по номеру телефона, введите номер, начиная
-                        +7, без скобочек и тире</p>
-                </div>
+                <p style="color: #4a7c2a; margin-bottom: 15px;">Введите email или телефон, которые вы указывали при
+                    регистрации.</p>
 
+                <!-- 🔥 ОБНОВЛЕННАЯ ПОДСКАЗКА -->
+                <div
+                    style="background: #f1f8e9; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c8e6c9;">
+                    <p style="color: #2d5016; margin: 0; font-size: 14px; display: flex; align-items: center;">
+                        <span style="margin-right: 8px;">💡</span>
+                        <strong>Подсказка:</strong> Телефон можно вводить в любом формате:
+                        <span style="font-family: monospace; margin: 0 5px;">9152505255</span>,
+                        <span style="font-family: monospace; margin: 0 5px;">+7 915 250 52 55</span>,
+                        <span style="font-family: monospace; margin: 0 5px;">8 (915) 250-52-55</span>
+                    </p>
+                </div>
 
                 <div class="input-wrapper" style="max-width: 300px; margin: 0 auto;">
                     <input type="text" id="search-input" data-format="auto" placeholder="Email или телефон"
@@ -407,27 +414,45 @@
         function normalizePhone(phone) {
             if (!phone) return '';
 
-            let clean = phone.replace(/\D/g, '');
+            console.log('Нормализация телефона:', phone);
 
-            if (clean.startsWith('8') && clean.length >= 11) {
-                clean = '7' + clean.substring(1);
+            // Убираем все нецифровые символы
+            let digits = phone.replace(/\D/g, '');
+
+            // Если 11 цифр и начинается с 8 - меняем на 7
+            if (digits.length === 11 && digits.startsWith('8')) {
+                digits = '7' + digits.substring(1);
             }
 
-            if (clean.startsWith('7') && clean.length === 11) {
-                return clean;
+            // Если 10 цифр - добавляем 7 в начало
+            if (digits.length === 10) {
+                digits = '7' + digits;
             }
 
-            if (clean.length === 10 && !clean.startsWith('7')) {
-                return '7' + clean;
+            // Если меньше 10 цифр - возвращаем как есть (сервер разберется)
+            if (digits.length < 10) {
+                return digits;
             }
 
-            return clean;
+            // Если больше 11 цифр - берем последние 11
+            if (digits.length > 11) {
+                digits = digits.substring(digits.length - 11);
+            }
+
+            // Проверяем что номер начинается с 7
+            if (!digits.startsWith('7')) {
+                digits = '7' + digits;
+            }
+
+            console.log('Нормализованный телефон:', digits);
+            return digits;
         }
 
         // Поиск участника
+        // Поиск участника
         async function searchMember() {
             const searchInput = document.getElementById('search-input');
-            const searchValue = searchInput.value.trim();
+            let searchValue = searchInput.value.trim();
 
             if (!searchValue) {
                 alert('Пожалуйста, введите email или телефон');
@@ -443,17 +468,35 @@
 
                 // Определяем тип ввода
                 const isEmail = searchValue.includes('@');
-                const paramName = isEmail ? 'email' : 'phone';
-                let paramValue = searchValue;
+                let paramName, paramValue;
 
-                // Нормализуем телефон
-                // if (!isEmail) {
-                //     paramValue = normalizePhone(searchValue);
+                if (isEmail) {
+                    // Email поиск
+                    paramName = 'email';
+                    paramValue = searchValue.toLowerCase().trim();
+                } else {
+                    // Телефон поиск
+                    paramName = 'phone';
 
-                //     if (paramValue.length < 11) {
-                //         throw new Error('Введите полный номер телефона (11 цифр)');
-                //     }
-                // }
+                    // 🔥 ИСПРАВЛЕНИЕ: Нормализуем телефон перед отправкой
+                    paramValue = normalizePhone(searchValue);
+
+                    console.log('Телефон поиск:', {
+                        input: searchValue,
+                        normalized: paramValue
+                    });
+
+                    // Проверяем что телефон валидный после нормализации
+                    if (paramValue.length !== 11 || !paramValue.startsWith('7')) {
+                        // Пробуем альтернативные форматы
+                        const altValue = searchValue.replace(/\D/g, '');
+                        if (altValue.length >= 10) {
+                            paramValue = '7' + altValue.slice(-10);
+                        } else {
+                            throw new Error('Введите корректный номер телефона (например: 9152505255 или +7 (915) 250-52-55)');
+                        }
+                    }
+                }
 
                 // Делаем запрос к API
                 const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
@@ -481,17 +524,50 @@
                 if (data.success) {
                     // Сохраняем данные
                     AppState.currentUser = data.userData || data.user || {};
-                    AppState.currentMemberNumber = data.memberNumber || searchValue;
+                    AppState.currentMemberNumber = data.memberNumber;
 
                     // Отображаем данные
                     displayUserData(AppState.currentUser, AppState.currentMemberNumber);
                 } else {
-                    throw new Error(data.error || 'Пользователь не найден');
+                    // 🔥 ПРОБУЕМ АЛЬТЕРНАТИВНЫЕ ФОРМАТЫ ПОИСКА
+                    if (!isEmail) {
+                        console.log('Пробуем альтернативные форматы телефона...');
+
+                        // Пробуем разные варианты поиска
+                        const alternativeSearches = [
+                            searchValue.replace(/\D/g, ''), // Только цифры
+                            '8' + searchValue.replace(/\D/g, '').slice(-10), // С 8 в начале
+                            searchValue.replace(/\D/g, '').slice(-10), // Последние 10 цифр
+                        ];
+
+                        for (const altSearch of alternativeSearches) {
+                            if (altSearch && altSearch.length >= 10) {
+                                try {
+                                    const altUrl = `${API_BASE}/get-member-number?phone=${encodeURIComponent(altSearch)}`;
+                                    const altResponse = await fetch(altUrl);
+
+                                    if (altResponse.ok) {
+                                        const altData = await altResponse.json();
+                                        if (altData.success) {
+                                            AppState.currentUser = altData.userData || altData.user || {};
+                                            AppState.currentMemberNumber = altData.memberNumber;
+                                            displayUserData(AppState.currentUser, AppState.currentMemberNumber);
+                                            return;
+                                        }
+                                    }
+                                } catch (altError) {
+                                    console.log('Альтернативный поиск не удался:', altError.message);
+                                }
+                            }
+                        }
+                    }
+
+                    throw new Error(data.error || 'Пользователь не найден. Проверьте введенные данные.');
                 }
 
             } catch (error) {
                 console.error('Ошибка поиска:', error);
-                alert('Ошибка: ' + error.message);
+                alert('❌ ' + error.message);
                 searchInput.focus();
 
             } finally {
@@ -599,33 +675,63 @@
         }
 
         // Форматирование телефона при вводе
-        // function setupPhoneFormatting() {
-        //     const searchInput = document.getElementById('search-input');
+        // Автоформатирование телефона при вводе
+        function setupPhoneFormatting() {
+            const searchInput = document.getElementById('search-input');
 
-        //     if (!searchInput) return;
+            if (!searchInput) return;
 
-        //     searchInput.addEventListener('input', function(e) {
-        //         let value = e.target.value.replace(/\D/g, '');
+            searchInput.addEventListener('input', function (e) {
+                let value = e.target.value;
 
-        //         if (value.startsWith('7') || value.startsWith('8')) {
-        //             if (value.startsWith('8')) {
-        //                 value = '7' + value.substring(1);
-        //             }
+                // Определяем, что вводится телефон (начинается с 7, 8, +7, или цифры)
+                const startsWithPhone = /^[78+]/.test(value.replace(/\s/g, ''));
 
-        //             if (value.length <= 1) {
-        //                 e.target.value = '+7';
-        //             } else if (value.length <= 4) {
-        //                 e.target.value = `+7 (${value.substring(1, 4)}`;
-        //             } else if (value.length <= 7) {
-        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}`;
-        //             } else if (value.length <= 9) {
-        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}`;
-        //             } else {
-        //                 e.target.value = `+7 (${value.substring(1, 4)}) ${value.substring(4, 7)}-${value.substring(7, 9)}-${value.substring(9, 11)}`;
-        //             }
-        //         }
-        //     });
-        // }
+                if (startsWithPhone) {
+                    // Убираем все нецифровые символы кроме плюса
+                    let digits = value.replace(/[^\d+]/g, '');
+
+                    // Если начинается с +7, оставляем как есть, иначе добавляем +7
+                    if (digits.startsWith('+7')) {
+                        digits = digits.substring(2); // Убираем +7
+                    } else if (digits.startsWith('8')) {
+                        digits = digits.substring(1); // Меняем 8 на 7
+                    } else if (digits.startsWith('7')) {
+                        digits = digits.substring(1); // Убираем первую 7
+                    }
+
+                    // Ограничиваем 10 цифрами (без кода страны)
+                    digits = digits.substring(0, 10);
+
+                    // Форматируем как +7 (XXX) XXX-XX-XX
+                    if (digits.length === 0) {
+                        e.target.value = '';
+                    } else if (digits.length <= 3) {
+                        e.target.value = `+7 (${digits}`;
+                    } else if (digits.length <= 6) {
+                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3)}`;
+                    } else if (digits.length <= 8) {
+                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+                    } else {
+                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}`;
+                    }
+                }
+            });
+
+            // При фокусе очищаем если только +7
+            searchInput.addEventListener('focus', function () {
+                if (this.value === '+7 (' || this.value === '+7') {
+                    this.value = '';
+                }
+            });
+
+            // При потере фокуса, если пусто - ставим плейсхолдер
+            searchInput.addEventListener('blur', function () {
+                if (!this.value.trim()) {
+                    this.placeholder = 'Email или телефон';
+                }
+            });
+        }
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function () {
@@ -648,7 +754,7 @@
                 });
 
                 // // Форматирование телефона
-                // setupPhoneFormatting();
+                setupPhoneFormatting();
 
                 // Фокус на поле ввода
                 setTimeout(() => {
