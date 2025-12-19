@@ -291,9 +291,6 @@
                     <p style="color: #2d5016; margin: 0; font-size: 14px; display: flex; align-items: center;">
                         <span style="margin-right: 8px;">💡</span>
                         <strong>Подсказка:</strong> Телефон можно вводить в любом формате:
-                        <span style="font-family: monospace; margin: 0 5px;">9152505255</span>,
-                        <span style="font-family: monospace; margin: 0 5px;">+7 915 250 52 55</span>,
-                        <span style="font-family: monospace; margin: 0 5px;">8 (915) 250-52-55</span>
                     </p>
                 </div>
 
@@ -676,62 +673,62 @@
 
         // Форматирование телефона при вводе
         // Автоформатирование телефона при вводе
-        function setupPhoneFormatting() {
-            const searchInput = document.getElementById('search-input');
+        // function setupPhoneFormatting() {
+        //     const searchInput = document.getElementById('search-input');
 
-            if (!searchInput) return;
+        //     if (!searchInput) return;
 
-            searchInput.addEventListener('input', function (e) {
-                let value = e.target.value;
+        //     searchInput.addEventListener('input', function (e) {
+        //         let value = e.target.value;
 
-                // Определяем, что вводится телефон (начинается с 7, 8, +7, или цифры)
-                const startsWithPhone = /^[78+]/.test(value.replace(/\s/g, ''));
+        //         // Определяем, что вводится телефон (начинается с 7, 8, +7, или цифры)
+        //         const startsWithPhone = /^[78+]/.test(value.replace(/\s/g, ''));
 
-                if (startsWithPhone) {
-                    // Убираем все нецифровые символы кроме плюса
-                    let digits = value.replace(/[^\d+]/g, '');
+        //         if (startsWithPhone) {
+        //             // Убираем все нецифровые символы кроме плюса
+        //             let digits = value.replace(/[^\d+]/g, '');
 
-                    // Если начинается с +7, оставляем как есть, иначе добавляем +7
-                    if (digits.startsWith('+7')) {
-                        digits = digits.substring(2); // Убираем +7
-                    } else if (digits.startsWith('8')) {
-                        digits = digits.substring(1); // Меняем 8 на 7
-                    } else if (digits.startsWith('7')) {
-                        digits = digits.substring(1); // Убираем первую 7
-                    }
+        //             // Если начинается с +7, оставляем как есть, иначе добавляем +7
+        //             if (digits.startsWith('+7')) {
+        //                 digits = digits.substring(2); // Убираем +7
+        //             } else if (digits.startsWith('8')) {
+        //                 digits = digits.substring(1); // Меняем 8 на 7
+        //             } else if (digits.startsWith('7')) {
+        //                 digits = digits.substring(1); // Убираем первую 7
+        //             }
 
-                    // Ограничиваем 10 цифрами (без кода страны)
-                    digits = digits.substring(0, 10);
+        //             // Ограничиваем 10 цифрами (без кода страны)
+        //             digits = digits.substring(0, 10);
 
-                    // Форматируем как +7 (XXX) XXX-XX-XX
-                    if (digits.length === 0) {
-                        e.target.value = '';
-                    } else if (digits.length <= 3) {
-                        e.target.value = `+7 (${digits}`;
-                    } else if (digits.length <= 6) {
-                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3)}`;
-                    } else if (digits.length <= 8) {
-                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
-                    } else {
-                        e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}`;
-                    }
-                }
-            });
+        //             // Форматируем как +7 (XXX) XXX-XX-XX
+        //             if (digits.length === 0) {
+        //                 e.target.value = '';
+        //             } else if (digits.length <= 3) {
+        //                 e.target.value = `+7 (${digits}`;
+        //             } else if (digits.length <= 6) {
+        //                 e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3)}`;
+        //             } else if (digits.length <= 8) {
+        //                 e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+        //             } else {
+        //                 e.target.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}`;
+        //             }
+        //         }
+        //     });
 
-            // При фокусе очищаем если только +7
-            searchInput.addEventListener('focus', function () {
-                if (this.value === '+7 (' || this.value === '+7') {
-                    this.value = '';
-                }
-            });
+        //     // При фокусе очищаем если только +7
+        //     searchInput.addEventListener('focus', function () {
+        //         if (this.value === '+7 (' || this.value === '+7') {
+        //             this.value = '';
+        //         }
+        //     });
 
-            // При потере фокуса, если пусто - ставим плейсхолдер
-            searchInput.addEventListener('blur', function () {
-                if (!this.value.trim()) {
-                    this.placeholder = 'Email или телефон';
-                }
-            });
-        }
+        //     // При потере фокуса, если пусто - ставим плейсхолдер
+        //     searchInput.addEventListener('blur', function () {
+        //         if (!this.value.trim()) {
+        //             this.placeholder = 'Email или телефон';
+        //         }
+        //     });
+        // }
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function () {
@@ -754,7 +751,7 @@
                 });
 
                 // // Форматирование телефона
-                setupPhoneFormatting();
+                // setupPhoneFormatting();
 
                 // Фокус на поле ввода
                 setTimeout(() => {
