@@ -743,70 +743,85 @@ class User {
   /**
  * 🔥 ИСПРАВЛЕННЫЙ: Создание пользователя с правильными boolean значениями
  */
-static async createUserFromFormInTransaction(transaction, formData, tildaData) {
-  const { 
-    FullName: name, 
-    Phone: phone, 
-    Email: email,
-    City: city,
-    Checkbox: checkbox,
-    Conditions: conditions 
-  } = formData;
-  
-  try {
-    // 🔥 ПРОСТЫЕ BOOLEAN ЗНАЧЕНИЯ
-    const login = email;
-    const password = Helpers.generatePassword();
-
-    const checkboxBool = checkbox === 'yes' || checkbox === 'true' || checkbox === true;
-    const conditionsBool = conditions === 'yes' || conditions === 'true' || conditions === true;
+  async createUserFromFormInTransaction(transaction, formData, tildaData) {
+    const { 
+      FullName: fullname, 
+      Phone: phone, 
+      Email: email,
+      City: city,
+      Checkbox: checkbox,
+      Conditions: conditions,
+      Yeardate: yeardate 
+    } = formData;
     
-    console.log('📝 Creating user with boolean values:', {
-      email: email,
-      checkbox: checkboxBool,
-      conditions: conditionsBool,
-      rawCheckbox: checkbox,
-      rawConditions: conditions
-    });
-    
-    // 🔥 УПРОЩЕННЫЙ ЗАПРОС
-    const user = await transaction.one(
-      `INSERT INTO users (
-        fullname, phone, email, city, login,
-        checkbox, conditions, payment_status, membership_status,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *`,
-      [
-        name,
-        phone,
-        email.toLowerCase(),
-        city || '',
-        checkboxBool,           // BOOLEAN
-        conditionsBool,         // BOOLEAN (или можно оставить как текст если нужно)
-        'pending',
-        'pending_payment',
+    try {
+      // Подготавливаем данные в том же формате
+      const login = email;
+      const password =  Helpers.generatePassword();
+      const checkboxBool = checkbox === 'yes' || checkbox === 'true' || checkbox === true;
+      const conditionsText = conditions === 'yes' ? 'accepted' : 'pending';
+      
+      const userData = {
+        fullname,
+        phone: phone || null,
+        email: email.toLowerCase(),
         login,
         password,
-        new Date(),
-        new Date()
-      ]
-    );
-    
-    console.log('✅ User created in transaction:', user.email);
-    return user;
-    
-  } catch (error) {
-    console.error('❌ Error creating user in transaction:', error);
-    console.error('   Form data:', {
-      name: formData.FullName?.substring(0, 20),
-      email: formData.Email,
-      checkbox: formData.Checkbox,
-      conditions: formData.Conditions
-    });
-    throw error;
+        yeardate: yeardate || null,
+        city: city || '',
+        conditions: conditionsText,
+        checkbox: checkboxBool,
+        documents: 'pending',
+        payment_status: 'pending',
+        slot_number: null,
+        payment_id: null,
+        purchased_numbers: null,
+        membership_status: 'pending_payment',
+        tilda_transaction_id: tildaData.tranid || null,
+        tilda_form_id: tildaData.formid || null,
+        tilda_project_id: tildaData.formid ? tildaData.formid.replace('form', '') : '14245141',
+        tilda_page_id: tildaData.pageid || null
+      };
+      
+      // 🔥 ВЫЗЫВАЕМ User.create ЧЕРЕЗ ТРАНЗАКЦИЮ
+      const result = await transaction.one(
+        `INSERT INTO users (
+          fullname, phone, email, login, password, yeardate, city, 
+          conditions, checkbox, documents, payment_status, slot_number,
+          payment_id, purchased_numbers, membership_status,
+          tilda_transaction_id, tilda_form_id, tilda_project_id, tilda_page_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        RETURNING *`,
+        [
+          userData.fullname,
+          userData.phone,
+          userData.email,
+          userData.login,
+          userData.password,
+          userData.yeardate,
+          userData.city,
+          userData.conditions,
+          userData.checkbox,
+          userData.documents,
+          userData.payment_status,
+          userData.slot_number,
+          userData.payment_id,
+          userData.purchased_numbers,
+          userData.membership_status,
+          userData.tilda_transaction_id,
+          userData.tilda_form_id,
+          userData.tilda_project_id,
+          userData.tilda_page_id
+        ]
+      );
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error in transaction:', error);
+      throw error;
+    }
   }
-}
 
   static async findByLogin(login) {
     try {
