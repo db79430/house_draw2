@@ -409,43 +409,50 @@
 
         // Нормализация телефона
         // Улучшенная функция нормализации телефона
+        // Упрощенная функция нормализации телефона
         function normalizePhone(phone) {
             if (!phone) return '';
 
             console.log('Нормализация телефона:', phone);
 
-            // Убираем все нецифровые символы
+            // 1. Убираем все нецифровые символы
             let digits = phone.replace(/\D/g, '');
 
-            // Если пусто - возвращаем пустую строку
-            if (digits.length === 0) return '';
-
-            // Если 10 цифр - добавляем 7 в начало
-            if (digits.length === 10) {
-                return '7' + digits;
-            }
-
-            // Если 11 цифр и начинается с 8 - меняем на 7
-            if (digits.length === 11 && digits.startsWith('8')) {
-                return '7' + digits.substring(1);
-            }
-
-            // Если 11 цифр и начинается с 7 - оставляем как есть
-            if (digits.length === 11 && digits.startsWith('7')) {
+            // 2. Если меньше 10 цифр - возвращаем как есть
+            if (digits.length < 10) {
+                console.log('Слишком мало цифр:', digits);
                 return digits;
             }
 
-            // Если больше 11 цифр - берем последние 11
+            // 3. Если 10 цифр - добавляем 7
+            if (digits.length === 10) {
+                const result = '7' + digits;
+                console.log('10 цифр ->', result);
+                return result;
+            }
+
+            // 4. Если 11 цифр и начинается с 8 - меняем на 7
+            if (digits.length === 11 && digits.startsWith('8')) {
+                const result = '7' + digits.substring(1);
+                console.log('8XXXXXXXXXX ->', result);
+                return result;
+            }
+
+            // 5. Если 11 цифр и начинается с 7 - оставляем
+            if (digits.length === 11 && digits.startsWith('7')) {
+                console.log('Уже в правильном формате:', digits);
+                return digits;
+            }
+
+            // 6. Если больше 11 цифр - берем последние 11
             if (digits.length > 11) {
-                digits = digits.substring(digits.length - 11);
+                const result = digits.substring(digits.length - 11);
+                console.log('Берём последние 11 цифр:', result);
+                return result;
             }
 
-            // Если после всех преобразований номер не начинается с 7 - добавляем
-            if (!digits.startsWith('7')) {
-                digits = '7' + digits;
-            }
-
-            console.log('Нормализованный телефон:', digits);
+            // 7. Если что-то пошло не так - возвращаем только цифры
+            console.log('Возвращаем только цифры:', digits);
             return digits;
         }
 
@@ -475,27 +482,24 @@
                     // Email поиск
                     paramName = 'email';
                     paramValue = searchValue.toLowerCase().trim();
+                    console.log('Поиск по email:', paramValue);
                 } else {
                     // Телефон поиск
                     paramName = 'phone';
 
-                    // 🔥 ИСПРАВЛЕНИЕ: Нормализуем телефон перед отправкой
+                    // Нормализуем телефон
                     paramValue = normalizePhone(searchValue);
 
                     console.log('Телефон поиск:', {
                         input: searchValue,
-                        normalized: paramValue
+                        normalized: paramValue,
+                        length: paramValue.length
                     });
 
-                    // Проверяем что телефон валидный после нормализации
-                    if (paramValue.length !== 11 || !paramValue.startsWith('7')) {
-                        // Пробуем альтернативные форматы
-                        const altValue = searchValue.replace(/\D/g, '');
-                        if (altValue.length >= 10) {
-                            paramValue = '7' + altValue.slice(-10);
-                        } else {
-                            throw new Error('Введите корректный номер телефона (например: 9152505255 или +7 (915) 250-52-55)');
-                        }
+                    // Если нормализация не сработала, пробуем просто цифры
+                    if (!paramValue || paramValue.length < 10) {
+                        paramValue = searchValue.replace(/\D/g, '');
+                        console.log('Используем только цифры:', paramValue);
                     }
                 }
 
@@ -503,67 +507,53 @@
                 const url = `${API_BASE}/get-member-number?${paramName}=${encodeURIComponent(paramValue)}`;
                 console.log('Запрос к API:', url);
 
-                const response = await fetch(url);
+                // Добавляем timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-                // Проверяем ответ
-                if (!response.ok) {
-                    const text = await response.text();
-                    if (text.includes('<!DOCTYPE')) {
-                        throw new Error('Ошибка сервера. Endpoint не найден.');
+                try {
+                    const response = await fetch(url, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    console.log('Статус ответа:', response.status);
+                    console.log('Заголовки ответа:', Object.fromEntries(response.headers.entries()));
+
+                    // Проверяем ответ
+                    if (!response.ok) {
+                        const text = await response.text();
+                        console.error('Текст ошибки:', text);
+                        throw new Error(`Ошибка сервера: ${response.status}`);
                     }
-                    throw new Error(`Ошибка сервера: ${response.status}`);
-                }
 
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Сервер вернул неверный формат');
-                }
+                    const data = await response.json();
+                    console.log('Ответ API:', JSON.stringify(data, null, 2));
 
-                const data = await response.json();
-                console.log('Ответ API:', data);
+                    if (data.success) {
+                        // Сохраняем данные
+                        AppState.currentUser = data.userData || data.user || {};
+                        AppState.currentMemberNumber = data.memberNumber;
 
-                if (data.success) {
-                    // Сохраняем данные
-                    AppState.currentUser = data.userData || data.user || {};
-                    AppState.currentMemberNumber = data.memberNumber;
+                        // Отображаем данные
+                        displayUserData(AppState.currentUser, AppState.currentMemberNumber);
+                    } else {
+                        console.log('API вернул success: false');
 
-                    // Отображаем данные
-                    displayUserData(AppState.currentUser, AppState.currentMemberNumber);
-                } else {
-                    // 🔥 ПРОБУЕМ АЛЬТЕРНАТИВНЫЕ ФОРМАТЫ ПОИСКА
-                    if (!isEmail) {
-                        console.log('Пробуем альтернативные форматы телефона...');
-
-                        // Пробуем разные варианты поиска
-                        const alternativeSearches = [
-                            searchValue.replace(/\D/g, ''), // Только цифры
-                            '8' + searchValue.replace(/\D/g, '').slice(-10), // С 8 в начале
-                            searchValue.replace(/\D/g, '').slice(-10), // Последние 10 цифр
-                        ];
-
-                        for (const altSearch of alternativeSearches) {
-                            if (altSearch && altSearch.length >= 10) {
-                                try {
-                                    const altUrl = `${API_BASE}/get-member-number?phone=${encodeURIComponent(altSearch)}`;
-                                    const altResponse = await fetch(altUrl);
-
-                                    if (altResponse.ok) {
-                                        const altData = await altResponse.json();
-                                        if (altData.success) {
-                                            AppState.currentUser = altData.userData || altData.user || {};
-                                            AppState.currentMemberNumber = altData.memberNumber;
-                                            displayUserData(AppState.currentUser, AppState.currentMemberNumber);
-                                            return;
-                                        }
-                                    }
-                                } catch (altError) {
-                                    console.log('Альтернативный поиск не удался:', altError.message);
-                                }
-                            }
+                        // Если телефон, пробуем искать в разных форматах
+                        if (!isEmail) {
+                            await tryAlternativePhoneFormats(searchValue);
+                        } else {
+                            throw new Error(data.error || 'Пользователь не найден');
                         }
                     }
 
-                    throw new Error(data.error || 'Пользователь не найден. Проверьте введенные данные.');
+                } catch (fetchError) {
+                    console.error('Ошибка fetch:', fetchError);
+                    if (fetchError.name === 'AbortError') {
+                        throw new Error('Таймаут запроса. Проверьте соединение.');
+                    }
+                    throw fetchError;
                 }
 
             } catch (error) {
@@ -579,6 +569,51 @@
                     searchBtn.textContent = '🌿 Найти номер';
                 }
             }
+        }
+
+        async function tryAlternativePhoneFormats(originalPhone) {
+            console.log('Пробуем альтернативные форматы для:', originalPhone);
+
+            const formats = [
+                // Только цифры
+                originalPhone.replace(/\D/g, ''),
+                // С 8 в начале
+                '8' + originalPhone.replace(/\D/g, '').slice(-10),
+                // Последние 10 цифр
+                originalPhone.replace(/\D/g, '').slice(-10),
+                // С +7 в начале
+                '7' + originalPhone.replace(/\D/g, '').slice(-10),
+                // Без кода страны (только 10 цифр)
+                originalPhone.replace(/\D/g, '').slice(-10),
+            ];
+
+            // Убираем дубликаты
+            const uniqueFormats = [...new Set(formats.filter(f => f.length >= 10))];
+
+            console.log('Альтернативные форматы:', uniqueFormats);
+
+            for (const format of uniqueFormats) {
+                try {
+                    const url = `${API_BASE}/get-member-number?phone=${encodeURIComponent(format)}`;
+                    console.log('Пробуем формат:', format, 'URL:', url);
+
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            console.log('Нашли через альтернативный формат:', format);
+                            AppState.currentUser = data.userData || data.user || {};
+                            AppState.currentMemberNumber = data.memberNumber;
+                            displayUserData(AppState.currentUser, AppState.currentMemberNumber);
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.log('Не удалось для формата', format, ':', error.message);
+                }
+            }
+
+            throw new Error('Пользователь не найден. Проверьте введенный телефон или email.');
         }
 
         // Отображение данных пользователя
