@@ -93,13 +93,13 @@ const initializeRedis = async () => {
 
 // CORS настройки
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Разрешаем все origins в development
     if (!origin || process.env.NODE_ENV === 'development') {
       callback(null, true);
       return;
     }
-    
+
     // Разрешенные домены в production
     const allowedOrigins = [
       'https://npkvdv.ru',
@@ -107,7 +107,7 @@ app.use(cors({
       'https://tilda.cc',
       'https://*.tilda.ws'
     ];
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -124,6 +124,9 @@ app.use(cors({
 app.use((req, res, next) => {
   // Разрешаем кросс-доменные запросы с куками
   const origin = req.headers.origin;
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  console.log('Query:', req.query);
+  console.log('Body:', req.body);
 
   if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -469,27 +472,78 @@ app.post('/test-webhook', (req, res) => {
 
 app.get('/get-member-number', async (req, res) => {
   try {
+    console.log('=== ЗАПРОС ПОИСКА ПОЛЬЗОВАТЕЛЯ ===');
+    console.log('Query параметры:', req.query);
+
     const { email, phone } = req.query;
+
+    // Валидация
+    if (!email && !phone) {
+      return res.json({
+        success: false,
+        error: 'Необходимо указать email или телефон'
+      });
+    }
+
     const user = await User.findUserByEmailOrPhone(email, phone);
 
     if (user) {
-      const memberNumber = user.membership_number;
+      console.log('Пользователь найден:', {
+        membership_number: user.membership_number,
+        email: user.email,
+        phone: user.phone
+      });
 
       res.json({
         success: true,
-        memberNumber: memberNumber,
-        userData: {
-          name: user.name || user.fullname,
+        memberNumber: user.membership_number,
+        user: {
+          fullname: user.name || user.fullname || user.username,
           email: user.email,
           phone: user.phone,
-          city: user.city
+          city: user.city || user.location || 'Не указан'
         }
       });
     } else {
-      res.json({ success: false, error: 'Пользователь не найден' });
+      console.log('Пользователь не найден');
+
+      // Для тестирования: возвращаем тестового пользователя
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Режим разработки: возвращаем тестового пользователя');
+
+        // Проверяем тестовые данные
+        const testEmail = 'test@example.com';
+        const testPhones = ['79991234567', '89123456789', '1234567890'];
+
+        if (email === testEmail ||
+          (phone && testPhones.includes(phone.replace(/\D/g, '').slice(-10)))) {
+
+          res.json({
+            success: true,
+            memberNumber: 'TEST12345',
+            user: {
+              fullname: 'Тестовый Пользователь',
+              email: email || 'test@example.com',
+              phone: phone || '+7 (999) 123-45-67',
+              city: 'Москва'
+            }
+          });
+          return;
+        }
+      }
+
+      res.json({
+        success: false,
+        error: 'Пользователь не найден. Проверьте введенные данные.'
+      });
     }
+
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Ошибка в /get-member-number:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Внутренняя ошибка сервера'
+    });
   }
 });
 

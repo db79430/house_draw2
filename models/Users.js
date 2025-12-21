@@ -100,16 +100,81 @@ class User {
   }
 
   static async findUserByEmailOrPhone(email, phone) {
-    // Пример для PostgreSQL
-    const user = await db.oneOrNone(
-      `SELECT * FROM users 
-       WHERE email = $1 OR phone = $2 
-       ORDER BY created_at DESC 
-       LIMIT 1`,
-      [email, phone]
-    );
-    return user;
+    try {
+      // Логирование для отладки
+      console.log('Поиск пользователя:', { email, phone });
+
+      let query = {};
+
+      // Если есть email - ищем по email
+      if (email) {
+        query = { email: email.toLowerCase().trim() };
+      }
+      // Если есть phone - ищем по телефону
+      else if (phone) {
+        // Нормализуем телефон для поиска
+        const normalizedPhone = await this.normalizePhoneForSearch(phone);
+        console.log('Нормализованный телефон для поиска:', normalizedPhone);
+
+        // Ищем в нескольких форматах
+        query = {
+          $or: [
+            { phone: normalizedPhone },
+            { phone: phone.replace(/\D/g, '') }, // Только цифры
+            { phone: `8${normalizedPhone.slice(1)}` }, // С 8 вместо 7
+            { phone: normalizedPhone.slice(1) }, // Без кода страны (10 цифр)
+          ]
+        };
+      }
+
+      console.log('Поисковый запрос:', JSON.stringify(query));
+
+      // Ищем пользователя в MongoDB
+      const user = await db.collection('users').findOne(query);
+
+      console.log('Найден пользователь:', user ? 'Да' : 'Нет');
+      if (user) {
+        console.log('Данные пользователя:', {
+          id: user._id,
+          email: user.email,
+          phone: user.phone,
+          membership_number: user.membership_number
+        });
+      }
+
+      return user;
+
+    } catch (error) {
+      console.error('Ошибка поиска пользователя:', error);
+      throw error;
+    }
   }
+
+  static async normalizePhoneForSearch(phone) {
+    if (!phone) return '';
+
+    // Убираем все нецифровые символы
+    let digits = phone.replace(/\D/g, '');
+
+    // Если 10 цифр - добавляем 7
+    if (digits.length === 10) {
+      return '7' + digits;
+    }
+
+    // Если 11 цифр и начинается с 8 - меняем на 7
+    if (digits.length === 11 && digits.startsWith('8')) {
+      return '7' + digits.substring(1);
+    }
+
+    // Если 11 цифр и начинается с 7 - оставляем
+    if (digits.length === 11 && digits.startsWith('7')) {
+      return digits;
+    }
+
+    // Возвращаем как есть
+    return digits;
+  }
+
 
   static async findOne(credentials) {
     try {
@@ -744,23 +809,23 @@ class User {
  * 🔥 ИСПРАВЛЕННЫЙ: Создание пользователя с правильными boolean значениями
  */
   static async createUserFromFormInTransaction(transaction, formData, tildaData) {
-    const { 
-      FullName: fullname, 
-      Phone: phone, 
+    const {
+      FullName: fullname,
+      Phone: phone,
       Email: email,
       City: city,
       Checkbox: checkbox,
       Conditions: conditions,
-      Yeardate: yeardate 
+      Yeardate: yeardate
     } = formData;
-    
+
     try {
       // Подготавливаем данные в том же формате
       const login = email;
-      const password =  Helpers.generatePassword();
+      const password = Helpers.generatePassword();
       const checkboxBool = checkbox === 'yes' || checkbox === 'true' || checkbox === true;
       const conditionsText = conditions === 'yes' ? 'accepted' : 'pending';
-      
+
       const userData = {
         fullname,
         phone: phone || null,
@@ -782,7 +847,7 @@ class User {
         tilda_project_id: tildaData.formid ? tildaData.formid.replace('form', '') : '14245141',
         tilda_page_id: tildaData.pageid || null
       };
-      
+
       // 🔥 ВЫЗЫВАЕМ User.create ЧЕРЕЗ ТРАНЗАКЦИЮ
       const result = await transaction.one(
         `INSERT INTO users (
@@ -814,9 +879,9 @@ class User {
           userData.tilda_page_id
         ]
       );
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('❌ Error in transaction:', error);
       throw error;
