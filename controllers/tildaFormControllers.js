@@ -12,6 +12,11 @@ import crypto from 'crypto';
 class TildaController {
   async handleTildaWebhook(req, res) {
     console.log(`🔍 [${new Date().toISOString()}] Получен вебхук от Tilda...`);
+    console.log('=== ТИЛЬДА ВЕБХУК ПОЛУЧЕН ===');
+    console.log('Headers:', req.headers);
+    console.log('Raw body:', req.body);
+    console.log('Body type:', typeof req.body);
+    console.log('Body keys:', Object.keys(req.body || {}));
 
     try {
       console.log('📥 Raw данные от Tilda:', req.body);
