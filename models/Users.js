@@ -101,51 +101,63 @@ class User {
 
   static async findUserByEmailOrPhone(email, phone) {
     try {
-      // Логирование для отладки
       console.log('Поиск пользователя:', { email, phone });
-
-      let query = {};
-
-      // Если есть email - ищем по email
+      
+      let query = '';
+      let params = [];
+      
+      // Поиск по email
       if (email) {
-        query = { email: email.toLowerCase().trim() };
+        const cleanEmail = email.toLowerCase().trim();
+        query = 'SELECT * FROM users WHERE email = $1';
+        params = [cleanEmail];
       }
-      // Если есть phone - ищем по телефону
+      // Поиск по телефону
       else if (phone) {
-        // Нормализуем телефон для поиска
         const normalizedPhone = Helpers.normalizePhone(phone);
-        console.log('Нормализованный телефон для поиска:', normalizedPhone);
-
-        // Ищем в нескольких форматах
-        query = {
-          $or: [
-            { phone: normalizedPhone },
-            { phone: phone.replace(/\D/g, '') }, // Только цифры
-            { phone: `8${normalizedPhone.slice(1)}` }, // С 8 вместо 7
-            { phone: normalizedPhone.slice(1) }, // Без кода страны (10 цифр)
-          ]
-        };
-      }
-
-      console.log('Поисковый запрос:', JSON.stringify(query));
-
-      // Ищем пользователя в MongoDB
-      const user = await db.collection('users').findOne(query);
-
-      console.log('Найден пользователь:', user ? 'Да' : 'Нет');
-      if (user) {
-        console.log('Данные пользователя:', {
-          id: user._id,
-          email: user.email,
-          phone: user.phone,
-          membership_number: user.membership_number
+        const digitsOnly = phone.replace(/\D/g, '');
+        const with8 = '8' + normalizedPhone.slice(1);
+        const withoutCode = normalizedPhone.slice(1);
+        
+        console.log('Форматы для поиска телефона:', {
+          normalizedPhone,
+          digitsOnly,
+          with8,
+          withoutCode
         });
+        
+        query = `
+          SELECT * FROM users 
+          WHERE 
+            phone = $1 OR 
+            phone = $2 OR 
+            phone = $3 OR 
+            phone = $4 OR
+            REPLACE(phone, ' ', '') = $5 OR
+            REPLACE(phone, '+', '') = $6 OR
+            REPLACE(REPLACE(phone, ' ', ''), '+', '') = $7
+          LIMIT 1
+        `;
+        
+        params = [
+          normalizedPhone,
+          digitsOnly,
+          with8,
+          withoutCode,
+          digitsOnly,
+          digitsOnly.replace('+', ''),
+          digitsOnly.replace(/[+\s]/g, '')
+        ];
       }
-
-      return user;
-
+      
+      console.log('SQL запрос:', query);
+      console.log('Параметры:', params);
+      
+      const result = await pool.query(query, params);
+      return result.rows[0];
+      
     } catch (error) {
-      console.error('Ошибка поиска пользователя:', error);
+      console.error('Ошибка при поиске пользователя:', error);
       throw error;
     }
   }
