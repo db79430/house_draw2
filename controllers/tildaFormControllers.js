@@ -433,9 +433,9 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
         await t.none(
           `INSERT INTO payments (
             order_id, user_id, amount, tinkoff_payment_id,
-            description, status, member_number, payment_url,
+            description, status, payment_url,
             created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             orderId,
             user.id,
