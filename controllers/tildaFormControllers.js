@@ -403,7 +403,7 @@ class TildaController {
       }
 
       // Создаем платеж в Тинькофф
-      const orderId = TokenGenerator.generateOrderId;
+      const orderId = TokenGenerator.generateOrderId();
       const amount = 1000; // 10 рублей
 
       console.log('🚀 Создаем новый платеж в Тинькофф...');
