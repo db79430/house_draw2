@@ -433,9 +433,9 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
         await t.none(
           `INSERT INTO payments (
             order_id, user_id, amount, tinkoff_payment_id,
-            description, status, payment_url,
+            description,
             created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [
             orderId,
             user.id,
@@ -444,7 +444,6 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
             `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
             'pending',
             memberNumber,
-            paymentResult.paymentUrl,
             new Date(),
             new Date()
           ]
@@ -461,7 +460,6 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
       
       return res.json({
         success: true,
-        paymentUrl: paymentResult.paymentUrl,
         orderId: orderId,
         paymentId: paymentResult.tinkoffPaymentId,
         message: 'Платеж успешно создан'
@@ -598,7 +596,6 @@ async logWebhookProcessing(transaction, userId, memberNumber, isNewUser) {
           status: latestPayment.status,
           amount: latestPayment.amount,
           created_at: latestPayment.created_at,
-          payment_url: latestPayment.payment_url
         };
       }
 
