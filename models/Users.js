@@ -113,7 +113,7 @@ class User {
       // Если есть phone - ищем по телефону
       else if (phone) {
         // Нормализуем телефон для поиска
-        const normalizedPhone = await this.normalizePhoneForSearch(phone);
+        const normalizedPhone = Helpers.normalizePhone(phone);
         console.log('Нормализованный телефон для поиска:', normalizedPhone);
 
         // Ищем в нескольких форматах
