@@ -16,21 +16,37 @@ class Helpers {
 
   static normalizePhone(phone) {
     if (!phone) return '';
-    
-    // Удаляем все нецифровые символы
-    let normalized = phone.replace(/\D/g, '');
-    
-    // Если номер начинается с 8, заменяем на +7
-    if (normalized.startsWith('8') && normalized.length === 11) {
-      normalized = '7' + normalized.slice(1);
+
+    // 1. Убираем ВСЕ нецифровые символы включая +
+    let digits = phone.replace(/\D/g, '');
+
+    console.log('normalizePhone вход:', phone, 'цифры:', digits);
+
+    if (!digits) return '';
+
+    // 2. Если начинается с 8 и 11 цифр - меняем 8 на 7
+    if (digits.length === 11 && digits.startsWith('8')) {
+      const result = '7' + digits.substring(1);
+      console.log('8XXXX -> 7XXXX:', result);
+      return result;
     }
-    
-    // Если номер без кода страны, добавляем +7
-    if (normalized.length === 10) {
-      normalized = '7' + normalized;
+
+    // 3. Если 10 цифр - добавляем 7
+    if (digits.length === 10) {
+      const result = '7' + digits;
+      console.log('10 цифр -> 7+10:', result);
+      return result;
     }
-    
-    return normalized ? `+${normalized}` : '';
+
+    // 4. Если 11 цифр и начинается с 7 - оставляем
+    if (digits.length === 11 && digits.startsWith('7')) {
+      console.log('Уже правильный формат:', digits);
+      return digits;
+    }
+
+    // 5. Возвращаем цифры как есть
+    console.log('Возвращаем как есть:', digits);
+    return digits;
   }
 
   static validateEmail(email) {
@@ -57,7 +73,7 @@ class Helpers {
 
   static parseYeardate(yeardateStr) {
     if (!yeardateStr) return null;
-    
+
     // Пробуем разные форматы дат
     const date = new Date(yeardateStr);
     return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
@@ -78,13 +94,13 @@ class Helpers {
 
   static parseConditions(value) {
     if (!value) return 'pending';
-    
+
     const val = String(value).toLowerCase().trim();
-    
+
     if (val === 'on' || val === 'yes' || val === 'true' || val === '1' || val === 'accepted') {
       return 'accepted'; // Это VARCHAR поле
     }
-    
+
     return 'pending';
   }
 }
