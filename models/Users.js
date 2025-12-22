@@ -102,31 +102,41 @@ class User {
   static async findUserByEmailOrPhone(email, phone) {
     try {
       console.log('Поиск пользователя:', { email, phone });
-      
-      let query = '';
-      let params = [];
-      
+
       // Поиск по email
       if (email) {
         const cleanEmail = email.toLowerCase().trim();
-        query = 'SELECT * FROM users WHERE email = $1';
-        params = [cleanEmail];
+        console.log('Поиск по email:', cleanEmail);
+
+        try {
+          return await db.oneOrNone('SELECT * FROM users WHERE email = $1', [cleanEmail]);
+        } catch (error) {
+          // Если таблица не существует
+          if (error.message && error.message.includes('relation "users" does not exist')) {
+            console.log('Таблица users не существует');
+            return null;
+          }
+          throw error;
+        }
       }
+
       // Поиск по телефону
-      else if (phone) {
+      if (phone) {
+        console.log('Поиск по телефону:', phone);
+
         const normalizedPhone = Helpers.normalizePhone(phone);
         const digitsOnly = phone.replace(/\D/g, '');
         const with8 = '8' + normalizedPhone.slice(1);
         const withoutCode = normalizedPhone.slice(1);
-        
+
         console.log('Форматы для поиска телефона:', {
           normalizedPhone,
           digitsOnly,
           with8,
           withoutCode
         });
-        
-        query = `
+
+        const query = `
           SELECT * FROM users 
           WHERE 
             phone = $1 OR 
@@ -135,27 +145,43 @@ class User {
             phone = $4 OR
             REPLACE(phone, ' ', '') = $5 OR
             REPLACE(phone, '+', '') = $6 OR
-            REPLACE(REPLACE(phone, ' ', ''), '+', '') = $7
+            REPLACE(phone, '-', '') = $7 OR
+            REPLACE(phone, '(', '') = $8 OR
+            REPLACE(phone, ')', '') = $9 OR
+            phone LIKE $10
           LIMIT 1
         `;
-        
-        params = [
+
+        const params = [
           normalizedPhone,
           digitsOnly,
           with8,
           withoutCode,
           digitsOnly,
-          digitsOnly.replace('+', ''),
-          digitsOnly.replace(/[+\s]/g, '')
+          digitsOnly,
+          digitsOnly,
+          digitsOnly,
+          digitsOnly,
+          `%${digitsOnly.slice(-10)}%`
         ];
+
+        console.log('SQL запрос (упрощенный):', query.substring(0, 200) + '...');
+        console.log('Параметры (первые 5):', params.slice(0, 5));
+
+        try {
+          return await db.oneOrNone(query, params);
+        } catch (error) {
+          // Если таблица не существует
+          if (error.message && error.message.includes('relation "users" does not exist')) {
+            console.log('Таблица users не существует');
+            return null;
+          }
+          throw error;
+        }
       }
-      
-      console.log('SQL запрос:', query);
-      console.log('Параметры:', params);
-      
-      const result = await pool.query(query, params);
-      return result.rows[0];
-      
+
+      return null;
+
     } catch (error) {
       console.error('Ошибка при поиске пользователя:', error);
       throw error;

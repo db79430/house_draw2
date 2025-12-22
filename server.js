@@ -491,18 +491,17 @@ app.get('/get-member-number', async (req, res) => {
       console.log('Пользователь найден:', {
         membership_number: user.membership_number,
         email: user.email,
-        phone: user.phone,
-        fullname: user.fullname || user.name
+        phone: user.phone
       });
 
       res.json({
         success: true,
         memberNumber: user.membership_number,
         user: {
-          fullname: user.fullname || user.name || user.username || 'Не указано',
+          fullname: user.fullname || user.name || 'Не указано',
           email: user.email || 'Не указано',
           phone: user.phone || 'Не указано',
-          city: user.city || user.location || 'Не указан'
+          city: user.city || 'Не указан'
         }
       });
     } else {
