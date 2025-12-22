@@ -71,6 +71,7 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            margin-top: 10px;
         }
 
         #payment-btn:hover {
@@ -162,11 +163,11 @@
 
         .section {
             display: none;
-            animation: fadeIn 0.5s ease-in;
         }
 
         .active {
             display: block;
+            animation: fadeIn 0.3s ease-in;
         }
 
         .success-badge {
@@ -196,13 +197,32 @@
             color: #c62828;
             padding: 15px;
             border-radius: 10px;
-            margin: 20px 0;
+            margin: 20px;
             border: 1px solid #ffcdd2;
             display: none;
         }
 
         .error-message.active {
             display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .back-btn {
+            background: #e8f5e8;
+            color: #2d5016;
+            border: 1px solid #c8e6c9;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #dcedc8;
+            transform: translateY(-1px);
         }
 
         @keyframes spin {
@@ -218,21 +238,13 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(10px);
             }
 
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
-        }
-
-        .info-box {
-            background: #e8f5e9;
-            border-left: 4px solid #4CAF50;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 8px;
         }
 
         .house-icon {
@@ -246,11 +258,12 @@
             color: #666;
             margin-top: 5px;
             text-align: center;
+            margin-bottom: 20px;
         }
 
         .phone-examples span {
             display: inline-block;
-            margin: 0 5px;
+            margin: 0 3px;
             background: #f0f0f0;
             padding: 2px 6px;
             border-radius: 4px;
@@ -275,24 +288,26 @@
             <div id="error-section" class="error-message"></div>
 
             <!-- Блок поиска -->
-            <div id="search-section" class="section search-section active">
-                <div class="house-icon">🏡</div>
-                <h3 style="color: #2d5016; margin-bottom: 15px;">Чтобы найти индивидуальный номер пайщика</h3>
-                <p style="color: #4a7c2a; margin-bottom: 15px;">Введите email или телефон, которые вы указывали при
-                    регистрации.</p>
+            <div id="search-section" class="section active">
+                <div class="search-section">
+                    <div class="house-icon">🏡</div>
+                    <h3 style="color: #2d5016; margin-bottom: 15px;">Чтобы найти индивидуальный номер пайщика</h3>
+                    <p style="color: #4a7c2a; margin-bottom: 15px;">Введите email или телефон, которые вы указывали при
+                        регистрации.</p>
 
-                <div style="max-width: 300px; margin: 0 auto;">
-                    <input type="text" id="search-input" placeholder="Email или телефон" class="search-input"
-                        autocomplete="email tel">
-                    <div class="phone-examples">
-                        Примеры телефона:
-                        <span>8 (999) 123-45-67</span>
-                        <span>+7 999 123 45 67</span>
-                        <span>9991234567</span>
+                    <div style="max-width: 300px; margin: 0 auto;">
+                        <input type="text" id="search-input" placeholder="Email или телефон" class="search-input"
+                            autocomplete="email tel">
+                        <div class="phone-examples">
+                            Примеры телефона:
+                            <span>8 (999) 123-45-67</span>
+                            <span>+7 999 123 45 67</span>
+                            <span>9991234567</span>
+                        </div>
+                        <button id="search-button" class="search-btn">
+                            🌿 Найти номер
+                        </button>
                     </div>
-                    <button id="search-button" class="search-btn">
-                        🌿 Найти номер
-                    </button>
                 </div>
             </div>
 
@@ -344,7 +359,8 @@
                         </p>
                     </div>
                     <div style="margin-top: 20px; margin-bottom: 20px;">
-                        <a href="https://docs.google.com/document/d/1wLgKHXzr8-lr_VlpJQjwDMOeUKyMLmU7/edit" target="_blank"
+                        <a href="https://docs.google.com/document/d/1wLgKHXzr8-lr_VlpJQjwDMOeUKyMLmU7/edit"
+                            target="_blank"
                             style="color: #2d5016; text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 20px; background: white; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid #c8e6c9; transition: all 0.3s;"
                             onmouseover="this.style.boxShadow='0 4px 12px rgba(56, 142, 60, 0.2)'; this.style.transform='translateY(-2px)'"
                             onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)'">
@@ -358,6 +374,11 @@
                     <div>
                         <button id="payment-btn">
                             💳 Оплатить вступительный взнос
+                        </button>
+                    </div>
+                    <div>
+                        <button id="back-btn" class="back-btn">
+                            ← Вернуться к поиску
                         </button>
                     </div>
                 </div>
@@ -375,112 +396,71 @@
             currentMemberNumber: null
         };
 
-        // Показать/скрыть секцию
+        // Показать секцию
         function showSection(sectionId) {
+            // Скрываем все секции
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
+
+            // Показываем нужную секцию
             const section = document.getElementById(sectionId);
             if (section) {
                 section.classList.add('active');
             }
         }
 
-        // Показать/скрыть загрузку
-        function showLoading(show) {
-            showSection(show ? 'loading-section' : 'search-section');
-        }
-
         // Показать ошибку
         function showError(message) {
             const errorSection = document.getElementById('error-section');
-            errorSection.textContent = message;
-            errorSection.classList.add('active');
-            
-            setTimeout(() => {
-                errorSection.classList.remove('active');
-            }, 5000);
+            if (errorSection) {
+                errorSection.textContent = message;
+                errorSection.classList.add('active');
+
+                // Автоскрытие через 5 секунд
+                setTimeout(() => {
+                    errorSection.classList.remove('active');
+                }, 5000);
+            }
         }
 
-        // Нормализация телефона - главная функция
+        // Показать/скрыть загрузку
+        function showLoading(show) {
+            if (show) {
+                showSection('loading-section');
+            } else {
+                showSection('search-section');
+            }
+        }
+
+        // Нормализация телефона
         function normalizePhone(phone) {
             if (!phone) return '';
-            
+
             // Убираем все нецифровые символы
             let digits = phone.replace(/\D/g, '');
-            
-            // Если нет цифр или меньше 10 - возвращаем как есть
-            if (digits.length < 10) {
-                return digits;
-            }
-            
-            // Если 10 цифр - добавляем 7 (российский номер без кода)
+
+            if (!digits) return '';
+
+            // Если 10 цифр - добавляем 7
             if (digits.length === 10) {
                 return '7' + digits;
             }
-            
+
             // Если 11 цифр и начинается с 8 - меняем на 7
             if (digits.length === 11 && digits.startsWith('8')) {
                 return '7' + digits.substring(1);
             }
-            
+
             // Если 11 цифр и начинается с 7 - оставляем
             if (digits.length === 11 && digits.startsWith('7')) {
                 return digits;
             }
-            
-            // Если больше 11 цифр - берем последние 11
-            if (digits.length > 11) {
-                return digits.substring(digits.length - 11);
-            }
-            
-            // Для любых других случаев возвращаем цифры
+
             return digits;
         }
 
-        // Генерация всех возможных форматов телефона для поиска
-        function generatePhoneFormats(phone) {
-            const formats = new Set();
-            
-            // Убираем все нецифровые символы
-            const digitsOnly = phone.replace(/\D/g, '');
-            
-            if (!digitsOnly || digitsOnly.length < 10) {
-                return Array.from(formats);
-            }
-            
-            // 1. Полностью нормализованный (11 цифр, начинается с 7)
-            const normalized = normalizePhone(phone);
-            if (normalized) {
-                formats.add(normalized);
-            }
-            
-            // 2. С 8 в начале (11 цифр)
-            if (digitsOnly.length >= 10) {
-                const with8 = '8' + digitsOnly.slice(-10);
-                formats.add(with8);
-            }
-            
-            // 3. Только цифры как есть
-            formats.add(digitsOnly);
-            
-            // 4. Последние 10 цифр (без кода)
-            if (digitsOnly.length >= 10) {
-                const last10 = digitsOnly.slice(-10);
-                formats.add(last10);
-            }
-            
-            // 5. С +7 в начале
-            if (digitsOnly.length >= 10) {
-                const withPlus7 = '7' + digitsOnly.slice(-10);
-                formats.add(withPlus7);
-            }
-            
-            // Фильтруем некорректные форматы (меньше 10 цифр)
-            return Array.from(formats).filter(f => f.length >= 10);
-        }
-
-        // Поиск участника
+        // Поиск пользователя
         async function searchMember() {
             const searchInput = document.getElementById('search-input');
             const searchValue = searchInput.value.trim();
@@ -491,34 +471,64 @@
                 return;
             }
 
-            // Сброс состояния ошибки
+            // Скрываем ошибку если есть
             document.getElementById('error-section').classList.remove('active');
 
-            try {
-                showLoading(true);
-                const searchBtn = document.getElementById('search-button');
+            // Показываем загрузку
+            showLoading(true);
+
+            // Блокируем кнопку
+            const searchBtn = document.getElementById('search-button');
+            if (searchBtn) {
                 searchBtn.disabled = true;
                 searchBtn.textContent = '🔍 Поиск...';
+            }
 
-                // Определяем тип ввода
+            try {
+                // Определяем тип поиска
                 const isEmail = searchValue.includes('@');
-                
+                let url;
+
                 if (isEmail) {
                     // Поиск по email
-                    await searchByEmail(searchValue);
+                    url = `${API_BASE}/get-member-number?email=${encodeURIComponent(searchValue.toLowerCase().trim())}`;
                 } else {
                     // Поиск по телефону
-                    await searchByPhone(searchValue);
+                    const normalizedPhone = normalizePhone(searchValue);
+                    url = `${API_BASE}/get-member-number?phone=${encodeURIComponent(normalizedPhone)}`;
+                }
+
+                console.log('Запрос к API:', url);
+
+                // Выполняем запрос
+                const response = await fetch(url);
+                const data = await response.json();
+
+                console.log('Ответ API:', data);
+
+                if (data.success) {
+                    // Сохраняем данные
+                    AppState.currentUser = data.user || data.userData || {};
+                    AppState.currentMemberNumber = data.memberNumber;
+
+                    // Отображаем данные
+                    displayUserData(AppState.currentUser, AppState.currentMemberNumber);
+                } else {
+                    throw new Error(data.error || 'Пользователь не найден');
                 }
 
             } catch (error) {
                 console.error('Ошибка поиска:', error);
-                showError(error.message || 'Произошла ошибка при поиске');
+                showError(error.message);
+
+                // Возвращаем фокус на поле ввода
                 searchInput.focus();
-                
+
             } finally {
+                // Скрываем загрузку
                 showLoading(false);
-                const searchBtn = document.getElementById('search-button');
+
+                // Разблокируем кнопку
                 if (searchBtn) {
                     searchBtn.disabled = false;
                     searchBtn.textContent = '🌿 Найти номер';
@@ -526,124 +536,21 @@
             }
         }
 
-        // Поиск по email
-        async function searchByEmail(email) {
-            const cleanEmail = email.toLowerCase().trim();
-            const url = `${API_BASE}/get-member-number?email=${encodeURIComponent(cleanEmail)}`;
-            
-            console.log('Поиск по email:', cleanEmail);
-            await makeApiRequest(url, 'email');
-        }
-
-        // Поиск по телефону
-        async function searchByPhone(phone) {
-            console.log('Начало поиска по телефону:', phone);
-            
-            // Генерируем все возможные форматы
-            const formats = generatePhoneFormats(phone);
-            console.log('Сгенерированные форматы:', formats);
-            
-            if (formats.length === 0) {
-                throw new Error('Введите корректный номер телефона (минимум 10 цифр)');
-            }
-            
-            // Пробуем все форматы по очереди
-            for (const format of formats) {
-                try {
-                    console.log('Пробуем формат:', format);
-                    const url = `${API_BASE}/get-member-number?phone=${encodeURIComponent(format)}`;
-                    
-                    const success = await makeApiRequest(url, 'phone');
-                    if (success) {
-                        console.log('Нашли по формату:', format);
-                        return; // Успешно нашли, выходим
-                    }
-                } catch (error) {
-                    console.log('Не удалось для формата', format, ':', error.message);
-                    // Продолжаем пробовать другие форматы
-                }
-            }
-            
-            // Если ни один формат не сработал
-            throw new Error('Пользователь не найден. Проверьте правильность телефона или попробуйте ввести email.');
-        }
-
-        // Выполнение запроса к API
-        async function makeApiRequest(url, searchType) {
-            console.log('API запрос:', url);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            try {
-                const response = await fetch(url, {
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                clearTimeout(timeoutId);
-
-                console.log('Статус ответа:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`Ошибка сервера: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Ответ API:', data);
-
-                if (data.success) {
-                    // Сохраняем данные
-                    AppState.currentUser = data.userData || data.user || {};
-                    AppState.currentMemberNumber = data.memberNumber;
-
-                    // Отображаем данные
-                    displayUserData(AppState.currentUser, AppState.currentMemberNumber);
-                    return true;
-                } else {
-                    throw new Error(data.error || 'Пользователь не найден');
-                }
-
-            } catch (fetchError) {
-                console.error('Ошибка fetch:', fetchError);
-                if (fetchError.name === 'AbortError') {
-                    throw new Error('Таймаут запроса. Проверьте интернет-соединение.');
-                }
-                if (fetchError.message.includes('Failed to fetch')) {
-                    throw new Error('Нет соединения с сервером. Проверьте интернет.');
-                }
-                throw fetchError;
-            }
-        }
-
         // Отображение данных пользователя
         function displayUserData(user, memberNumber) {
+            console.log('Отображение данных:', { user, memberNumber });
+
             // Заполняем поля
-            document.getElementById('member-number').textContent = memberNumber;
+            document.getElementById('member-number').textContent = memberNumber || '-';
             document.getElementById('user-fullname').textContent = user.fullname || user.name || 'Не указано';
             document.getElementById('user-email').textContent = user.email || 'Не указано';
-            
-            // Форматируем телефон для отображения
-            if (user.phone) {
-                const phone = user.phone.toString();
-                if (phone.length === 11 && phone.startsWith('7')) {
-                    document.getElementById('user-phone').textContent = `+7 (${phone.substring(1, 4)}) ${phone.substring(4, 7)}-${phone.substring(7, 9)}-${phone.substring(9, 11)}`;
-                } else {
-                    document.getElementById('user-phone').textContent = phone;
-                }
-            } else {
-                document.getElementById('user-phone').textContent = 'Не указано';
-            }
-            
+            document.getElementById('user-phone').textContent = user.phone || 'Не указано';
             document.getElementById('user-city').textContent = user.city || 'Не указано';
 
             // Показываем секцию с данными
             showSection('user-section');
 
-            // Обновляем URL без перезагрузки страницы
+            // Обновляем URL
             const url = new URL(window.location);
             url.searchParams.set('memberNumber', memberNumber);
             window.history.pushState({}, '', url);
@@ -663,8 +570,6 @@
                 paymentBtn.disabled = true;
                 paymentBtn.textContent = 'Создание платежа...';
                 showLoading(true);
-
-                console.log('Создание платежа для:', AppState.currentMemberNumber);
 
                 const response = await fetch(`${API_BASE}/create-payment`, {
                     method: 'POST',
@@ -693,54 +598,64 @@
             } catch (error) {
                 console.error('Ошибка создания платежа:', error);
                 showError('Ошибка: ' + error.message);
+
+                // Возвращаемся к данным пользователя
+                showSection('user-section');
+
+                // Разблокируем кнопку
                 paymentBtn.disabled = false;
                 paymentBtn.textContent = originalText;
-
             } finally {
                 showLoading(false);
             }
         }
 
-        // Автодополнение телефона (опционально, можно отключить)
-        function setupPhoneAutoComplete() {
-            const searchInput = document.getElementById('search-input');
-            
-            searchInput.addEventListener('blur', function() {
-                const value = this.value.trim();
-                
-                // Если это похоже на телефон (содержит цифры, но нет @)
-                if (value && !value.includes('@') && /\d/.test(value)) {
-                    const digits = value.replace(/\D/g, '');
-                    
-                    // Если 10 цифр - форматируем как российский номер
-                    if (digits.length === 10) {
-                        this.value = `+7 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 8)}-${digits.substring(8, 10)}`;
-                    }
-                    // Если 11 цифр и начинается с 8
-                    else if (digits.length === 11 && digits.startsWith('8')) {
-                        const formatted = `+7 (${digits.substring(1, 4)}) ${digits.substring(4, 7)}-${digits.substring(7, 9)}-${digits.substring(9, 11)}`;
-                        this.value = formatted;
-                    }
-                }
-            });
-        }
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Страница загружена');
 
-        // Проверка URL параметров при загрузке
-        function checkUrlParams() {
+            // Инициализация элементов
+            const searchBtn = document.getElementById('search-button');
+            const searchInput = document.getElementById('search-input');
+            const paymentBtn = document.getElementById('payment-btn');
+            const backBtn = document.getElementById('back-btn');
+
+            // Обработчики событий
+            if (searchBtn) {
+                searchBtn.addEventListener('click', searchMember);
+            }
+
+            if (searchInput) {
+                // Поиск по Enter
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        searchMember();
+                    }
+                });
+
+                // Фокус на поле ввода
+                setTimeout(() => {
+                    searchInput.focus();
+                }, 100);
+            }
+
+            if (paymentBtn) {
+                paymentBtn.addEventListener('click', createPayment);
+            }
+
+            if (backBtn) {
+                backBtn.addEventListener('click', function () {
+                    showSection('search-section');
+                    searchInput.focus();
+                });
+            }
+
+            // Проверка URL параметров
             const urlParams = new URLSearchParams(window.location.search);
             const memberNumber = urlParams.get('memberNumber');
             const email = urlParams.get('email');
             const phone = urlParams.get('phone');
-            
-            // Если есть memberNumber в URL, можем сразу показать данные
-            // (если API поддерживает поиск по memberNumber)
-            if (memberNumber) {
-                console.log('memberNumber из URL:', memberNumber);
-                // Можно добавить автоматическую загрузку данных
-            }
-            
-            // Если есть email или phone - заполняем поле поиска
-            const searchInput = document.getElementById('search-input');
+
             if (searchInput) {
                 if (email) {
                     searchInput.value = email;
@@ -748,55 +663,14 @@
                     searchInput.value = phone;
                 }
             }
-        }
 
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Страница загружена. API Base:', API_BASE);
-            
-            // Инициализация элементов
-            const searchBtn = document.getElementById('search-button');
-            const searchInput = document.getElementById('search-input');
-            const paymentBtn = document.getElementById('payment-btn');
-            
-            // Настройка обработчиков
-            if (searchBtn && searchInput) {
-                searchBtn.addEventListener('click', searchMember);
-                
-                // Поиск по Enter
-                searchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        searchMember();
-                    }
-                });
-                
-                // Автодополнение телефона
-                setupPhoneAutoComplete();
-                
-                // Фокус на поле ввода
+            // Автоматический поиск если есть параметры
+            if ((email || phone) && !memberNumber) {
                 setTimeout(() => {
-                    searchInput.focus();
+                    searchMember();
                 }, 500);
             }
-            
-            // Обработчик кнопки оплаты
-            if (paymentBtn) {
-                paymentBtn.addEventListener('click', createPayment);
-            }
-            
-            // Проверка URL параметров
-            checkUrlParams();
-            
-            // Тестовый вызов для отладки
-            console.log('Инициализация завершена');
         });
-
-        // Глобальные функции для отладки (можно удалить в продакшене)
-        window.testPhoneFormat = function(phone) {
-            console.log('Тест формата:', phone);
-            console.log('Нормализованный:', normalizePhone(phone));
-            console.log('Все форматы:', generatePhoneFormats(phone));
-        };
     </script>
 </body>
 
