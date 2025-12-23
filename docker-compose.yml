@@ -13,8 +13,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
-    ports:
-      - "5432:5432"  # Раскомментировать для локальной разработки
     networks:
       - app-network
     healthcheck:
