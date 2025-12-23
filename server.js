@@ -792,32 +792,31 @@ async function startServer() {
       console.log(`📍 Port: ${CONFIG.APP.PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('✅ Контроллеры инициализированы');
-      console.log('✅ Redis status:', redisClient?.isReady ? 'connected' : 'disconnected');
     });
 
     // Graceful shutdown
-    const gracefulShutdown = async () => {
-      console.log('🛑 Received shutdown signal, closing server...');
+    // const gracefulShutdown = async () => {
+    //   console.log('🛑 Received shutdown signal, closing server...');
 
-      server.close(async () => {
-        console.log('✅ HTTP server closed');
+    //   server.close(async () => {
+    //     console.log('✅ HTTP server closed');
 
-        if (redisClient) {
-          await redisClient.quit();
-          console.log('✅ Redis connection closed');
-        }
+    //     if (redisClient) {
+    //       await redisClient.quit();
+    //       console.log('✅ Redis connection closed');
+    //     }
 
-        process.exit(0);
-      });
+    //     process.exit(0);
+    //   });
 
-      setTimeout(() => {
-        console.error('❌ Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-      }, 10000);
-    };
+    //   setTimeout(() => {
+    //     console.error('❌ Could not close connections in time, forcefully shutting down');
+    //     process.exit(1);
+    //   }, 10000);
+    // };
 
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
+    // process.on('SIGTERM', gracefulShutdown);
+    // process.on('SIGINT', gracefulShutdown);
 
     return server;
   } catch (error) {
