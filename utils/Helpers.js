@@ -17,35 +17,29 @@ class Helpers {
   static normalizePhone(phone) {
     if (!phone) return '';
 
-    // 1. Убираем ВСЕ нецифровые символы включая +
-    let digits = phone.replace(/\D/g, '');
+    console.log(`📱 normalizePhone вход: ${phone}`);
 
-    console.log('normalizePhone вход:', phone, 'цифры:', digits);
+    // Убираем ВСЕ нецифровые символы включая скобки
+    const digits = phone.replace(/[^\d]/g, '');
+    console.log(`🔢 normalizePhone цифры: ${digits}`);
 
-    if (!digits) return '';
-
-    // 2. Если начинается с 8 и 11 цифр - меняем 8 на 7
-    if (digits.length === 11 && digits.startsWith('8')) {
-      const result = '7' + digits.substring(1);
-      console.log('8XXXX -> 7XXXX:', result);
-      return result;
-    }
-
-    // 3. Если 10 цифр - добавляем 7
+    // Если номер российский (10 цифр или начинается с 7/8)
     if (digits.length === 10) {
-      const result = '7' + digits;
-      console.log('10 цифр -> 7+10:', result);
-      return result;
+      return '7' + digits; // Добавляем код страны
     }
 
-    // 4. Если 11 цифр и начинается с 7 - оставляем
-    if (digits.length === 11 && digits.startsWith('7')) {
-      console.log('Уже правильный формат:', digits);
-      return digits;
+    if (digits.length === 11) {
+      // Если начинается с 8 → меняем на 7
+      if (digits.startsWith('8')) {
+        return '7' + digits.substring(1);
+      }
+      // Если начинается с 7 → оставляем как есть
+      if (digits.startsWith('7')) {
+        return digits;
+      }
     }
 
-    // 5. Возвращаем цифры как есть
-    console.log('Возвращаем как есть:', digits);
+    // Возвращаем как есть (для международных номеров)
     return digits;
   }
 
