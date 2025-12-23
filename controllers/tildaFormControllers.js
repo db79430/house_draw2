@@ -77,90 +77,42 @@ class TildaController {
    * 🔥 ИСПРАВЛЕНИЕ: Атомарная обработка регистрации с транзакцией
    */
   async processUserRegistration(formData, tildaData) {
-    const { Email, Phone } = formData;
-
-    // Создаем уникальный ключ для блокировки (email + phone)
-    const lockKey = `${Email?.toLowerCase() || ''}_${Phone || ''}`;
-    const lockId = this.generateAdvisoryLockId(lockKey);
+    console.log('🔍 Вход в метод processUserRegistration');
+    const { Email, Phone, Name, Fullname } = formData;
+    console.log('Входящие данные:', { Email, Phone, Name, Fullname });
 
     return await db.task(async t => {
+      console.log('✅ Начало транзакции БД');
       try {
-        // 🔒 1. Блокируем по email/phone для предотвращения race condition
-        // Используем oneOrNone вместо none, так как SELECT возвращает данные
-        await t.oneOrNone('SELECT pg_advisory_xact_lock($1)', [lockId]);
-
-        // ⏱️ 2. Проверяем существующего пользователя с блокировкой FOR UPDATE
+        console.log('🔒 Выполнение запроса findExistingUserWithLock...');
         const existingUser = await this.findExistingUserWithLock(t, Email, Phone);
-
-        // 3. Если пользователь уже оплатил - возвращаем ошибку
-        if (existingUser && existingUser.payment_status === 'paid') {
-          return {
-            error: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
-            errorCode: 'ALREADY_PAID'
-          };
-        }
+        console.log('🔒 Результат запроса:', existingUser ? `Найден пользователь: ID=${existingUser.id}` : 'Пользователь не найден');
 
         let user;
-        let isNewUser = false;
-        let memberNumber;
 
-        // 4. Если пользователь существует но не оплатил - используем его
         if (existingUser) {
-          console.log('🔄 Пользователь существует, но не оплатил:', existingUser.email);
+          console.log('⚠️ Пользователь уже существует. Возвращаем существующего...');
           user = existingUser;
-          memberNumber = existingUser.membership_number;
         } else {
-          // 5. СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ в рамках транзакции
-          console.log('🆕 Создаем нового пользователя');
+          console.log('🆕 Пользователь не найден, создаем нового...');
+          user = await User.createUserFromFormInTransaction(t, formData, tildaData);
 
-          const userResult = await User.createUserFromFormInTransaction(
-            t, // Передаем транзакцию
-            formData,
-            tildaData
-          );
+          if (!user) {
+            throw new Error('Не удалось создать пользователя');
+          }
 
-          user = userResult;
-          isNewUser = true;
+          console.log('✅ Новый пользователь создан, ID:', user.id);
         }
 
-        // 6. ГЕНЕРИРУЕМ НОМЕР ЧЛЕНА КЛУБА если его нет
-        if (!user.membership_number) {
-          memberNumber = await this.generateUniqueMemberNumberInTransaction(t, user.id);
-          console.log('✅ Сгенерирован номер члена клуба:', memberNumber);
-
-          // Обновляем пользователя с новым номером
-          await t.none(
-            'UPDATE users SET membership_number = $1, updated_at = NOW() WHERE id = $2',
-            [memberNumber, user.id]
-          );
-
-          user.membership_number = memberNumber;
-        } else {
-          memberNumber = user.membership_number;
-        }
-
-        // 7. Отправляем письмо только для новых пользователей
-        if (isNewUser) {
-          await this.sendWelcomeEmailAsync(user, memberNumber); // 🔥 Асинхронно, не блокируем транзакцию
-        }
-
-        // 8. Логируем успешную обработку
-        await this.logWebhookProcessing(t, user.id, memberNumber, isNewUser);
-
-        return {
-          success: true,
-          user,
-          memberNumber,
-          isNewUser
-        };
+        console.log('✅ Все операции успешно завершены');
+        return user;
 
       } catch (error) {
-        console.error('❌ Ошибка в транзакции регистрации:', error);
+        console.error('❌ Ошибка внутри транзакции:', error);
         throw error;
       }
     });
   }
-
   async generateUniqueMemberNumberInTransaction(transaction, userId) {
     let attempts = 0;
     const maxAttempts = 10;

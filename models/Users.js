@@ -843,6 +843,34 @@ class User {
     }
   }
 
+  static async updateInTransaction(transaction, userId, updateData) {
+    try {
+      console.log('🔄 Обновление пользователя внутри транзакции:', { userId, updateData });
+
+      // Для JSON данных (tilda_data) обрабатываем отдельно
+      const processedData = { ...updateData };
+
+      if (processedData.tilda_data && typeof processedData.tilda_data === 'object') {
+        processedData.tilda_data = JSON.stringify(processedData.tilda_data);
+      }
+
+      const fields = Object.keys(processedData).map((key, index) => `${key} = $${index + 2}`).join(', ');
+      const values = Object.values(processedData);
+      const query = `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`;
+
+      console.log('📝 Выполнение UPDATE запроса:', { query, values });
+
+      const updatedUser = await transaction.one(query, [userId, ...values]);
+      console.log('✅ Пользователь обновлен в транзакции:', updatedUser.id);
+
+      return updatedUser;
+
+    } catch (error) {
+      console.error('❌ Ошибка обновления пользователя в транзакции:', error);
+      throw error;
+    }
+  }
+
   /**
  * 🔥 ИСПРАВЛЕННЫЙ: Создание пользователя с правильными boolean значениями
  */
