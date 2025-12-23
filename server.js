@@ -53,42 +53,47 @@ const app = express();
 let redisClient = null;
 
 
+// const initializeRedis = async () => {
+//   try {
+//     if (process.env.REDIS_URL) {
+//       redisClient = createClient({
+//         url: process.env.REDIS_URL,
+//         password: process.env.REDIS_PASSWORD,
+//         socket: {
+//           reconnectStrategy: (retries) => Math.min(retries * 100, 3000)
+//         }
+//       });
+
+//       redisClient.on('error', (err) => {
+//         console.error('Redis Client Error:', err);
+//       });
+
+//       redisClient.on('connect', () => {
+//         console.log('✅ Redis connected successfully');
+//       });
+
+//       await redisClient.connect();
+
+//       // Используем кастомный Redis Store
+//       const RedisSessionStore = (await import('./utils/sessionStore.js')).default;
+//       sessionStore = new RedisSessionStore({
+//         client: redisClient,
+//         prefix: 'session:',
+//         ttl: 86400
+//       });
+
+//       console.log('✅ Redis session store создан');
+//       return true;
+//     }
+//   } catch (error) {
+//     console.log('⚠️ Redis не доступен, используем memory store:', error.message);
+//     return false;
+//   }
+// };
+
 const initializeRedis = async () => {
-  try {
-    if (process.env.REDIS_URL) {
-      redisClient = createClient({
-        url: process.env.REDIS_URL,
-        password: process.env.REDIS_PASSWORD,
-        socket: {
-          reconnectStrategy: (retries) => Math.min(retries * 100, 3000)
-        }
-      });
-
-      redisClient.on('error', (err) => {
-        console.error('Redis Client Error:', err);
-      });
-
-      redisClient.on('connect', () => {
-        console.log('✅ Redis connected successfully');
-      });
-
-      await redisClient.connect();
-
-      // Используем кастомный Redis Store
-      const RedisSessionStore = (await import('./utils/sessionStore.js')).default;
-      sessionStore = new RedisSessionStore({
-        client: redisClient,
-        prefix: 'session:',
-        ttl: 86400
-      });
-
-      console.log('✅ Redis session store создан');
-      return true;
-    }
-  } catch (error) {
-    console.log('⚠️ Redis не доступен, используем memory store:', error.message);
-    return false;
-  }
+  console.log('🔄 Redis отключен для тестирования создания пользователей');
+  return false;
 };
 
 // CORS настройки
