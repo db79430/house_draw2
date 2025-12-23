@@ -881,84 +881,226 @@ class TildaController {
 
     const { Email, Phone } = formData;
 
-    try {
-      // 1. Проверяем существует ли пользователь
-      console.log('🔍 Шаг 1: Проверка существующего пользователя...');
-      const existingUser = await User.findUserByEmailOrPhone(Email, Phone);
+    // 🔴 КРИТИЧЕСКИ ВАЖНО: Проверка Email
+    if (!Email || Email.trim() === '') {
+      console.error('❌ ОШИБКА: Email пустой или не указан');
+      return {
+        success: false,
+        error: 'Email обязателен для регистрации',
+        errorCode: 'EMAIL_REQUIRED'
+      };
+    }
 
-      if (existingUser) {
-        console.log('⚠️ Пользователь уже существует:', existingUser.email);
+    // 🔒 Используем блокировку по email для предотвращения race condition
+    const normalizedEmail = Email.toLowerCase().trim();
 
-        // Проверяем статус оплаты
-        if (existingUser.payment_status === 'paid') {
-          return {
-            error: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
-            errorCode: 'ALREADY_PAID'
-          };
-        }
+    return await db.tx(async t => {
+      try {
+        // 🔒 Блокируем операции по этому email
+        await t.one(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          [`user_reg_${normalizedEmail}`]
+        );
 
-        // Возвращаем существующего пользователя с номером
-        const memberNumber = existingUser.membership_number || await this.generateMemberNumber(existingUser.id);
+        // 1. Проверяем существует ли пользователь (в транзакции)
+        console.log('🔍 Шаг 1: Проверка существующего пользователя...');
+        const existingUser = await User.findUserByEmailOrPhone(Email, Phone);
 
-        if (!existingUser.membership_number) {
-          await User.updateMemberNumber(existingUser.id, memberNumber);
-        }
+        if (existingUser) {
+          console.log('⚠️ Пользователь уже существует:', existingUser.email);
+          console.log('📊 Данные пользователя:', {
+            id: existingUser.id,
+            payment_status: existingUser.payment_status,
+            membership_number: existingUser.membership_number
+          });
 
-        return {
-          success: true,
-          user: existingUser,
-          memberNumber: memberNumber,
-          isNewUser: false
-        };
-      }
+          // Проверяем статус оплаты
+          if (existingUser.payment_status === 'paid') {
+            return {
+              success: false,
+              error: 'Вы уже оплатили вступительный взнос. Проверьте вашу почту для данных входа.',
+              errorCode: 'ALREADY_PAID'
+            };
+          }
 
-      // 2. Создаем нового пользователя
-      console.log('🆕 Шаг 2: Создание нового пользователя...');
-      const createResult = await User.createFromTildaData(formData, tildaData);
+          // Возвращаем существующего пользователя с номером
+          const memberNumber = existingUser.membership_number || await this.generateMemberNumber(existingUser.id);
 
-      if (!createResult.success) {
-        // Если пользователь был создан в параллельном запросе
-        console.log('🔄 Пользователь уже создан другим запросом');
-        const foundUser = await User.findByEmail(Email);
+          if (!existingUser.membership_number) {
+            console.log(`🔄 Обновляю номер участника для ${existingUser.id}`);
+            await User.updateMemberNumber(existingUser.id, memberNumber);
+            console.log(`✅ Номер обновлен: ${memberNumber}`);
+          }
 
-        if (foundUser) {
-          const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
           return {
             success: true,
-            user: foundUser,
+            user: existingUser,
             memberNumber: memberNumber,
             isNewUser: false
           };
         }
 
-        throw new Error('Не удалось создать пользователя');
+        // 2. Создаем нового пользователя в транзакции
+        console.log('🆕 Шаг 2: Создание нового пользователя через createFromTildaData...');
+
+        // 🔴 ВАЖНО: Проверяем структуру возвращаемого значения
+        let createResult;
+        try {
+          createResult = await User.createFromTildaData(formData, tildaData);
+          console.log('📊 Результат createFromTildaData:', createResult);
+        } catch (createError) {
+          console.error('❌ ОШИБКА в createFromTildaData:', createError.message);
+
+          // Проверяем, не создан ли пользователь другим запросом
+          console.log('🔄 Проверяю, не создан ли пользователь другим запросом...');
+          const foundUser = await User.findByEmail(Email);
+
+          if (foundUser) {
+            console.log('✅ Пользователь найден после ошибки создания');
+            const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
+
+            if (!foundUser.membership_number) {
+              await User.updateMemberNumber(foundUser.id, memberNumber);
+            }
+
+            return {
+              success: true,
+              user: foundUser,
+              memberNumber: memberNumber,
+              isNewUser: false
+            };
+          }
+
+          throw createError;
+        }
+
+        // 🔴 АНАЛИЗИРУЕМ структуру результата
+        let user;
+
+        // Вариант 1: createResult уже содержит success и user
+        if (createResult && createResult.success !== undefined) {
+          if (!createResult.success) {
+            console.log('❌ createFromTildaData вернул success: false');
+
+            // Проверяем, не создан ли пользователь другим запросом
+            const foundUser = await User.findByEmail(Email);
+
+            if (foundUser) {
+              const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
+              return {
+                success: true,
+                user: foundUser,
+                memberNumber: memberNumber,
+                isNewUser: false
+              };
+            }
+
+            return {
+              success: false,
+              error: createResult.error || 'Ошибка создания пользователя',
+              errorCode: createResult.errorCode || 'USER_CREATION_FAILED'
+            };
+          }
+
+          user = createResult.user;
+        }
+        // Вариант 2: createResult возвращает объект пользователя напрямую
+        else if (createResult && createResult.id) {
+          user = createResult;
+        }
+        // Вариант 3: createResult.user содержит пользователя
+        else if (createResult && createResult.user && createResult.user.id) {
+          user = createResult.user;
+        }
+
+        // 🔴 ПРОВЕРКА: user должен существовать
+        if (!user || !user.id) {
+          console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить объект пользователя');
+          console.error('📊 Структура createResult:', createResult);
+
+          // Последняя попытка найти пользователя
+          const foundUser = await User.findByEmail(Email);
+          if (foundUser) {
+            const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
+            return {
+              success: true,
+              user: foundUser,
+              memberNumber: memberNumber,
+              isNewUser: false
+            };
+          }
+
+          throw new Error('Не удалось создать пользователя: отсутствует объект пользователя');
+        }
+
+        console.log(`✅ Пользователь создан: ID=${user.id}, Email=${user.email}`);
+
+        // 3. Генерируем номер участника
+        console.log('🔢 Шаг 3: Генерация номера участника...');
+        const memberNumber = await this.generateMemberNumber(user.id);
+        console.log(`✅ Сгенерирован номер: ${memberNumber}`);
+
+        // 4. Обновляем пользователя с номером в той же транзакции
+        console.log('🔄 Шаг 4: Обновление номера участника...');
+
+        // Проверяем, есть ли уже номер (на случай если он был создан в методе create)
+        if (!user.membership_number) {
+          await User.updateMemberNumber(user.id, memberNumber);
+          console.log(`✅ Номер участника сохранен в БД`);
+        } else {
+          memberNumber = user.membership_number;
+          console.log(`✅ Номер уже был создан ранее: ${memberNumber}`);
+        }
+
+        // 5. Отправляем приветственное письмо (асинхронно, вне транзакции)
+        console.log('📧 Шаг 5: Запланирована отправка приветственного письма...');
+
+        // Отправляем асинхронно, но ловим ошибки
+        setTimeout(async () => {
+          try {
+            await this.sendWelcomeEmailAsync(user, memberNumber);
+          } catch (emailError) {
+            console.error('❌ Ошибка отправки письма (не критично):', emailError.message);
+          }
+        }, 0);
+
+        console.log('🎉 Регистрация успешно завершена!');
+
+        return {
+          success: true,
+          user: user,
+          memberNumber: memberNumber,
+          isNewUser: true
+        };
+
+      } catch (error) {
+        console.error('💥 КРИТИЧЕСКАЯ ОШИБКА в processUserRegistration:', error.message);
+        console.error('💥 Stack:', error.stack);
+
+        // Анализируем ошибку
+        if (error.code === '23505' || (error.constraint && error.constraint.includes('email'))) {
+          console.log('🔄 Обнаружено дублирование email, ищу существующего пользователя...');
+
+          try {
+            const foundUser = await User.findByEmail(Email);
+            if (foundUser) {
+              const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
+              return {
+                success: true,
+                user: foundUser,
+                memberNumber: memberNumber,
+                isNewUser: false
+              };
+            }
+          } catch (e) {
+            console.error('❌ Ошибка при поиске дублирующего пользователя:', e);
+          }
+        }
+
+        // Пробрасываем ошибку дальше с понятным сообщением
+        throw new Error(`Ошибка регистрации: ${error.message}`);
       }
-
-      // 3. Генерируем номер участника
-      console.log('🔢 Шаг 3: Генерация номера участника...');
-      const memberNumber = await this.generateMemberNumber(createResult.user.id);
-
-      // 4. Обновляем пользователя с номером
-      console.log('🔄 Шаг 4: Обновление номера участника...');
-      await User.updateMemberNumber(createResult.user.id, memberNumber);
-
-      // 5. Отправляем приветственное письмо (асинхронно)
-      console.log('📧 Шаг 5: Отправка приветственного письма...');
-      this.sendWelcomeEmailAsync(createResult.user, memberNumber);
-
-      console.log('🎉 Регистрация успешно завершена!');
-
-      return {
-        success: true,
-        user: createResult.user,
-        memberNumber: memberNumber,
-        isNewUser: true
-      };
-
-    } catch (error) {
-      console.error('💥 КРИТИЧЕСКАЯ ОШИБКА в processUserRegistration:', error);
-      throw error;
-    }
+    });
   }
 
   /**
