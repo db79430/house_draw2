@@ -76,42 +76,133 @@ class TildaController {
   /**
    * 🔥 ИСПРАВЛЕНИЕ: Атомарная обработка регистрации с транзакцией
    */
+  // async processUserRegistration(formData, tildaData) {
+  //   console.log('🔍 Вход в метод processUserRegistration');
+  //   const { Email, Phone, Name, Fullname } = formData;
+  //   console.log('Входящие данные:', { Email, Phone, Name, Fullname });
+
+  //   return await db.task(async t => {
+  //     console.log('✅ Начало транзакции БД');
+  //     try {
+  //       console.log('🔒 Выполнение запроса findExistingUserWithLock...');
+  //       const existingUser = await this.findExistingUserWithLock(t, Email, Phone);
+  //       console.log('🔒 Результат запроса:', existingUser ? `Найден пользователь: ID=${existingUser.id}` : 'Пользователь не найден');
+
+  //       let user;
+
+  //       if (existingUser) {
+  //         console.log('⚠️ Пользователь уже существует. Возвращаем существующего...');
+  //         user = existingUser;
+  //       } else {
+  //         console.log('🆕 Пользователь не найден, создаем нового...');
+  //         user = await User.createUserFromFormInTransaction(t, formData, tildaData);
+
+  //         if (!user) {
+  //           throw new Error('Не удалось создать пользователя');
+  //         }
+
+  //         console.log('✅ Новый пользователь создан, ID:', user.id);
+  //       }
+
+  //       console.log('✅ Все операции успешно завершены');
+  //       return user;
+
+  //     } catch (error) {
+  //       console.error('❌ Ошибка внутри транзакции:', error);
+  //       throw error;
+  //     }
+  //   });
+  // }
+
   async processUserRegistration(formData, tildaData) {
-    console.log('🔍 Вход в метод processUserRegistration');
-    const { Email, Phone, Name, Fullname } = formData;
-    console.log('Входящие данные:', { Email, Phone, Name, Fullname });
+    console.log('🔥 === DEBUG: НАЧАЛО processUserRegistration ===');
+    console.log('📥 Данные формы:', JSON.stringify(formData, null, 2));
 
-    return await db.task(async t => {
-      console.log('✅ Начало транзакции БД');
-      try {
-        console.log('🔒 Выполнение запроса findExistingUserWithLock...');
-        const existingUser = await this.findExistingUserWithLock(t, Email, Phone);
-        console.log('🔒 Результат запроса:', existingUser ? `Найден пользователь: ID=${existingUser.id}` : 'Пользователь не найден');
+    try {
+      console.log('🔍 Шаг 1: Пробую запустить транзакцию...');
 
-        let user;
+      const result = await db.task(async t => {
+        console.log('✅ Транзакция начата');
 
-        if (existingUser) {
-          console.log('⚠️ Пользователь уже существует. Возвращаем существующего...');
-          user = existingUser;
-        } else {
-          console.log('🆕 Пользователь не найден, создаем нового...');
-          user = await User.createUserFromFormInTransaction(t, formData, tildaData);
+        // ПРОВЕРКА: может ли транзакция работать?
+        const testQuery = await t.one('SELECT NOW() as time, 1 as test');
+        console.log('📊 Тест БД:', testQuery);
 
-          if (!user) {
-            throw new Error('Не удалось создать пользователя');
-          }
+        // Поиск существующего пользователя
+        console.log('🔍 Ищу пользователя по email:', formData.Email);
+        const existingUser = await t.oneOrNone(
+          'SELECT id, email FROM users WHERE LOWER(email) = $1',
+          [formData.Email.toLowerCase()]
+        );
+        console.log('👤 Результат поиска:', existingUser ? `Найден: ${existingUser.email}` : 'Не найден');
 
-          console.log('✅ Новый пользователь создан, ID:', user.id);
+        if (!existingUser) {
+          console.log('🆕 СОЗДАЮ НОВОГО ПОЛЬЗОВАТЕЛЯ...');
+
+          // ПРОСТАЯ ВСТАВКА для теста
+          const newUser = await t.one(`
+                    INSERT INTO users (
+                        email, 
+                        phone, 
+                        fullname, 
+                        city,
+                        status,
+                        email_confirmed,
+                        created_at,
+                        updated_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                    RETURNING id, email, phone
+                `, [
+            formData.Email.toLowerCase(),
+            formData.Phone,
+            formData.FullName,
+            formData.City || 'Москва',
+            'accepted',
+            true
+          ]);
+
+          console.log('✅ ПОЛЬЗОВАТЕЛЬ СОЗДАН! ID:', newUser.id);
+
+          // Генерируем номер участника
+          const memberNumber = `MBR${Date.now()}${Math.floor(Math.random() * 1000)}`;
+          console.log('🔢 Сгенерирован номер:', memberNumber);
+
+          // Обновляем пользователя с номером
+          await t.none(
+            'UPDATE users SET membership_number = $1 WHERE id = $2',
+            [memberNumber, newUser.id]
+          );
+
+          return {
+            success: true,
+            user: newUser,
+            memberNumber: memberNumber,
+            isNewUser: true
+          };
         }
 
-        console.log('✅ Все операции успешно завершены');
-        return user;
+        return {
+          success: true,
+          user: existingUser,
+          memberNumber: existingUser.membership_number || 'NO_NUMBER',
+          isNewUser: false
+        };
 
-      } catch (error) {
-        console.error('❌ Ошибка внутри транзакции:', error);
+      }).catch(error => {
+        console.error('💥 ОШИБКА В ТРАНЗАКЦИИ:', error.message);
+        console.error('💥 Stack:', error.stack);
         throw error;
-      }
-    });
+      });
+
+      console.log('🎉 Транзакция успешно завершена!');
+      console.log('📋 Результат:', result);
+
+      return result;
+
+    } catch (error) {
+      console.error('💥 КРИТИЧЕСКАЯ ОШИБКА:', error.message);
+      throw error;
+    }
   }
   async generateUniqueMemberNumberInTransaction(transaction, userId) {
     let attempts = 0;

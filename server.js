@@ -547,33 +547,14 @@ app.get('/get-member-number', async (req, res) => {
   try {
     console.log('=== ЗАПРОС ПОИСКА ПОЛЬЗОВАТЕЛЯ ===');
     console.log('Query params:', req.query);
-    console.log('Request URL:', req.url);
 
-    const { email, phone, debug } = req.query;
+    const { email, phone } = req.query;
 
     // Валидация
     if (!email && !phone) {
       return res.json({
         success: false,
         error: 'Необходимо указать email или телефон'
-      });
-    }
-
-    // Для отладки: покажем все пользователи
-    if (debug === 'true') {
-      const allUsers = await db.manyOrNone(`
-        SELECT 
-          id, email, phone, membership_number, fullname,
-          LENGTH(phone) as phone_length,
-          REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') as phone_clean
-        FROM users 
-        WHERE phone IS NOT NULL 
-        LIMIT 20
-      `);
-
-      console.log('📋 Все пользователи (первые 20):');
-      allUsers.forEach((u, i) => {
-        console.log(`${i + 1}. ID:${u.id} | Email:${u.email} | Phone:${u.phone} | Clean:${u.phone_clean} | Member:${u.membership_number}`);
       });
     }
 
@@ -585,130 +566,99 @@ app.get('/get-member-number', async (req, res) => {
       const cleanEmail = email.toLowerCase().trim();
       console.log('🔍 Поиск по email:', cleanEmail);
 
-      try {
-        user = await db.oneOrNone(`
-          SELECT 
-            id,
-            email,
-            phone,
-            membership_number,
-            fullname,
-            city
-          FROM users 
-          WHERE email ILIKE $1
-        `, [`%${cleanEmail}%`]);  // ILIKE для регистронезависимого поиска
+      user = await db.oneOrNone(`
+        SELECT * FROM users WHERE LOWER(email) = $1
+      `, [cleanEmail]);
 
-        if (user) {
-          console.log('✅ Найден по email:', {
-            id: user.id,
-            member: user.membership_number,
-            email: user.email
-          });
-          searchMethod = 'email';
-        } else {
-          console.log('❌ Не найден по email:', cleanEmail);
-        }
-      } catch (error) {
-        console.error('Ошибка поиска по email:', error);
+      if (user) {
+        console.log('✅ Найден по email:', user.membership_number);
+        searchMethod = 'email';
       }
     }
 
-    // 2. Поиск по телефону
+    // 2. УЛУЧШЕННЫЙ поиск по телефону
     if (!user && phone) {
       console.log('🔍 Поиск по телефону:', phone);
 
       try {
-        // Нормализуем номер телефона
+        // Нормализуем номер (только цифры)
         const cleanPhone = phone.replace(/\D/g, '');
-        console.log('Цифры телефона:', cleanPhone);
+        console.log('📱 Нормализованный телефон:', cleanPhone);
 
-        if (cleanPhone.length < 10) {
-          console.log('❌ Недостаточно цифр для поиска');
-        } else {
-          // Пробуем разные варианты поиска
-          const searchQueries = [
-            // Вариант 1: Ищем по всем цифрам
-            `
-            SELECT * FROM users 
-            WHERE phone IS NOT NULL 
-            AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-              phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = $1
-            LIMIT 1
-            `,
-            // Вариант 2: Ищем по последним 10 цифрам
-            `
-            SELECT * FROM users 
-            WHERE phone IS NOT NULL 
-            AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-              phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE $1
-            LIMIT 1
-            `,
-            // Вариант 3: Ищем по последним 9 цифрам (без кода страны)
-            `
-            SELECT * FROM users 
-            WHERE phone IS NOT NULL 
-            AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-              phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE $1
-            LIMIT 1
-            `
-          ];
+        if (cleanPhone.length >= 10) {
+          // Варианты поиска:
+          // 1. +7 (494) 939-39-33 → 74949393933
+          // 2. 8 (494) 939-39-33 → 84949393933 (ищем 4949393933)
+          // 3. 494 939-39-33 → 4949393933
 
-          const params = [
-            cleanPhone,                          // точное совпадение
-            `%${cleanPhone.slice(-10)}%`,       // последние 10 цифр
-            `%${cleanPhone.slice(-9)}%`         // последние 9 цифр
-          ];
-
-          for (let i = 0; i < searchQueries.length; i++) {
-            console.log(`🔍 Попытка ${i + 1} с параметром:`, params[i]);
-            user = await db.oneOrNone(searchQueries[i], [params[i]]);
-
-            if (user) {
-              console.log(`✅ Найден по варианту ${i + 1}:`, {
-                id: user.id,
-                phone: user.phone,
-                member: user.membership_number
-              });
-              searchMethod = 'phone';
-              break;
-            }
+          // Убираем код страны если он есть
+          let phoneWithoutCountryCode = cleanPhone;
+          if (cleanPhone.length > 10) {
+            // Убираем первую цифру (7 или 8)
+            phoneWithoutCountryCode = cleanPhone.slice(-10); // последние 10 цифр
+            console.log('📞 Без кода страны:', phoneWithoutCountryCode);
           }
 
-          if (!user) {
-            console.log('❌ Не найден по телефону после всех попыток');
+          // Ищем ВСЕ варианты
+          user = await db.oneOrNone(`
+            SELECT * FROM users 
+            WHERE phone IS NOT NULL 
+            AND (
+              -- Вариант 1: Точное совпадение (с кодом страны)
+              REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') = $1
+              OR
+              -- Вариант 2: Последние 10 цифр совпадают
+              REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') LIKE $2
+              OR
+              -- Вариант 3: Без первой цифры (7 или 8)
+              REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') LIKE $3
+              OR
+              -- Вариант 4: Для номеров с 8 вместо 7
+              REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') = REPLACE($4, '7', '8')
+            )
+            LIMIT 1
+          `, [
+            cleanPhone,                          // $1: точное совпадение
+            `%${phoneWithoutCountryCode}%`,      // $2: содержит последние 10 цифр
+            `%${phoneWithoutCountryCode.slice(-9)}%`, // $3: содержит последние 9 цифр
+            cleanPhone                           // $4: для замены 7 на 8
+          ]);
 
-            // Покажем что есть в базе для отладки
-            const sample = await db.manyOrNone(`
+          if (user) {
+            console.log('✅ Найден по телефону!');
+            console.log('📱 Телефон в базе:', user.phone);
+            console.log('🔢 Нормализованный:', user.phone.replace(/\D/g, ''));
+            searchMethod = 'phone';
+          } else {
+            console.log('❌ Не найден по телефону');
+
+            // ДЛЯ ОТЛАДКИ: найдем ВСЕ телефоны и покажем разницу
+            const allPhones = await db.manyOrNone(`
               SELECT 
-                id,
+                id, 
+                email, 
                 phone,
-                email,
-                membership_number,
-                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                  phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') as phone_clean
+                REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', '') as clean_phone
               FROM users 
-              WHERE phone IS NOT NULL 
-              LIMIT 5
+              WHERE phone IS NOT NULL
+              LIMIT 10
             `);
 
-            console.log('📋 Примеры телефонов в базе:');
-            sample.forEach(u => {
-              console.log(`  - ${u.phone} (clean: ${u.phone_clean}) -> ${u.email}`);
+            console.log('📋 ОТЛАДКА: Телефоны в базе:');
+            allPhones.forEach(u => {
+              console.log(`  - ${u.phone.padEnd(20)} → ${u.clean_phone}`);
             });
+            console.log(`  🔍 Ищем: ${cleanPhone}`);
           }
         }
       } catch (error) {
-        console.error('Ошибка поиска по телефону:', error);
+        console.error('❌ Ошибка поиска по телефону:', error);
       }
     }
 
     // 3. Формируем ответ
     if (user && user.membership_number) {
-      console.log('🎉 Пользователь найден!', {
-        id: user.id,
-        member: user.membership_number,
-        method: searchMethod
-      });
+      console.log('🎉 Пользователь найден! Номер участника:', user.membership_number);
 
       res.json({
         success: true,
@@ -718,64 +668,23 @@ app.get('/get-member-number', async (req, res) => {
           email: user.email || 'Не указано',
           phone: user.phone || 'Не указано',
           city: user.city || 'Не указан'
-        },
-        debug: process.env.NODE_ENV === 'development' ? {
-          searchMethod: searchMethod,
-          userId: user.id,
-          rawPhone: user.phone
-        } : undefined
+        }
       });
 
     } else {
       console.log('❌ Пользователь не найден');
 
-      // Для тестирования
-      if (process.env.NODE_ENV !== 'production') {
-        // Проверяем тестовые данные
-        const testEmails = ['test@example.com', 'daria9457@gmail.com'];
-        const testPhones = ['9151908455', '79151908455', '+79151908455'];
-
-        const cleanEmail = email ? email.toLowerCase().trim() : '';
-        const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-
-        if (testEmails.includes(cleanEmail) ||
-          testPhones.some(tp => cleanPhone.includes(tp.replace(/\D/g, '')))) {
-
-          console.log('🛠 Возвращаем тестовые данные');
-
-          res.json({
-            success: true,
-            memberNumber: 'MBRTEST12345',
-            user: {
-              fullname: 'Тестовый Пользователь',
-              email: email || 'test@example.com',
-              phone: phone || '+7 (915) 190-84-55',
-              city: 'Москва'
-            }
-          });
-          return;
-        }
-      }
-
       res.json({
         success: false,
-        error: 'Пользователь не найден. Проверьте введенные данные.',
-        debug: process.env.NODE_ENV === 'development' ? {
-          emailProvided: email,
-          phoneProvided: phone,
-          foundUser: !!user
-        } : undefined
+        error: 'Пользователь не найден. Проверьте введенные данные.'
       });
     }
 
   } catch (error) {
     console.error('❌ Ошибка в /get-member-number:', error);
-    console.error('Stack:', error.stack);
-
     res.status(500).json({
       success: false,
-      error: 'Внутренняя ошибка сервера',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'Внутренняя ошибка сервера'
     });
   }
 });
