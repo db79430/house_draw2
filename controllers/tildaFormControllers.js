@@ -805,7 +805,7 @@ import TildaFormService from '../services/TildaFormService.js';
 import TinkoffService from '../services/TinkoffService.js';
 import TokenGenerator from '../utils/tokenGenerator.js';
 import CONFIG from '../config/index.js';
-import Users from '../models/Users.js';
+import User from '../models/Users.js';
 import Payment from '../models/Payment.js';
 import EmailService from '../services/EmailServices.js';
 import db from '../database/index.js';
@@ -914,12 +914,12 @@ class TildaController {
 
       // 2. Создаем нового пользователя
       console.log('🆕 Шаг 2: Создание нового пользователя...');
-      const createResult = await Users.createFromTildaData(formData, tildaData);
+      const createResult = await User.createFromTildaData(formData, tildaData);
 
       if (!createResult.success) {
         // Если пользователь был создан в параллельном запросе
         console.log('🔄 Пользователь уже создан другим запросом');
-        const foundUser = await Users.findByEmail(Email);
+        const foundUser = await User.findByEmail(Email);
 
         if (foundUser) {
           const memberNumber = foundUser.membership_number || await this.generateMemberNumber(foundUser.id);
@@ -940,7 +940,7 @@ class TildaController {
 
       // 4. Обновляем пользователя с номером
       console.log('🔄 Шаг 4: Обновление номера участника...');
-      await Users.updateMemberNumber(createResult.user.id, memberNumber);
+      await User.updateMemberNumber(createResult.user.id, memberNumber);
 
       // 5. Отправляем приветственное письмо (асинхронно)
       console.log('📧 Шаг 5: Отправка приветственного письма...');
@@ -1000,7 +1000,7 @@ class TildaController {
       const memberNumber = `MBR${timestamp}${random}`;
 
       // Проверяем уникальность
-      const exists = await Users.isMemberNumberExists(memberNumber);
+      const exists = await User.isMemberNumberExists(memberNumber);
 
       if (!exists) {
         return memberNumber;
@@ -1033,7 +1033,7 @@ class TildaController {
       }
 
       // Поиск пользователя
-      const user = await Users.findByMembershipNumber(memberNumber);
+      const user = await User.findByMembershipNumber(memberNumber);
 
       if (!user) {
         return res.status(404).json({
@@ -1107,7 +1107,7 @@ class TildaController {
         });
       }
 
-      const user = await Users.findByMembershipNumber(memberNumber);
+      const user = await User.findByMembershipNumber(memberNumber);
 
       if (!user) {
         return res.status(404).json({
