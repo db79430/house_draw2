@@ -271,7 +271,6 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       services: {
         database: 'connected',
-        redis: 'disabled'  // ← Просто disabled
       },
       data: {
         users_count: userCount.count
