@@ -50,7 +50,7 @@ const sessionStore = new PostgresSessionStore({
 const app = express();
 
 // Redis клиент для сессий
-let redisClient = null;
+// let redisClient = null;
 
 
 // const initializeRedis = async () => {
@@ -220,21 +220,49 @@ const authController = new AuthController();
 const slotController = new SlotController();
 
 // API роуты
+// app.get('/api/health', async (req, res) => {
+//   try {
+//     // Проверяем БД
+//     const dbResult = await db.one('SELECT 1 as test');
+//     console.log('✅ Database connection successful');
+
+//     // Проверяем Redis
+//     let redisStatus = 'disconnected';
+//     if (redisClient && redisClient.isReady) {
+//       await redisClient.ping();
+//       redisStatus = 'connected';
+//       console.log('✅ Redis connection successful');
+//     }
+
+//     // Проверяем таблицы
+//     const userCount = await db.one('SELECT COUNT(*) as count FROM users')
+//       .catch(() => ({ count: 0 }));
+
+//     res.json({
+//       status: 'OK',
+//       timestamp: new Date().toISOString(),
+//       services: {
+//         database: 'connected',
+//         redis: redisStatus
+//       },
+//       data: {
+//         users_count: userCount.count
+//       },
+//       message: 'Сервер работает корректно'
+//     });
+//   } catch (error) {
+//     console.error('❌ Health check error:', error);
+//     res.status(500).json({
+//       status: 'ERROR',
+//       error: error.message,
+//       timestamp: new Date().toISOString()
+//     });
+//   }
+// });
+
 app.get('/api/health', async (req, res) => {
   try {
-    // Проверяем БД
     const dbResult = await db.one('SELECT 1 as test');
-    console.log('✅ Database connection successful');
-
-    // Проверяем Redis
-    let redisStatus = 'disconnected';
-    if (redisClient && redisClient.isReady) {
-      await redisClient.ping();
-      redisStatus = 'connected';
-      console.log('✅ Redis connection successful');
-    }
-
-    // Проверяем таблицы
     const userCount = await db.one('SELECT COUNT(*) as count FROM users')
       .catch(() => ({ count: 0 }));
 
@@ -243,19 +271,17 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       services: {
         database: 'connected',
-        redis: redisStatus
+        redis: 'disabled'  // ← Просто disabled
       },
       data: {
         users_count: userCount.count
-      },
-      message: 'Сервер работает корректно'
+      }
     });
   } catch (error) {
     console.error('❌ Health check error:', error);
     res.status(500).json({
       status: 'ERROR',
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });
