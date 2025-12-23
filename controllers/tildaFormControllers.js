@@ -884,7 +884,7 @@ class TildaController {
     try {
       // 1. Проверяем существует ли пользователь
       console.log('🔍 Шаг 1: Проверка существующего пользователя...');
-      const existingUser = await Users.findUserByEmailOrPhone(Email, Phone);
+      const existingUser = await User.findUserByEmailOrPhone(Email, Phone);
 
       if (existingUser) {
         console.log('⚠️ Пользователь уже существует:', existingUser.email);
