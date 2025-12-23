@@ -489,7 +489,7 @@ app.get('/tilda-webhook', (req, res) => {
   });
 });
 
-app.post('/tilda-webhook', (req, res) => tildaController.handleTildaWebhook(req, res));
+app.post('/tilda-webhook', (req, res) => tildaController.handleWebhook(req, res));
 
 app.post('/test-webhook', (req, res) => {
   res.json({ status: 'success', received: req.body });
