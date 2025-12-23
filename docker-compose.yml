@@ -32,7 +32,7 @@ services:
     container_name: house_draw_redis
     restart: unless-stopped
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-default_redis_password}
+      - REDIS_PASSWORD=1234
       - REDIS_PORT=6379
     volumes:
       - redis_data:/data
