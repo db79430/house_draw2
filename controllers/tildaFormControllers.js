@@ -812,38 +812,29 @@ import db from '../database/index.js';
 import crypto from 'crypto';
 
 class TildaController {
-  async handleTildaWebhook(req, res) {
-    console.log(`🔍 [${new Date().toISOString()}] Получен вебхук от Tilda...`);
-    console.log('=== ТИЛЬДА ВЕБХУК ПОЛУЧЕН ===');
-    console.log('Headers:', req.headers);
-    console.log('Raw body:', req.body);
-    console.log('Body type:', typeof req.body);
-    console.log('Body keys:', Object.keys(req.body || {}));
-
+  async handleWebhook(req, res) {
     try {
-      console.log('📥 Raw данные от Tilda:', req.body);
+      console.log('🎯 === TILDA WEBHOOK ПОЛУЧЕН ===');
+      console.log('📥 Raw body:', JSON.stringify(req.body, null, 2));
 
-      // Нормализуем данные из Tilda
+      // Нормализуем данные
       const { formData, tildaData } = this.normalizeTildaData(req.body);
       console.log('🔄 Нормализованные данные:', { formData, tildaData });
 
-      // Валидация формы
-      const validationErrors = TildaFormService.validateFormData(formData);
-      if (validationErrors.length > 0) {
-        return res.json({
-          "formid": req.body.formid || "tilda-form",
-          "type": "error",
-          "Errors": validationErrors
-        });
-      }
-
       // 🔥 УЛУЧШЕННАЯ обработка регистрации
+      console.log('🚀 Начинаю processUserRegistration...');
+      const startTime = Date.now();
+
       const result = await this.processUserRegistration(formData, tildaData);
 
-      if (result.error) {
+      const endTime = Date.now();
+      console.log(`✅ processUserRegistration выполнен за ${endTime - startTime}ms`);
+      console.log('📊 Результат:', JSON.stringify(result, null, 2));
+
+      if (result.error || result.success === false) {
         console.log('❌ Ошибка регистрации:', result.error);
         return res.json({
-          "formid": req.body.formid || "tilda-form",
+          "formid": req.body.formid || tildaData.formid || "tilda-form",
           "type": "error",
           "ErrorCode": result.errorCode || "REGISTRATION_ERROR",
           "Message": result.error
@@ -851,8 +842,9 @@ class TildaController {
       }
 
       // 🔥 ПРАВИЛЬНЫЙ ОТВЕТ ДЛЯ TILDA
+      console.log('✅ Регистрация успешна, формирую ответ...');
       const response = {
-        "formid": req.body.formid || "tilda-form",
+        "formid": req.body.formid || tildaData.formid || "tilda-form",
         "type": "success",
         "paymenturl": `https://npkvdv.ru/paymentfee?memberNumber=${result.memberNumber}`,
         "paymentid": result.memberNumber,
@@ -863,7 +855,8 @@ class TildaController {
       return res.json(response);
 
     } catch (error) {
-      console.error('❌ Критическая ошибка обработки вебхука:', error);
+      console.error('❌ Критическая ошибка обработки вебхука:', error.message);
+      console.error('💥 Stack:', error.stack);
       return res.json({
         "formid": req.body.formid || "tilda-form",
         "type": "error",
@@ -878,6 +871,9 @@ class TildaController {
   async processUserRegistration(formData, tildaData) {
     console.log('🔥 === НАЧАЛО processUserRegistration ===');
     console.log('📥 Данные формы:', JSON.stringify(formData, null, 2));
+    console.log('🔥 === ДЕТАЛЬНЫЙ DEBUG processUserRegistration ===');
+    console.log('📥 formData:', JSON.stringify(formData, null, 2));
+    console.log('📥 tildaData:', JSON.stringify(tildaData, null, 2));
 
     const { Email, Phone } = formData;
 
