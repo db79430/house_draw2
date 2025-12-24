@@ -682,103 +682,107 @@
 
                 const result = await response.json();
 
-                if (result.success && result.PaymentURL) {
-                    // Перенаправляем на страницу оплаты
-                    window.location.href = result.PaymentURL;
-                } else {
-                    throw new Error(result.error || 'Не удалось создать платеж');
+                const paymentUrl = result.paymentUrl || result.PaymentURL || result.paymentURL || result.url || result.redirectUrl;
+
+                if (result.success && paymentUrl) {
+                    console.log('🔗 Перенаправление на страницу оплаты:', paymentUrl);
+
+                    // Добавляем небольшую задержку для UX
+                    setTimeout(() => {
+                        window.location.href = paymentUrl;
+                    }, 500);
                 }
 
-            } catch (error) {
-                console.error('Ошибка создания платежа:', error);
-                showError('Ошибка: ' + error.message);
+                } catch (error) {
+                    console.error('Ошибка создания платежа:', error);
+                    showError('Ошибка: ' + error.message);
 
-                // Возвращаемся к данным пользователя
-                showSection('user-section');
+                    // Возвращаемся к данным пользователя
+                    showSection('user-section');
 
-                // Разблокируем кнопку
-                paymentBtn.disabled = false;
-                paymentBtn.textContent = originalText;
-            } finally {
-                showLoading(false);
+                    // Разблокируем кнопку
+                    paymentBtn.disabled = false;
+                    paymentBtn.textContent = originalText;
+                } finally {
+                    showLoading(false);
+                }
             }
-        }
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function () {
-            console.log('Страница загружена');
+                console.log('Страница загружена');
 
-            // Инициализация элементов
-            const searchBtn = document.getElementById('search-button');
-            const searchInput = document.getElementById('search-input');
-            const paymentBtn = document.getElementById('payment-btn');
-            const backBtn = document.getElementById('back-btn');
+                // Инициализация элементов
+                const searchBtn = document.getElementById('search-button');
+                const searchInput = document.getElementById('search-input');
+                const paymentBtn = document.getElementById('payment-btn');
+                const backBtn = document.getElementById('back-btn');
 
-            // Обработчики событий
-            if (searchBtn) {
-                searchBtn.addEventListener('click', searchMember);
-            }
-
-            if (searchInput) {
-                // Поиск по Enter
-                searchInput.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') {
-                        searchMember();
-                    }
-                });
-
-                // Фокус на поле ввода
-                setTimeout(() => {
-                    searchInput.focus();
-                }, 100);
-            }
-
-            if (paymentBtn) {
-                paymentBtn.addEventListener('click', createPayment);
-            }
-
-            if (backBtn) {
-                backBtn.addEventListener('click', function () {
-                    showSection('search-section');
-                    if (searchInput) {
-                        searchInput.focus();
-                    }
-                });
-            }
-
-            // Проверка URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            const memberNumber = urlParams.get('memberNumber');
-            const email = urlParams.get('email');
-            const phone = urlParams.get('phone');
-
-            if (searchInput) {
-                if (email) {
-                    searchInput.value = email;
-                } else if (phone) {
-                    searchInput.value = phone;
+                // Обработчики событий
+                if (searchBtn) {
+                    searchBtn.addEventListener('click', searchMember);
                 }
-            }
 
-            // Если есть memberNumber в URL, показываем данные пользователя
-            if (memberNumber) {
-                console.log('memberNumber из URL:', memberNumber);
-                // Можно попробовать загрузить данные по memberNumber
-            }
-        });
+                if (searchInput) {
+                    // Поиск по Enter
+                    searchInput.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            searchMember();
+                        }
+                    });
 
-        // Функция для принудительного обновления страницы (для тестирования)
-        window.clearCache = function () {
-            console.log('Очистка кэша...');
-            if ('caches' in window) {
-                caches.keys().then(function (names) {
-                    for (let name of names) {
-                        caches.delete(name);
+                    // Фокус на поле ввода
+                    setTimeout(() => {
+                        searchInput.focus();
+                    }, 100);
+                }
+
+                if (paymentBtn) {
+                    paymentBtn.addEventListener('click', createPayment);
+                }
+
+                if (backBtn) {
+                    backBtn.addEventListener('click', function () {
+                        showSection('search-section');
+                        if (searchInput) {
+                            searchInput.focus();
+                        }
+                    });
+                }
+
+                // Проверка URL параметров
+                const urlParams = new URLSearchParams(window.location.search);
+                const memberNumber = urlParams.get('memberNumber');
+                const email = urlParams.get('email');
+                const phone = urlParams.get('phone');
+
+                if (searchInput) {
+                    if (email) {
+                        searchInput.value = email;
+                    } else if (phone) {
+                        searchInput.value = phone;
                     }
-                });
-            }
-            window.location.reload(true);
-        };
+                }
+
+                // Если есть memberNumber в URL, показываем данные пользователя
+                if (memberNumber) {
+                    console.log('memberNumber из URL:', memberNumber);
+                    // Можно попробовать загрузить данные по memberNumber
+                }
+            });
+
+            // Функция для принудительного обновления страницы (для тестирования)
+            window.clearCache = function () {
+                console.log('Очистка кэша...');
+                if ('caches' in window) {
+                    caches.keys().then(function (names) {
+                        for (let name of names) {
+                            caches.delete(name);
+                        }
+                    });
+                }
+                window.location.reload(true);
+            };
     </script>
 </body>
 
