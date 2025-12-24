@@ -1215,7 +1215,7 @@ class TildaController {
 
       return res.json({
         success: true,
-        paymentUrl: paymentUrl,
+        paymentUrl: paymentUrl.paymentUrl,
         orderId: orderId,
         paymentId: payment.id,
         message: 'Платеж успешно создан'
@@ -1324,6 +1324,7 @@ class TildaController {
             MemberNumber: memberNumber
           }
         };
+
 
         console.log('📤 Отправка в Tinkoff:', {
           ...paymentData,
