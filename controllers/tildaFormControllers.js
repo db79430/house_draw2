@@ -1317,7 +1317,7 @@ class TildaController {
           Amount: amount,
           OrderId: orderId,
           Description: `Внесение минимального паевого взноса в паевой фонд (Индивидуальный № пайщика: ${memberNumber})`,
-          NotificationURL: `${CONFIG.APP.BASE_URL}/tinkoff-callback`,
+          NotificationURL: `${CONFIG.APP.BASE_URL}/payment-notification`,
           DATA: {
             Email: user.email,
             Phone: user.phone,
