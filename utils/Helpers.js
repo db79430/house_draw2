@@ -14,33 +14,40 @@ class Helpers {
     return password;
   }
 
+  static normalizeCheckbox(value) {
+    if (value === 'on' || value === 'yes' || value === true || value === 'true' || value === 1) {
+      return 'yes';
+    }
+    return 'no';
+  }
+
   static normalizePhone(phone) {
     if (!phone) return null;
-        
-        // Получаем только цифры
-        const digits = phone.replace(/\D/g, '');
-        
-        // Если пусто
-        if (!digits) return null;
-        
-        // Если 11 цифр и начинается с 7 или 8
-        if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
-            // Возвращаем в формате +7XXXXXXXXXX
-            return '+7' + digits.slice(1);
-        }
-        // Если 10 цифр
-        else if (digits.length === 10) {
-            return '+7' + digits;
-        }
-        // Если меньше 10 цифр
-        else if (digits.length < 10) {
-            // Возможно, это без кода города
-            return digits;
-        }
-        
-        // Для других форматов возвращаем оригинал
-        return phone;
+
+    // Получаем только цифры
+    const digits = phone.replace(/\D/g, '');
+
+    // Если пусто
+    if (!digits) return null;
+
+    // Если 11 цифр и начинается с 7 или 8
+    if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+      // Возвращаем в формате +7XXXXXXXXXX
+      return '+7' + digits.slice(1);
     }
+    // Если 10 цифр
+    else if (digits.length === 10) {
+      return '+7' + digits;
+    }
+    // Если меньше 10 цифр
+    else if (digits.length < 10) {
+      // Возможно, это без кода города
+      return digits;
+    }
+
+    // Для других форматов возвращаем оригинал
+    return phone;
+  }
 
   static validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
