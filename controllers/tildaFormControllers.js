@@ -810,6 +810,7 @@ import Payment from '../models/Payment.js';
 import EmailService from '../services/EmailServices.js';
 import db from '../database/index.js';
 import crypto from 'crypto';
+import Helpers from '../utils/Helpers.js';
 
 class TildaController {
   async handleWebhook(req, res) {
@@ -1283,7 +1284,10 @@ class TildaController {
     Object.keys(tildaData).forEach(key => {
       if (!technicalFields.includes(key) && tildaData[key] !== undefined && tildaData[key] !== '') {
         if (key === 'Conditions' || key === 'Checkbox') {
-          formData[key] = this.normalizeCheckbox(tildaData[key]);
+          formData[key] = Helpers.normalizeCheckbox(tildaData[key]);
+        } else if (key === 'Phone') {
+          // Нормализуем телефон
+          formData[key] = Helpers.normalizePhone(tildaData[key]);
         } else {
           formData[key] = tildaData[key];
         }
@@ -1298,13 +1302,6 @@ class TildaController {
     };
 
     return { formData, tildaData: tildaMeta };
-  }
-
-  normalizeCheckbox(value) {
-    if (value === 'on' || value === 'yes' || value === true || value === 'true') {
-      return 'yes';
-    }
-    return 'no';
   }
 
   async createTinkoffPayment(user, memberNumber, orderId, amount) {

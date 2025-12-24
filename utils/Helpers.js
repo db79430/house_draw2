@@ -15,33 +15,32 @@ class Helpers {
   }
 
   static normalizePhone(phone) {
-    if (!phone) return '';
-
-    console.log(`📱 normalizePhone вход: ${phone}`);
-
-    // Убираем ВСЕ нецифровые символы включая скобки
-    const digits = phone.replace(/[^\d]/g, '');
-    console.log(`🔢 normalizePhone цифры: ${digits}`);
-
-    // Если номер российский (10 цифр или начинается с 7/8)
-    if (digits.length === 10) {
-      return '7' + digits; // Добавляем код страны
+    if (!phone) return null;
+        
+        // Получаем только цифры
+        const digits = phone.replace(/\D/g, '');
+        
+        // Если пусто
+        if (!digits) return null;
+        
+        // Если 11 цифр и начинается с 7 или 8
+        if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+            // Возвращаем в формате +7XXXXXXXXXX
+            return '+7' + digits.slice(1);
+        }
+        // Если 10 цифр
+        else if (digits.length === 10) {
+            return '+7' + digits;
+        }
+        // Если меньше 10 цифр
+        else if (digits.length < 10) {
+            // Возможно, это без кода города
+            return digits;
+        }
+        
+        // Для других форматов возвращаем оригинал
+        return phone;
     }
-
-    if (digits.length === 11) {
-      // Если начинается с 8 → меняем на 7
-      if (digits.startsWith('8')) {
-        return '7' + digits.substring(1);
-      }
-      // Если начинается с 7 → оставляем как есть
-      if (digits.startsWith('7')) {
-        return digits;
-      }
-    }
-
-    // Возвращаем как есть (для международных номеров)
-    return digits;
-  }
 
   static validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
