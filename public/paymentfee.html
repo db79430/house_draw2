@@ -682,9 +682,9 @@
 
                 const result = await response.json();
 
-                if (result.success && result.paymentUrl) {
+                if (result.success && result.PaymentURL) {
                     // Перенаправляем на страницу оплаты
-                    window.location.href = result.paymentUrl;
+                    window.location.href = result.PaymentURL;
                 } else {
                     throw new Error(result.error || 'Не удалось создать платеж');
                 }
