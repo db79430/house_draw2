@@ -1200,7 +1200,7 @@ class TildaController {
       // Создаем запись платежа
       const payment = await Payment.create({
         orderId: orderId,
-        user_id: user.id,
+        userId: user.id,
         amount: amount,
         description: `Внесение минимального паевого взноса (№ пайщика: ${memberNumber})`
       });

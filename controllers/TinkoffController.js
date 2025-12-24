@@ -15,7 +15,7 @@ class TinkoffController {
       
       if (Success && Status === 'CONFIRMED') {
         // Находим платеж по OrderId (вместе с данными пользователя)
-        const payment = await Payment.findByOrderId(OrderId);
+        const payment = await Payment.findByOrderIdWithUser(OrderId);
         
         if (!payment) {
           console.error('❌ Платеж не найден:', OrderId);
@@ -49,11 +49,13 @@ class TinkoffController {
         //   return res.status(200).send('OK');
         // }
 
-        // Обновляем статус пользователя на активный
-        await User.updateMembershipStatus(user.id, 'active');
+        
         
         // Обновляем статус платежа
-        await Payment.updateStatus(PaymentId, 'completed');
+        await Payment.updateStatus(PaymentId, 'completed', req.body);
+
+        // Обновляем статус пользователя на активный
+        await User.updateMembershipStatus(payment.user_id, 'active');
 
         console.log('✅ Payment processed, sending email to:', user.email);
 

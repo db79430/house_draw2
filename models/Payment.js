@@ -39,35 +39,41 @@ class Payment {
 
   static async findByOrderId(orderId) {
     try {
-      const query = `
-        SELECT 
-          p.*, 
-          u.id as user_id,
-          u.email,
-          u.fullname,
-          u.login,
-          u.membership_status
-        FROM payments p 
-        LEFT JOIN users u ON p.user_id = u.id 
-        WHERE p.order_id = $1
-      `;
-      const result = await db.oneOrNone(query, [orderId]);
+      console.log(`🔍 Поиск платежа по orderId: ${orderId}`);
 
-      if (result) {
-        console.log('✅ Payment found by orderId:', {
-          id: result.id,
-          order_id: result.order_id,
-          user_id: result.user_id, // Из таблицы payments
-          userId: result.user_id,  // Алиас для удобства
-          amount: result.amount,
-          status: result.status
+      // 🔴 ИСПРАВЛЕНИЕ: Делаем JOIN с таблицей users
+      const payment = await db.oneOrNone(`
+            SELECT 
+                p.*,
+                u.id as user_id,
+                u.email,
+                u.fullname,
+                u.login,
+                u.membership_status,
+                u.password
+            FROM payments p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.order_id = $1
+            LIMIT 1
+        `, [orderId]);
+
+      if (payment) {
+        console.log(`✅ Payment found by orderId:`, {
+          id: payment.id,
+          order_id: payment.order_id,
+          user_id: payment.user_id,
+          amount: payment.amount,
+          status: payment.status
         });
+      } else {
+        console.log(`❌ Payment not found for orderId: ${orderId}`);
       }
 
-      return result;
+      return payment;
+
     } catch (error) {
       console.error('❌ Error finding payment by orderId:', error);
-      throw error;
+      return null;
     }
   }
 
