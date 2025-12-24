@@ -1173,16 +1173,13 @@ class User {
         return null;
       }
 
-      let query;
-      let params;
-
       // 1. Сначала ищем по email (самый надежный)
       if (email) {
         const cleanEmail = email.toLowerCase().trim();
         console.log('📧 Поиск по email:', cleanEmail);
 
-        query = 'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1';
-        params = [cleanEmail];
+        const query = 'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1';
+        const params = [cleanEmail];
 
         const userByEmail = await db.oneOrNone(query, params);
         if (userByEmail) {
@@ -1192,7 +1189,8 @@ class User {
       }
 
       // 2. Если не нашли по email, ищем по телефону
-      if (phone && !userByEmail) {
+      // ОШИБКА БЫЛА ЗДЕСЬ: userByEmail был undefined во второй проверке
+      if (phone) {
         console.log('📱 Поиск по телефону:', phone);
 
         const normalizedPhone = Helpers.normalizePhone(phone);
@@ -1206,7 +1204,7 @@ class User {
         });
 
         // Оптимизированный запрос для поиска по телефону
-        query = `
+        const query = `
           SELECT * FROM users 
           WHERE phone IS NOT NULL 
           AND (
@@ -1218,7 +1216,7 @@ class User {
           LIMIT 1
         `;
 
-        params = [
+        const params = [
           digitsOnly,
           `%${last10Digits}%`,
           normalizedPhone,
@@ -1474,7 +1472,7 @@ class User {
     }
   }
 
-    static async updatePassword(userId, newPassword) {
+  static async updatePassword(userId, newPassword) {
     try {
       // ВРЕМЕННО: Сохраняем пароль как есть (без хэширования)
       const query = `
@@ -1489,6 +1487,169 @@ class User {
       return result;
     } catch (error) {
       console.error('❌ Error updating password:', error);
+      throw error;
+    }
+  }
+
+  static async findByLoginOrEmail(login) {
+    try {
+      console.log('🔍 Searching user by login/email:', login);
+
+      if (!login || login.trim() === '') {
+        console.log('❌ Login parameter is empty');
+        return null;
+      }
+
+      const cleanLogin = login.trim().toLowerCase();
+
+      // Ищем по email
+      const emailQuery = 'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1';
+      let user = await db.oneOrNone(emailQuery, [cleanLogin]);
+
+      if (user) {
+        console.log('✅ User found by email:', {
+          email: user.email,
+          password: user.password ? `"${user.password}"` : 'NULL/EMPTY',
+          passwordLength: user.password?.length,
+          passwordExists: !!user.password,
+          membership_status: user.membership_status,
+          id: user.id
+        });
+        return user;
+      }
+
+      // Если не нашли по email, ищем по login
+      const loginQuery = 'SELECT * FROM users WHERE LOWER(login) = $1 LIMIT 1';
+      user = await db.oneOrNone(loginQuery, [cleanLogin]);
+
+      if (user) {
+        console.log('✅ User found by login:', {
+          login: user.login,
+          password: user.password ? `"${user.password}"` : 'NULL/EMPTY',
+          passwordLength: user.password?.length,
+          passwordExists: !!user.password,
+          membership_status: user.membership_status,
+          id: user.id
+        });
+        return user;
+      }
+
+      console.log('❌ User not found by email or login:', cleanLogin);
+      return null;
+
+    } catch (error) {
+      console.error('❌ Error in findByLoginOrEmail:', error);
+      throw error;
+    }
+  }
+
+  static async updateLastLogin(userId) {
+    try {
+      const query = `
+        UPDATE users 
+        SET last_login = NOW(), updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, email, last_login
+      `;
+
+      const result = await db.one(query, [userId]);
+      console.log('✅ Last login updated for user:', {
+        userId,
+        email: result.email,
+        last_login: result.last_login
+      });
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating last login:', error);
+      throw error;
+    }
+  }
+
+
+
+  static async updatePaymentStatus(paymentId, status, tinkoffStatus = null) {
+    try {
+      const query = `
+        UPDATE users 
+        SET payment_status = $1, membership_status = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE payment_id = $3
+        RETURNING *
+      `;
+
+      const membershipStatus = status === 'completed' ? 'active' : 'pending_payment';
+      const result = await db.one(query, [status, membershipStatus, paymentId]);
+      console.log('✅ User payment status updated:', paymentId, '->', status);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating user payment status:', error);
+      throw error;
+    }
+  }
+
+  static async updateTinkoffPaymentId(userId, paymentId) {
+    try {
+      const query = `
+        UPDATE users 
+        SET payment_id = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+        RETURNING *
+      `;
+
+      return await db.one(query, [paymentId, userId]);
+    } catch (error) {
+      console.error('❌ Error updating Tinkoff payment ID:', error);
+      throw error;
+    }
+  }
+
+  static async markEmailSent(userId) {
+    try {
+      const query = `
+        UPDATE users 
+        SET email_sent = true, email_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING *
+      `;
+
+      return await db.one(query, [userId]);
+    } catch (error) {
+      console.error('❌ Error marking email as sent:', error);
+      throw error;
+    }
+  }
+
+  static async getPendingPayments() {
+    try {
+      const query = `
+        SELECT * FROM users 
+        WHERE payment_status = 'pending' 
+        AND membership_status = 'pending_payment'
+        AND created_at > NOW() - INTERVAL '24 hours'
+        ORDER BY created_at ASC
+      `;
+
+      return await db.any(query);
+    } catch (error) {
+      console.error('❌ Error getting pending payments:', error);
+      throw error;
+    }
+  }
+
+  static async getStatistics() {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) as total_users,
+          COUNT(CASE WHEN payment_status = 'completed' THEN 1 END) as completed_payments,
+          COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
+          COUNT(CASE WHEN membership_status = 'active' THEN 1 END) as active_members,
+          COUNT(CASE WHEN email_sent = true THEN 1 END) as emails_sent
+        FROM users
+      `;
+
+      return await db.one(query);
+    } catch (error) {
+      console.error('❌ Error getting statistics:', error);
       throw error;
     }
   }
