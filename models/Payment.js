@@ -77,6 +77,62 @@ class Payment {
     }
   }
 
+  static async findByOrderIdWithUser(orderId) {
+    try {
+      console.log(`🔍 Поиск платежа с данными пользователя по orderId: ${orderId}`);
+
+      const payment = await db.oneOrNone(`
+            SELECT 
+                p.id as payment_id,
+                p.order_id,
+                p.user_id,
+                p.amount,
+                p.status,
+                p.created_at as payment_created_at,
+                u.id as user_id,
+                u.email,
+                u.fullname,
+                u.phone,
+                u.membership_number,
+                u.membership_status,
+                u.password,
+                u.login
+            FROM payments p
+            INNER JOIN users u ON p.user_id = u.id
+            WHERE p.order_id = $1
+            LIMIT 1
+        `, [orderId]);
+
+      if (payment) {
+        console.log(`✅ Payment with user found:`, {
+          payment_id: payment.payment_id,
+          order_id: payment.order_id,
+          user_id: payment.user_id,
+          user_email: payment.email,
+          membership_status: payment.membership_status
+        });
+      } else {
+        console.log(`❌ Payment with user not found for orderId: ${orderId}`);
+
+        // Попробуем найти без JOIN для отладки
+        const simplePayment = await db.oneOrNone(
+          'SELECT * FROM payments WHERE order_id = $1',
+          [orderId]
+        );
+
+        if (simplePayment) {
+          console.log(`⚠️ Payment exists but user_id is null or invalid:`, simplePayment);
+        }
+      }
+
+      return payment;
+
+    } catch (error) {
+      console.error('❌ Error finding payment with user:', error);
+      return null;
+    }
+  }
+
   /**
    * Обновить статус платежа по order_id (строковому)
    */
