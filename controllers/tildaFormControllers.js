@@ -1181,7 +1181,7 @@ class TildaController {
       }
 
       // Проверяем успешные платежи
-      const successfulPayments = await Payment.findSuccessfulByUserId(user.id);
+      const successfulPayments = await Payment.findSuccessfulPaymentsByUserId(user.id);
 
       if (successfulPayments.length > 0) {
         return res.json({
@@ -1254,7 +1254,7 @@ class TildaController {
         });
       }
 
-      const successfulPayments = await Payment.findSuccessfulByUserId(user.id);
+      const successfulPayments = await Payment.findSuccessfulPaymentsByUserId(user.id);
 
       return res.json({
         success: true,
