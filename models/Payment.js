@@ -94,7 +94,7 @@ class Payment {
       );
 
       if (!existingPayment) {
-        console.error(`❌ Payment with order_id "${paymentId}" not found in database`);
+        console.error(`❌ Payment with order_id "${orderId}" not found in database`);
         console.log(`🔍 Available payments:`);
 
         try {
