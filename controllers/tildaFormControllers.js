@@ -1192,14 +1192,14 @@ class TildaController {
       }
 
       // Создаем платеж
-      const orderId = TokenGenerator.generateOrderId ? TokenGenerator.generateOrderId() : this.generateOrderId();
+      const orderId = TokenGenerator.generateOrderId();
       const amount = 1000;
 
       console.log('🚀 Создаем новый платеж...');
 
       // Создаем запись платежа
       const payment = await Payment.create({
-        order_id: orderId,
+        orderId: orderId,
         user_id: user.id,
         amount: amount,
         description: `Внесение минимального паевого взноса (№ пайщика: ${memberNumber})`
