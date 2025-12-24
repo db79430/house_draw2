@@ -1192,7 +1192,7 @@ class TildaController {
       }
 
       // Создаем платеж
-      const orderId = TokenGenerator.generateOrderId();
+      const orderId = TokenGenerator.generateOrderId ? TokenGenerator.generateOrderId() : this.generateOrderId();
       const amount = 1000;
 
       console.log('🚀 Создаем новый платеж...');
