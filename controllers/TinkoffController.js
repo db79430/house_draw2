@@ -53,7 +53,7 @@ class TinkoffController {
         await User.updateMembershipStatus(user.id, 'active');
         
         // Обновляем статус платежа
-        await Payment.updateStatus(OrderId, 'completed');
+        await Payment.updateStatus(PaymentId, 'completed');
 
         console.log('✅ Payment processed, sending email to:', user.email);
 
